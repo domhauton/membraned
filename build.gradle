@@ -1,0 +1,63 @@
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.0-M3'
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+ext.junit4Version        = '4.12'
+ext.junitVintageVersion  = '4.12.0-M3'
+ext.junitPlatformVersion = '1.0.0-M3'
+ext.junitJupiterVersion  = '5.0.0-M3'
+ext.log4jVersion         = '2.7'
+
+apply plugin: 'java'
+apply plugin: 'eclipse'
+apply plugin: 'idea'
+apply plugin: 'org.junit.platform.gradle.plugin'
+
+jar {
+    baseName = 'membrane'
+    version = '0.1.0-SNAPSHOT'
+}
+
+compileTestJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+    options.compilerArgs += '-parameters'
+}
+
+junitPlatform {
+    // platformVersion '1.0.0-M3'
+    filters {
+        engines {
+            // include 'junit-jupiter', 'junit-vintage'
+            // exclude 'custom-engine'
+        }
+        tags {
+            // include 'fast'
+            exclude 'slow'
+        }
+        // includeClassNamePattern '.*Test'
+    }
+    // enableStandardTestTask true
+    // reportsDir file('build/test-results/junit-platform') // this is the default
+    logManager 'org.apache.logging.log4j.jul.LogManager'
+}
+
+dependencies{
+    compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.8.6'
+    compile group: 'com.fasterxml.jackson.core', name: "jackson-databind", version: '2.8.6'
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    compile group: 'com.google.guava', name: 'guava', version: '21.0'
+
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M3'
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
+}
