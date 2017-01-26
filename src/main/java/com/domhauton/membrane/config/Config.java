@@ -1,5 +1,6 @@
 package com.domhauton.membrane.config;
 
+import com.domhauton.membrane.config.items.WatchFolder;
 import com.google.common.base.Objects;
 
 import java.util.ArrayList;
@@ -9,18 +10,14 @@ import java.util.List;
  * Created by dominic on 23/01/17.
  */
 class Config {
-    private List<String> folders;
+    private List<WatchFolder> folders;
 
     public Config() {
         folders = new ArrayList<>();
     }
 
-    public List<String> getFolders() {
+    public List<WatchFolder> getFolders() {
         return folders;
-    }
-
-    public void setFolders(List<String> folders) {
-        this.folders = folders;
     }
 
     @Override

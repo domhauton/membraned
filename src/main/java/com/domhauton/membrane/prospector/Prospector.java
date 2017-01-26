@@ -1,95 +1,177 @@
 package com.domhauton.membrane.prospector;
 
+import com.domhauton.membrane.config.items.WatchFolder;
+import com.google.common.collect.BiMap;
+import com.google.common.collect.HashBiMap;
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributeView;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.nio.file.attribute.FileTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
+import java.util.stream.IntStream;
+
+import static java.nio.file.StandardWatchEventKinds.ENTRY_CREATE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_DELETE;
+import static java.nio.file.StandardWatchEventKinds.ENTRY_MODIFY;
 
 /**
  * Created by dominic on 23/01/17.
- *
- * Scans folders searching for files.
  */
 public class Prospector {
+    private final static String SEP = java.nio.file.FileSystems.getDefault().getSeparator();
+    private final static int MAX_UPDATES = 1000;
 
-    private Logger logger;
-    private Path path;
-    private Map<String, DateTime> fileState;
+    private final Logger logger;
 
-    public Prospector(String filePath) {
-        this.path = Paths.get(filePath);
-        logger = org.apache.logging.log4j.LogManager.getLogger();
-        fileState = new HashMap<>();
-        logger.info("Prospector started for [{}]", filePath);
+    private final WatchService watchService;
+    private final BiMap<WatchKey, Path> keys;
+    private final Set<WatchFolder> watchFolders;
+
+
+    public Prospector() throws IOException {
+        logger = LogManager.getLogger();
+        watchService = FileSystems.getDefault().newWatchService();
+        keys = HashBiMap.create();
+        watchFolders = new HashSet<>();
     }
 
-    public Set<String> modifiedFiles() {
-        Map<String, DateTime> oldFileState = fileState;
-        fileState = getFolderState();
-
-        Set<String> addedFiles = fileState
-                .keySet()
-                .stream()
-                .filter(file -> !oldFileState.containsKey(file))
-                .peek(s -> logger.debug("File addition detected [{}]", s))
+    public Set<Path> rediscoverFolders() {
+        Set<Path> allFolders = watchFolders.stream()
+                .flatMap(x -> findMatchingFolders(x).stream())
                 .collect(Collectors.toSet());
-
-        Set<String> updatedFiles = fileState.entrySet()
-                .stream()
-                .filter(entry -> oldFileState.containsKey(entry.getKey()))
-                .filter(entry -> oldFileState.getOrDefault(entry.getKey(), new DateTime(0L))
-                                .isBefore(entry.getValue()))
-                .map(Map.Entry::getKey)
-                .peek(s -> logger.debug("File change detected [{}]", s))
-                .collect(Collectors.toSet());
-
-        Set<String> removedFiles = oldFileState
-                .keySet()
-                .stream()
-                .filter(file -> !fileState.containsKey(file))
-                .peek(s -> logger.debug("File remove detected [{}]", s))
-                .collect(Collectors.toSet());
-
-        updatedFiles.addAll(removedFiles);
-        updatedFiles.addAll(addedFiles);
-        return updatedFiles;
+        Collection<Path> newFolders = CollectionUtils.subtract(allFolders, keys.values());
+        Collection<Path> removedFolders = CollectionUtils.subtract(keys.values(), allFolders);
+        newFolders.stream()
+                .peek(x -> logger.trace("Found new folder {}", x))
+                .forEach(this::registerPath);
+        removedFolders.stream()
+                .peek(x -> logger.trace("Removing old folder"))
+                .map(x -> keys.inverse().get(x))
+                .peek(keys::remove)
+                .forEach(WatchKey::cancel);
+        return new HashSet<>(newFolders);
     }
 
-    Map<String, DateTime> getFolderState() {
-        Map<String, DateTime> retMap = new HashMap<>();
-        getFiles().forEach(s -> retMap.put(s, lastModifiedTime(s)));
-        return retMap;
+    public Set<Path> checkChanges() {
+        Set<Path> returnPaths = new HashSet<>();
+        for(int i = 0; i < MAX_UPDATES; i++) {
+            WatchKey key = null;
+            try{
+                // Pause for a slight bit to allow FS to report changes if very recent.
+                key= watchService.poll(5, TimeUnit.MILLISECONDS);
+            } catch (InterruptedException e) {
+                logger.debug("Watch Service interrupted during poll.");
+            }
+            if(key == null) {
+                logger.debug("{} files in {} watchFolders updated during sweep", returnPaths.size(), i);
+                return returnPaths;
+            }
+
+            Path fullPath = keys.getOrDefault(key, null);
+
+            for (WatchEvent<?> event: key.pollEvents()) {
+                WatchEvent.Kind kind = event.kind();
+                WatchEvent<Path> ev = cast(event);
+                Path path = ev.context();
+                if(!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
+                    logger.trace("Prospector detected file {} at [{}{}{}]", kind, fullPath, SEP, path);
+                    returnPaths.add(path);
+                }
+            }
+
+            boolean valid = key.reset();
+            if(!valid) {
+                logger.info("Watch Service key for {} invalid. No longer monitoring.", fullPath);
+                keys.remove(key);
+            }
+        }
+        logger.debug("Exceeded {} updates during sweep", MAX_UPDATES);
+        return returnPaths;
     }
 
-    DateTime lastModifiedTime(String file) {
-        Path p = Paths.get(file);
-        BasicFileAttributeView view = Files.getFileAttributeView(p, BasicFileAttributeView.class);
-        try {
-            BasicFileAttributes attributes = view.readAttributes();
-            FileTime fileTime = attributes.lastModifiedTime();
-            return new DateTime(fileTime.toMillis());
+    public Set<Path> addFolder(WatchFolder watchFolder) {
+        logger.info("Adding watch folder: {}", watchFolder.getDirectory());
+        watchFolders.add(watchFolder);
+        Set<Path> matchingFolders = findMatchingFolders(watchFolder);
+        matchingFolders.forEach(this::registerPath);
+        return matchingFolders;
+    }
+
+    Optional<WatchKey> registerPath(Path path) {
+        try{
+            WatchKey watchKey = path.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+            logger.info("Watching Path [{}]", path.toString());
+            keys.put(watchKey, path);
+            return Optional.of(watchKey);
         } catch (IOException e) {
-            return DateTime.now(); // If can't fetch time assume modification.
+            logger.error("Failed to start watching path due to IO error. [{}]", path.toString());
+            return Optional.empty();
         }
     }
 
-    List<String> getFiles() {
-        try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(path)) {
-            return StreamSupport.stream(directoryStream.spliterator(), false)
-                    .map(Path::toString)
-                    .collect(Collectors.toList());
-        } catch (IOException ex) {
-            return Collections.emptyList();
+    Set<Path> findMatchingFolders(final WatchFolder watchFolder) {
+        final Path searchRoot = Paths.get(findRoot(watchFolder.getDirectory()));
+        String[] splitPattern = watchFolder.getDirectory().split(SEP);
+        Set<Path> matchingFolders = findMatchingFolders(searchRoot, splitPattern, watchFolder.getRecursive());
+        logger.trace("Found {} directories matching {}", matchingFolders.size(), watchFolder.getDirectory());
+        return matchingFolders;
+    }
+
+    Set<Path> findMatchingFolders(final Path searchRoot, final String[] pattern, final boolean recursive) {
+        final Set<Path> retSet = new HashSet<>();
+        try {
+            Files.walkFileTree(searchRoot, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                    logger.trace("Checking {}", dir.toString());
+                    String[] splitDir = dir.toString().split(SEP);
+                    if(directoriesMatch(pattern, splitDir, recursive)) {
+                        retSet.add(dir);
+                    }
+                    if(!recursive && splitDir.length > pattern.length) { // Don't go too deep
+                        return FileVisitResult.SKIP_SUBTREE;
+                    } else {
+                        return FileVisitResult.CONTINUE;
+                    }
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Could not find watchFolders matching [{}]. No access to root [{}].", searchRoot.toString());
         }
+        return retSet;
+    }
+
+    private String findRoot(String dir) {
+        String[] splitPattern = dir.split(SEP);
+        List<String> folderList = new LinkedList<>();
+        for(String section : splitPattern) {
+            if(section.equals("*")) {
+                break;
+            } else {
+                folderList.add(section);
+            }
+        }
+        return String.join(SEP, folderList);
+    }
+
+    private boolean directoriesMatch(String[] splitPattern, String[] splitDirectory, boolean recursive) {
+        boolean notRecursiveAndLengthDiff = !recursive && splitPattern.length != splitDirectory.length;
+        boolean recursiveAndTooShort = recursive && splitDirectory.length < splitPattern.length;
+        if( notRecursiveAndLengthDiff || recursiveAndTooShort ) {
+            return false;
+        }
+        // Match section by section now
+        return IntStream.range(0, splitPattern.length).boxed()
+                .allMatch(i -> !splitPattern[i].equals("*") || !splitDirectory[i].equalsIgnoreCase(splitPattern[i]));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> WatchEvent<T> cast(WatchEvent<?> event) {
+        return (WatchEvent<T>)event;
     }
 }
