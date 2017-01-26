@@ -2,6 +2,8 @@ package com.domhauton.membrane.prospector;
 
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
+import com.google.common.io.ByteProcessor;
+import com.google.common.io.ByteSource;
 import com.google.common.io.Files;
 
 import java.io.File;
@@ -17,14 +19,18 @@ import java.security.MessageDigest;
  */
 public class ManagedFile {
     private final Path filePath;
-    private HashCode crc32;
+    private final ByteSource byteSource;
 
     public ManagedFile(Path filePath) {
         this.filePath = filePath;
+        byteSource = Files.asByteSource(filePath.toFile());
     }
 
-    private HashCode hashFile() throws IOException {
-        File loadedFile = filePath.toFile();
-        return Files.hash(loadedFile, Hashing.md5());
+    public byte[] getBytes() throws IOException {
+        return byteSource.read();
+    }
+
+    private HashCode getStrongHash() throws IOException {
+        return Hashing.md5().hashBytes(getBytes());
     }
 }
