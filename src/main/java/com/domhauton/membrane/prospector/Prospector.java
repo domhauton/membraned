@@ -72,21 +72,22 @@ public class Prospector {
                 return returnPaths;
             }
 
-            Path fullPath = keys.getOrDefault(key, null);
+            Path basePath = keys.getOrDefault(key, null);
 
             for (WatchEvent<?> event: key.pollEvents()) {
                 WatchEvent.Kind kind = event.kind();
                 WatchEvent<Path> ev = cast(event);
                 Path path = ev.context();
-                if(!Files.isDirectory(path, LinkOption.NOFOLLOW_LINKS)) {
-                    logger.trace("Prospector detected file {} at [{}{}{}]", kind, fullPath, SEP, path);
-                    returnPaths.add(path);
+                Path fullPath = Paths.get(basePath.toString() + SEP + path.toString());
+                if(!Files.isDirectory(fullPath, LinkOption.NOFOLLOW_LINKS)) {
+                    logger.trace("Prospector detected file {} at [{}]", kind, fullPath);
+                    returnPaths.add(fullPath);
                 }
             }
 
             boolean valid = key.reset();
             if(!valid) {
-                logger.info("Watch Service key for {} invalid. No longer monitoring.", fullPath);
+                logger.info("Watch Service key for {} invalid. No longer monitoring.", basePath);
                 keys.remove(key);
             }
         }

@@ -9,6 +9,8 @@ public class WatchFolder {
     private String directory;
     private Boolean recursive;
 
+    private WatchFolder() {} // Used for loading
+
     public WatchFolder(String directory, Boolean recursive) {
         this.directory = directory;
         this.recursive = recursive;

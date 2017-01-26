@@ -48,7 +48,8 @@ junitPlatform {
     }
     // enableStandardTestTask true
     // reportsDir file('build/test-results/junit-platform') // this is the default
-    logManager 'org.apache.logging.log4j.jul.LogManager'
+
+    // logManager 'org.apache.logging.log4j.jul.LogManager'
 }
 
 dependencies{
@@ -61,7 +62,9 @@ dependencies{
     compile group: 'joda-time', name: 'joda-time', version: '2.9.7'
     // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
+}
 
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M3'
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
+dependencies {
+    testCompile("org.junit.jupiter:junit-jupiter-api:5.0.0-M3")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.0.0-M3")
 }
