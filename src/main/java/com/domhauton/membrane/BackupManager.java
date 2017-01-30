@@ -1,7 +1,11 @@
 package com.domhauton.membrane;
 
+import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
+import com.domhauton.membrane.prospector.FileManager;
+import com.domhauton.membrane.prospector.FileManagerException;
+import com.domhauton.membrane.storage.StorageManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -10,16 +14,20 @@ import org.apache.logging.log4j.Logger;
  */
 public class BackupManager {
     private ConfigManager configManager;
+    private FileManager fileManager;
+    private StorageManager storageManager;
     private Logger logger;
 
     public BackupManager() {
         logger = LogManager.getLogger();
         configManager = new ConfigManager();
         try {
-            configManager.loadConfig();
-            configManager.saveConfig();
-        } catch (ConfigException e) {
-           // e.printStackTrace();
+            Config config = configManager.loadConfig();
+            fileManager = new FileManager();
+            storageManager = new StorageManager();
+            config.getFolders().forEach(fileManager::addWatchfolder);
+        } catch (ConfigException | FileManagerException e) {
+           e.printStackTrace();
         }
     }
 }

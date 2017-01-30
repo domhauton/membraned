@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * Created by dominic on 23/01/17.
  */
-class Config {
+public class Config {
     private List<WatchFolder> folders;
 
     public Config() {
