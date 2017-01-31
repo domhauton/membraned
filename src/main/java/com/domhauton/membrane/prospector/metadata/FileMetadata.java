@@ -52,8 +52,8 @@ public class FileMetadata {
             return false;
         }
         boolean weakHashCodeMatch = that.getWeakHash().equals(this.getWeakHash());
-        boolean strongHashCodeMatch = that.getStrongHash().equals(this.getStrongHash());
-        return weakHashCodeMatch && strongHashCodeMatch;
+
+        return weakHashCodeMatch && that.getStrongHash().equals(this.getStrongHash());
     }
 
     @Override

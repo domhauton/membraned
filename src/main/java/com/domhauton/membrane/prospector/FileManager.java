@@ -47,8 +47,16 @@ public class FileManager {
     }
 
     public void runScanners() {
-        scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, FILE_RESCAN_FREQ_SEC, TimeUnit.SECONDS);
-        scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, FOLDER_RESCAN_FREQ_SEC, TimeUnit.SECONDS);
+        runScanners(FILE_RESCAN_FREQ_SEC, FOLDER_RESCAN_FREQ_SEC);
+    }
+
+    void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
+        scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, fileRescanFrequency, TimeUnit.SECONDS);
+        scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
+    }
+
+    public void addStorageManager(StorageManager storageManager) {
+        storageManagers.add(storageManager);
     }
 
     public void addWatchfolder(WatchFolder watchFolder) {
@@ -56,12 +64,12 @@ public class FileManager {
         addExistingFiles(newPaths);
     }
 
-    private void checkFileChanges() {
+    void checkFileChanges() {
         prospector.checkChanges()
                 .forEach(this::addFile);
     }
 
-    private void checkFolderChanges() {
+    void checkFolderChanges() {
         prospector.rediscoverFolders()
                 .stream()
                 .map(Arrays::asList)
@@ -70,6 +78,7 @@ public class FileManager {
 
     private void addExistingFiles(Collection<Path> folders) {
         folders.stream()
+                .peek(x -> logger.debug("Adding folder to file manager: [{}]", x))
                 .map(Path::toFile)
                 .map(File::listFiles)
                 .flatMap(Arrays::stream)
@@ -93,10 +102,10 @@ public class FileManager {
         byte[] buffer = new byte[MAX_CHUNK_SIZE];
         DateTime fileLastModified = new DateTime(file.lastModified());
         List<String> shardList = new LinkedList<>();
+        logger.trace("File size of [{}] is {}MB", path::toString, () -> ((float) file.length())/(1024*1024));
         boolean hasFileChanged = false;
         try (
-                FileInputStream inputStream = new FileInputStream(file);
-                FileLock lock = inputStream.getChannel().lock() // Need for auto close on exit.
+                FileInputStream inputStream = new FileInputStream(file)
         ) {
             for(int chunkSize = inputStream.read(buffer); chunkSize != -1; chunkSize = inputStream.read(buffer)) {
                 FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), shardList.size()+1, buffer)
@@ -110,6 +119,10 @@ public class FileManager {
                 if (hasShardChanged) {
                     // New shards must be pushed to the storage managers.
                     final int currentChunkSize = chunkSize;
+                    logger.trace("Chunk {} from file [{}] of size {}MB sent to storage.",
+                            shardList::size,
+                            path::toString,
+                            () -> ((float) currentChunkSize)/(1024*1024));
                     storageManagers.forEach(sm -> sm.storeShard(fileMetadata.getStrongHash(), buffer, currentChunkSize));
                     managedFiles.put(getKey(path, shardList.size()), fileMetadata);
                 }

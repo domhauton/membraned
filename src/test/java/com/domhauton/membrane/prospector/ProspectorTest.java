@@ -15,6 +15,8 @@ import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.stream.IntStream;
 
+import static com.domhauton.membrane.prospector.ProspectorTestUtils.*;
+
 
 /**
  * Created by dominic on 23/01/17.
@@ -54,56 +56,7 @@ class ProspectorTest {
         watchFolderNonRec = new WatchFolder(testDir, false);
     }
 
-    private String createRandomFolder(String baseDir) throws Exception {
-        String tmpDir = baseDir;
-        Path tmpPath = Paths.get(baseDir);
-        while(Files.exists(tmpPath, LinkOption.NOFOLLOW_LINKS)) {
-            tmpDir = baseDir + sep + new BigInteger(130, new SecureRandom()).toString(32);
-            tmpPath = Paths.get(tmpDir);
-        }
-        Files.createDirectory(tmpPath);
-        return tmpDir;
-    }
 
-    private void createTestFiles(String baseDir) throws Exception {
-        IntStream.range(1, 10).boxed()
-                .map(Object::toString)
-                .map(num -> Paths.get(baseDir + sep + num))
-                .forEach(path -> {
-                    try {
-                        Files.createFile(path);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-    }
-
-    private void modifyTestFiles(String baseDir) throws Exception {
-        IntStream.range(1, 5).boxed()
-                .map(Object::toString)
-                .map(num -> Paths.get(baseDir + sep + num))
-                .forEach(path -> {
-                    try {
-                        Files.write(path, "foobar".getBytes());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-    }
-
-
-    private void removeTestFiles(String baseDir) throws Exception {
-        IntStream.range(1, 10).boxed()
-                .map(Object::toString)
-                .map(num -> Paths.get(baseDir + sep + num))
-                .forEach(path -> {
-                    try {
-                        Files.delete(path);
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                });
-    }
 
     @Test
     @DisplayName("Test basic file detection")
@@ -111,7 +64,7 @@ class ProspectorTest {
         prospector.addFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         removeTestFiles(testDir);
     }
 
@@ -121,10 +74,10 @@ class ProspectorTest {
         prospector.addFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
     }
 
@@ -135,13 +88,13 @@ class ProspectorTest {
         Assertions.assertEquals(0, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(4, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
     }
 
@@ -153,16 +106,16 @@ class ProspectorTest {
         Assertions.assertEquals(0, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testRecDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(4, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDir));
@@ -176,15 +129,15 @@ class ProspectorTest {
         Assertions.assertEquals(0, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testRecDir);
         Assertions.assertEquals(0, prospector.checkChanges().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(4, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDir));
@@ -203,7 +156,7 @@ class ProspectorTest {
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testRecDir);
         createTestFiles(testRecDirInner);
-        Assertions.assertEquals(9, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
         removeTestFiles(testDir);
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testRecDirInner);
@@ -225,7 +178,7 @@ class ProspectorTest {
         Assertions.assertEquals(0, prospector.checkChanges().size());
         createTestFiles(testRecDir);
         createTestFiles(testRecDirInner);
-        Assertions.assertEquals(18, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT * 2, prospector.checkChanges().size());
         removeTestFiles(testDir);
         Assertions.assertEquals(0, prospector.checkChanges().size());
         removeTestFiles(testRecDirInner);
