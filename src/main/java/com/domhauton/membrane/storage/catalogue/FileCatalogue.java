@@ -2,9 +2,9 @@ package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.metadata.FileOperation;
 import com.domhauton.membrane.storage.metadata.FileVersion;
-import com.domhauton.membrane.storage.shard.ShardStorageImpl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
-import sun.awt.image.ImageWatched;
 
 import java.nio.file.Path;
 import java.util.*;
@@ -14,45 +14,47 @@ import java.util.stream.Collectors;
  * Created by dominic on 30/01/17.
  */
 public class FileCatalogue {
-    Map<Path, FileVersion> baseFileInfoMap;
-    Map<Path, FileVersion> fileInfoMap;
-    StorageJournal storageJournal;
+    private Logger logger;
+    private Map<Path, FileVersion> baseFileInfoMap;
+    private Map<Path, FileVersion> fileInfoMap;
+    private StorageJournal storageJournal;
 
     public FileCatalogue() {
         this(new HashMap<>());
     }
 
     public FileCatalogue(Map<Path, FileVersion> baseFileInfoMap) {
-        this(baseFileInfoMap, Collections.emptyList());
+        this(baseFileInfoMap, new StorageJournal(new LinkedList<>()));
     }
 
-    private FileCatalogue(Map<Path, FileVersion> baseFileInfoMap, List<JournalEntry> journalEntries) {
+    private FileCatalogue(Map<Path, FileVersion> baseFileInfoMap, StorageJournal storageJournal) {
+        logger = LogManager.getLogger();
         this.baseFileInfoMap = baseFileInfoMap;
-        this.fileInfoMap = new HashMap<>();
-        fileInfoMap.putAll(baseFileInfoMap);
-        storageJournal = new StorageJournal(journalEntries);
-        journalEntries.forEach(this::addJournalEntry);
+        this.storageJournal = storageJournal;
+        this.fileInfoMap = storageJournal.mapWithJournal(baseFileInfoMap);
     }
 
-    public void collapseJournal() {
-        baseFileInfoMap = fileInfoMap;
-        fileInfoMap = new HashMap<>();
-        storageJournal = new StorageJournal();
+    public FileCatalogue collapseJournal(DateTime until) {
+        StorageJournal oldJournal = storageJournal.getJournalEntriesBeforeTime(until);
+        StorageJournal newJournal = storageJournal.getJournalEntriesAfterTime(until);
+        Map<Path, FileVersion> newBaseMap = oldJournal.mapWithJournal(baseFileInfoMap);
+        return new FileCatalogue(newBaseMap, newJournal);
     }
 
     public FileCatalogue getCatalogueAtTime(DateTime until) {
-        return new FileCatalogue(baseFileInfoMap, storageJournal.getJournalEntries(until));
+        StorageJournal newJournal = storageJournal.getJournalEntriesBeforeTime(until);
+        return new FileCatalogue(baseFileInfoMap, newJournal);
     }
 
     public void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath) {
         FileVersion fileVersion = new FileVersion(shardHash, modificationDateTime, storedPath);
-        storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath);
+        storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
         fileInfoMap.put(storedPath, fileVersion);
     }
 
     public void removeFile(Path storedPath, DateTime modificationDateTime) {
         FileVersion fileVersion = new FileVersion(Collections.emptyList(), modificationDateTime, storedPath);
-        storageJournal.addEntry(fileVersion, FileOperation.REMOVE, storedPath);
+        storageJournal.addEntry(fileVersion, FileOperation.REMOVE, storedPath, modificationDateTime);
         fileInfoMap.remove(storedPath);
     }
 
@@ -60,28 +62,13 @@ public class FileCatalogue {
         return Optional.ofNullable(fileInfoMap.get(path));
     }
 
-    private void addJournalEntry(JournalEntry journalEntry) {
-        switch(journalEntry.getFileOperation()) {
-            case ADD:
-                fileInfoMap.put(journalEntry.getFilePath(), journalEntry.getShardInfo());
-                break;
-            case REMOVE:
-            default:
-                fileInfoMap.remove(journalEntry.getFilePath());
-        }
-    }
-
     public Set<String> getReferencedShards() {
-        Set<String> baseShards = fileInfoMap.values().stream()
+        Set<String> retShards = baseFileInfoMap.values().stream()
                 .map(FileVersion::getShardHash)
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
-        Set<String> journalShards = storageJournal.getJournalEntries().stream()
-                .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getShardHash)
-                .flatMap(List::stream)
-                .collect(Collectors.toSet());
-        baseShards.addAll(journalShards);
-        return baseShards;
+        Set<String> journalShards = storageJournal.getReferencedShards();
+        retShards.addAll(journalShards);
+        return retShards;
     }
 }
