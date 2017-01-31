@@ -24,7 +24,7 @@ import java.util.concurrent.TimeUnit;
 public class FileManager {
     private static final int FILE_RESCAN_FREQ_SEC = 10;
     private static final int FOLDER_RESCAN_FREQ_SEC = 120;
-    private static final int CHUNK_SIZE_4MB = 1024 * 1024 * 4; // 4MB
+    private static final int MAX_CHUNK_SIZE = 1024 * 1024 * 64; // 64MB
 
     private final Logger logger;
     private final Prospector prospector;
@@ -90,7 +90,7 @@ public class FileManager {
     }
 
     private void fileChanged(Path path, File file) {
-        byte[] buffer = new byte[CHUNK_SIZE_4MB];
+        byte[] buffer = new byte[MAX_CHUNK_SIZE];
         DateTime fileLastModified = new DateTime(file.lastModified());
         List<String> shardList = new LinkedList<>();
         boolean hasFileChanged = false;
@@ -98,22 +98,21 @@ public class FileManager {
                 FileInputStream inputStream = new FileInputStream(file);
                 FileLock lock = inputStream.getChannel().lock() // Need for auto close on exit.
         ) {
-            int chunk = 0;
-            while (inputStream.read(buffer) != -1) {
-                FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), chunk, buffer)
+            for(int chunkSize = inputStream.read(buffer); chunkSize != -1; chunkSize = inputStream.read(buffer)) {
+                FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), shardList.size()+1, buffer)
                         .setModifiedTime(fileLastModified)
                         .build();
-                shardList.add(fileMetadata.getStrongHashCode().toString());
+                shardList.add(fileMetadata.getStrongHash().toString());
                 // Check if chunk has changed
-                FileMetadata oldMetaData = managedFiles.getOrDefault(getKey(path, chunk), null);
+                FileMetadata oldMetaData = managedFiles.getOrDefault(getKey(path, shardList.size()), null);
                 boolean hasShardChanged = !fileMetadata.hashCodeEqual(oldMetaData);
                 hasFileChanged |= hasShardChanged;
                 if (hasShardChanged) {
                     // New shards must be pushed to the storage managers.
-                    storageManagers.forEach(sm -> sm.storeShard(fileMetadata.getStrongHashCode(), buffer));
-                    managedFiles.put(getKey(path, chunk), fileMetadata);
+                    final int currentChunkSize = chunkSize;
+                    storageManagers.forEach(sm -> sm.storeShard(fileMetadata.getStrongHash(), buffer, currentChunkSize));
+                    managedFiles.put(getKey(path, shardList.size()), fileMetadata);
                 }
-                chunk++;
             }
             // If there was a change update the storage managers.
             if(hasFileChanged) {

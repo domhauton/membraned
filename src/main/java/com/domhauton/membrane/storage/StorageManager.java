@@ -1,5 +1,6 @@
 package com.domhauton.membrane.storage;
 
+import com.domhauton.membrane.storage.catalogue.FileCatalogue;
 import com.domhauton.membrane.storage.shard.ShardStorageImpl;
 import com.google.common.hash.HashCode;
 import org.joda.time.DateTime;
@@ -17,7 +18,7 @@ public class StorageManager {
     public StorageManager() {
     }
 
-    public void storeShard(HashCode hashCode, byte[] data) {
+    public void storeShard(HashCode hashCode, byte[] data, int chunkSize) {
         shardStorage.storeShard(hashCode.toString(), data);
     }
 

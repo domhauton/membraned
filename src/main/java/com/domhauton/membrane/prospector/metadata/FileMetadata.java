@@ -2,7 +2,6 @@ package com.domhauton.membrane.prospector.metadata;
 
 import com.google.common.base.Objects;
 import com.google.common.hash.HashCode;
-import com.google.common.hash.Hashing;
 
 import org.joda.time.DateTime;
 
@@ -14,22 +13,22 @@ public class FileMetadata {
     private final int chunk;
     private final DateTime modifiedTime;
     private final DateTime accessTime;
-    private final HashCode strongHashCode;
-    private final HashCode weakHashCode;
+    private final HashCode strongHash;
+    private final HashCode weakHash;
 
     FileMetadata(
             String fullPath,
             int chunk,
             DateTime modifiedTime,
             DateTime accessTime,
-            HashCode strongHashCode,
-            HashCode weakHashCode) {
+            HashCode strongHash,
+            HashCode weakHash) {
         this.fullPath = fullPath;
         this.chunk = chunk;
         this.modifiedTime = modifiedTime;
         this.accessTime = accessTime;
-        this.strongHashCode = strongHashCode;
-        this.weakHashCode = weakHashCode;
+        this.strongHash = strongHash;
+        this.weakHash = weakHash;
     }
 
     public String getFullPath() {
@@ -40,20 +39,20 @@ public class FileMetadata {
         return modifiedTime;
     }
 
-    public HashCode getStrongHashCode() {
-        return strongHashCode;
+    public HashCode getStrongHash() {
+        return strongHash;
     }
 
-    private HashCode getWeakHashCode() {
-        return weakHashCode;
+    private HashCode getWeakHash() {
+        return weakHash;
     }
 
     public synchronized boolean hashCodeEqual(FileMetadata that) {
         if(that == null) {
             return false;
         }
-        boolean weakHashCodeMatch = that.getWeakHashCode().equals(this.getWeakHashCode());
-        boolean strongHashCodeMatch = that.getStrongHashCode().equals(this.getStrongHashCode());
+        boolean weakHashCodeMatch = that.getWeakHash().equals(this.getWeakHash());
+        boolean strongHashCodeMatch = that.getStrongHash().equals(this.getStrongHash());
         return weakHashCodeMatch && strongHashCodeMatch;
     }
 
@@ -64,12 +63,12 @@ public class FileMetadata {
         FileMetadata that = (FileMetadata) o;
         return Objects.equal(fullPath, that.fullPath) &&
                 Objects.equal(accessTime, that.accessTime) &&
-                Objects.equal(strongHashCode, that.strongHashCode) &&
-                Objects.equal(weakHashCode, that.weakHashCode);
+                Objects.equal(strongHash, that.strongHash) &&
+                Objects.equal(weakHash, that.weakHash);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(fullPath, accessTime, strongHashCode, weakHashCode);
+        return Objects.hashCode(fullPath, accessTime, strongHash, weakHash);
     }
 }

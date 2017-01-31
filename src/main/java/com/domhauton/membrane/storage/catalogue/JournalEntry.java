@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.journal;
+package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.metadata.FileVersion;
 import com.domhauton.membrane.storage.metadata.FileOperation;
