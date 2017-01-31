@@ -17,7 +17,6 @@ public class FileCatalogue {
     Map<Path, FileVersion> baseFileInfoMap;
     Map<Path, FileVersion> fileInfoMap;
     StorageJournal storageJournal;
-    ShardStorageImpl shardStorage;
 
     public FileCatalogue() {
         this(new HashMap<>());
@@ -57,6 +56,10 @@ public class FileCatalogue {
         fileInfoMap.remove(storedPath);
     }
 
+    public Optional<FileVersion> getFileVersion(Path path) {
+        return Optional.ofNullable(fileInfoMap.get(path));
+    }
+
     private void addJournalEntry(JournalEntry journalEntry) {
         switch(journalEntry.getFileOperation()) {
             case ADD:
@@ -66,5 +69,19 @@ public class FileCatalogue {
             default:
                 fileInfoMap.remove(journalEntry.getFilePath());
         }
+    }
+
+    public Set<String> getReferencedShards() {
+        Set<String> baseShards = fileInfoMap.values().stream()
+                .map(FileVersion::getShardHash)
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
+        Set<String> journalShards = storageJournal.getJournalEntries().stream()
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getShardHash)
+                .flatMap(List::stream)
+                .collect(Collectors.toSet());
+        baseShards.addAll(journalShards);
+        return baseShards;
     }
 }

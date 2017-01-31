@@ -89,7 +89,6 @@ public class ConfigManager {
 
     String getDefaultExternalLocation() {
         String home = System.getProperty("user.home");
-        String separator = java.nio.file.FileSystems.getDefault().getSeparator();
-        return home + separator + ".config" + separator + "membrane.yaml";
+        return home + File.separator + ".config" + File.separator + "membrane.yaml";
     }
 }

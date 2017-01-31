@@ -4,6 +4,7 @@ import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.metadata.FileMetadata;
 import com.domhauton.membrane.prospector.metadata.FileMetadataBuilder;
 import com.domhauton.membrane.storage.StorageManager;
+import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -11,7 +12,6 @@ import org.joda.time.DateTime;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.nio.channels.FileLock;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -30,6 +30,8 @@ public class FileManager {
     private final Prospector prospector;
     private final Map<String, FileMetadata> managedFiles;
 
+    private Set<Path> queuedAdditions;
+
     private final ScheduledExecutorService scanExecutor;
     private final Collection<StorageManager> storageManagers;
 
@@ -43,6 +45,9 @@ public class FileManager {
         }
         this.managedFiles = new HashMap<>();
         storageManagers = new LinkedList<>();
+
+        queuedAdditions = new HashSet<>();
+
         scanExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
@@ -55,25 +60,30 @@ public class FileManager {
         scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
     }
 
-    public void addStorageManager(StorageManager storageManager) {
+    void addStorageManager(StorageManager storageManager) {
         storageManagers.add(storageManager);
     }
 
-    public void addWatchfolder(WatchFolder watchFolder) {
+    public void addWatchFolder(WatchFolder watchFolder) {
         Set<Path> newPaths = prospector.addFolder(watchFolder);
         addExistingFiles(newPaths);
     }
 
-    void checkFileChanges() {
-        prospector.checkChanges()
-                .forEach(this::addFile);
+    private void checkFileChanges() {
+        ProspectorChangeSet pcs = prospector.checkChanges();
+        Set<Path> retryPaths = queuedAdditions;
+        queuedAdditions = new HashSet<>();
+
+        retryPaths.forEach(this::addFile);
+        pcs.getChangedFiles().forEach(this::addFile);
+        pcs.getRemovedFiles().forEach(this::removeFile);
+        if(pcs.hasOverflown()) {
+            addExistingFiles(prospector.getWatchedFolders());
+        }
     }
 
     void checkFolderChanges() {
-        prospector.rediscoverFolders()
-                .stream()
-                .map(Arrays::asList)
-                .forEach(this::addExistingFiles);
+        addExistingFiles(prospector.rediscoverFolders());
     }
 
     private void addExistingFiles(Collection<Path> folders) {
@@ -98,6 +108,12 @@ public class FileManager {
         }
     }
 
+    private void removeFile(Path path) {
+        for(StorageManager sm : storageManagers) {
+            sm.removeFile(path, DateTime.now());
+        }
+    }
+
     private void fileChanged(Path path, File file) {
         byte[] buffer = new byte[MAX_CHUNK_SIZE];
         DateTime fileLastModified = new DateTime(file.lastModified());
@@ -108,7 +124,13 @@ public class FileManager {
                 FileInputStream inputStream = new FileInputStream(file)
         ) {
             for(int chunkSize = inputStream.read(buffer); chunkSize != -1; chunkSize = inputStream.read(buffer)) {
-                FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), shardList.size()+1, buffer)
+                byte[] tailoredArray;
+                if(buffer.length != chunkSize) {
+                    tailoredArray = Arrays.copyOf(buffer, chunkSize);
+                } else {
+                    tailoredArray = buffer;
+                }
+                FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), shardList.size()+1, tailoredArray)
                         .setModifiedTime(fileLastModified)
                         .build();
                 shardList.add(fileMetadata.getStrongHash().toString());
@@ -123,7 +145,9 @@ public class FileManager {
                             shardList::size,
                             path::toString,
                             () -> ((float) currentChunkSize)/(1024*1024));
-                    storageManagers.forEach(sm -> sm.storeShard(fileMetadata.getStrongHash(), buffer, currentChunkSize));
+                    for(StorageManager sm : storageManagers) {
+                        sm.storeShard(fileMetadata.getStrongHash().toString(), tailoredArray);
+                    }
                     managedFiles.put(getKey(path, shardList.size()), fileMetadata);
                 }
             }
@@ -135,7 +159,10 @@ public class FileManager {
                 logger.debug("File rescanned but no changed detected [{}].", path);
             }
         } catch (IOException e) {
-            logger.error("Error while reading from file [{}]", path);
+            logger.error("Error while reading from file [{}]. Ignoring file.", path);
+        } catch (StorageManagerException e) {
+            queuedAdditions.add(path);
+            logger.error("Error while storing shard of file. Read attempt re-queued. [{}]", path);
         }
     }
 

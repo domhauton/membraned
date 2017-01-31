@@ -41,9 +41,7 @@ public class Prospector {
     }
 
     public Set<Path> rediscoverFolders() {
-        Set<Path> allFolders = watchFolders.stream()
-                .flatMap(x -> findMatchingFolders(x).stream())
-                .collect(Collectors.toSet());
+        Set<Path> allFolders = getWatchedFolders();
         Collection<Path> newFolders = CollectionUtils.subtract(allFolders, keys.values());
         Collection<Path> removedFolders = CollectionUtils.subtract(keys.values(), allFolders);
         newFolders.stream()
@@ -57,8 +55,14 @@ public class Prospector {
         return new HashSet<>(newFolders);
     }
 
-    public Set<Path> checkChanges() {
-        Set<Path> returnPaths = new HashSet<>();
+    public Set<Path> getWatchedFolders() {
+        return watchFolders.stream()
+                .flatMap(x -> findMatchingFolders(x).stream())
+                .collect(Collectors.toSet());
+    }
+
+    public ProspectorChangeSet checkChanges() {
+        ProspectorChangeSet pcs = new ProspectorChangeSet();
         for(int i = 0; i < MAX_UPDATES; i++) {
             WatchKey key = null;
             try{
@@ -68,20 +72,29 @@ public class Prospector {
                 logger.debug("Watch Service interrupted during poll.");
             }
             if(key == null) {
-                logger.debug("{} files in {} watchFolders updated during sweep", returnPaths.size(), i);
-                return returnPaths;
+                logger.debug("{} files in {} watchFolders updated during sweep", pcs.getChangedFiles().size() + pcs.getRemovedFiles().size(), i);
+                return pcs;
             }
 
             Path basePath = keys.getOrDefault(key, null);
 
             for (WatchEvent<?> event: key.pollEvents()) {
                 WatchEvent.Kind kind = event.kind();
-                WatchEvent<Path> ev = cast(event);
-                Path path = ev.context();
-                Path fullPath = Paths.get(basePath.toString() + SEP + path.toString());
-                if(!Files.isDirectory(fullPath, LinkOption.NOFOLLOW_LINKS)) {
-                    logger.trace("Prospector detected file {} at [{}]", kind, fullPath);
-                    returnPaths.add(fullPath);
+                if(StandardWatchEventKinds.OVERFLOW == kind) {
+                    logger.error("Missed events due to overflow. Full re-scan advised.");
+                    pcs.setOverflow();
+                } else {
+                    WatchEvent<Path> ev = cast(event);
+                    Path path = ev.context();
+                    Path fullPath = Paths.get(basePath.toString() + SEP + path.toString());
+                    if(!Files.isDirectory(fullPath, LinkOption.NOFOLLOW_LINKS)) {
+                        logger.trace("Prospector detected file {} at [{}]", kind, fullPath);
+                        if(kind == StandardWatchEventKinds.ENTRY_DELETE) {
+                            pcs.addRemoval(fullPath);
+                        } else {
+                            pcs.addChange(fullPath);
+                        }
+                    }
                 }
             }
 
@@ -92,7 +105,7 @@ public class Prospector {
             }
         }
         logger.debug("Exceeded {} updates during sweep", MAX_UPDATES);
-        return returnPaths;
+        return pcs;
     }
 
     public Set<Path> addFolder(WatchFolder watchFolder) {

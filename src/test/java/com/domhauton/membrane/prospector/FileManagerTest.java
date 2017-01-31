@@ -7,7 +7,6 @@ import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import sun.rmi.runtime.Log;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -37,12 +36,12 @@ class FileManagerTest {
 
         WatchFolder watchFolder = new WatchFolder(dir, false);
         fileManager.addStorageManager(storageManager);
-        fileManager.addWatchfolder(watchFolder);
+        fileManager.addWatchFolder(watchFolder);
 
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-                .storeShard(Mockito.any(), Mockito.any(byte[].class), Mockito.anyInt());
+                .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
         ProspectorTestUtils.removeTestFiles(dir);
         Files.delete(Paths.get(dir));
@@ -53,7 +52,7 @@ class FileManagerTest {
         StorageManager storageManager = Mockito.mock(StorageManager.class);
 
         WatchFolder watchFolder = new WatchFolder(dir, true);
-        fileManager.addWatchfolder(watchFolder);
+        fileManager.addWatchFolder(watchFolder);
         fileManager.addStorageManager(storageManager);
         String embeddedDir = ProspectorTestUtils.createRandomFolder(dir);
         ProspectorTestUtils.createTestFiles(embeddedDir);
@@ -62,7 +61,7 @@ class FileManagerTest {
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-                .storeShard(Mockito.any(), Mockito.any(byte[].class), Mockito.anyInt());
+                .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
         ProspectorTestUtils.removeTestFiles(embeddedDir);
         Files.delete(Paths.get(embeddedDir));

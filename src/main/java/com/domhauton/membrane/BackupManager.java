@@ -25,7 +25,7 @@ public class BackupManager {
             Config config = configManager.loadConfig();
             fileManager = new FileManager();
             storageManager = new StorageManager();
-            config.getFolders().forEach(fileManager::addWatchfolder);
+            config.getFolders().forEach(fileManager::addWatchFolder);
         } catch (ConfigException | FileManagerException e) {
            e.printStackTrace();
         }

@@ -5,15 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.*;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.math.BigInteger;
 import java.nio.file.Files;
-import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.security.SecureRandom;
-import java.util.stream.IntStream;
 
 import static com.domhauton.membrane.prospector.ProspectorTestUtils.*;
 
@@ -26,7 +20,7 @@ class ProspectorTest {
     private Logger logger = LogManager.getLogger();
 
     private Prospector prospector;
-    
+
     private WatchFolder watchFolderRec;
     private WatchFolder watchFolderNonRec;
 
@@ -42,7 +36,7 @@ class ProspectorTest {
 
         testBaseDir = System.getProperty("java.io.tmpdir") + sep + "membrane";
         testPath = Paths.get(testBaseDir);
-        if(Files.notExists(testPath)) {
+        if (Files.notExists(testPath)) {
             Files.createDirectory(testPath);
         }
 
@@ -57,14 +51,13 @@ class ProspectorTest {
     }
 
 
-
     @Test
     @DisplayName("Test basic file detection")
     void testFileDetection() throws Exception {
         prospector.addFolder(watchFolderNonRec);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
     }
 
@@ -72,30 +65,30 @@ class ProspectorTest {
     @DisplayName("Detecting a file that has been deleted")
     void testAddDeleteDetection() throws Exception {
         prospector.addFolder(watchFolderNonRec);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getRemovedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
     }
 
     @Test
     @DisplayName("Detecting a file that has been modified")
     void testAddModifyDetection() throws Exception {
         prospector.addFolder(watchFolderNonRec);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getRemovedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getRemovedFiles().size());
     }
 
     @Test
@@ -103,20 +96,20 @@ class ProspectorTest {
     void testAddModifyRecursive() throws Exception {
         String testRecDir = createRandomFolder(testDir);
         prospector.addFolder(watchFolderRec);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testRecDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getRemovedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getRemovedFiles().size());
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDir));
     }
@@ -126,19 +119,19 @@ class ProspectorTest {
     void testAddModifyNonRecursive() throws Exception {
         String testRecDir = createRandomFolder(testDir);
         prospector.addFolder(watchFolderNonRec);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testRecDir);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         modifyTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.MODIFIED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getRemovedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getRemovedFiles().size());
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDir));
     }
@@ -150,15 +143,15 @@ class ProspectorTest {
         String testRecDirInner = createRandomFolder(testRecDir);
         WatchFolder watchFolder = new WatchFolder(testDir + sep + "*", false);
         prospector.addFolder(watchFolder);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testRecDir);
         createTestFiles(testRecDirInner);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getRemovedFiles().size());
         removeTestFiles(testRecDirInner);
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDirInner));
@@ -172,15 +165,15 @@ class ProspectorTest {
         String testRecDirInner = createRandomFolder(testRecDir);
         WatchFolder watchFolder = new WatchFolder(testDir + sep + "*", true);
         prospector.addFolder(watchFolder);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testRecDir);
         createTestFiles(testRecDirInner);
-        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT * 2, prospector.checkChanges().size());
+        Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT * 2, prospector.checkChanges().getChangedFiles().size());
         removeTestFiles(testDir);
-        Assertions.assertEquals(0, prospector.checkChanges().size());
+        Assertions.assertEquals(0, prospector.checkChanges().getRemovedFiles().size());
         removeTestFiles(testRecDirInner);
         removeTestFiles(testRecDir);
         Files.delete(Paths.get(testRecDirInner));
