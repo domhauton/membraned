@@ -4,12 +4,15 @@ import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.storage.StorageManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Collections;
 
 /**
  * Created by dominic on 31/01/17.
@@ -75,7 +78,13 @@ class FileManagerTest {
         WatchFolder watchFolder = new WatchFolder(dir, true);
         fileManager.addWatchFolder(watchFolder);
         fileManager.addStorageManager(storageManager);
+
+        fileManager.addExistingFile(Paths.get(dir + File.separator + '0'), DateTime.now(), Collections.emptyList());
+
         String embeddedDir = ProspectorTestUtils.createRandomFolder(dir);
+
+        fileManager.addExistingFile(Paths.get(embeddedDir + File.separator + '0'), DateTime.now(), Collections.emptyList());
+
         ProspectorTestUtils.createTestFiles(embeddedDir);
         fileManager.checkFolderChanges();
 
@@ -83,6 +92,8 @@ class FileManagerTest {
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
                 .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        Mockito.verify(storageManager, Mockito.times(1))
+                .removeFile(Mockito.any(), Mockito.any());
 
         ProspectorTestUtils.removeTestFiles(embeddedDir);
         Files.delete(Paths.get(embeddedDir));

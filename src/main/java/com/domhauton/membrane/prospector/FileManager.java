@@ -27,7 +27,6 @@ public class FileManager {
     private static final int FILE_RESCAN_FREQ_SEC = 10;
     private static final int FOLDER_RESCAN_FREQ_SEC = 120;
     private static final int MAX_CHUNK_SIZE = 1024 * 1024 * 64; // 64MB
-    private static final char KEY_SEP = '_';
 
     private final Logger logger;
     private final Prospector prospector;
@@ -69,6 +68,17 @@ public class FileManager {
     void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
         scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, fileRescanFrequency, TimeUnit.SECONDS);
         scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Stop all scanners for graceful shutdown.
+     */
+    void stopScanners() {
+        try {
+            scanExecutor.awaitTermination(10, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            logger.error("Interrupted while sleeping to stop scanners! Can be ignored.");
+        }
     }
 
     /**
@@ -136,9 +146,7 @@ public class FileManager {
                 .map(File::toPath)
                 .collect(Collectors.toSet());
         Set<Path> lostPaths = managedFiles.keySet().stream()
-                .map(x -> x.substring(0, x.lastIndexOf(KEY_SEP)))
                 .map(Paths::get)
-                .distinct()
                 .filter(x -> !existingFiles.contains(x))
                 .collect(Collectors.toSet());
         lostPaths.forEach(this::removeFile);
@@ -150,6 +158,7 @@ public class FileManager {
      * @param path path to check
      */
     private void addFile(Path path) {
+        logger.info("File Addition Detected: [{}]", path);
         File file = path.toFile();
         long lastModified = file.lastModified();
         FileMetadata fileMetadata = managedFiles.getOrDefault(path.toString(), null);
@@ -165,6 +174,7 @@ public class FileManager {
      * @param path path of removed file.
      */
     private void removeFile(Path path) {
+        logger.info("File Removal Detected: [{}]", path);
         managedFiles.remove(path.toString());
         for(StorageManager sm : storageManagers) {
             sm.removeFile(path, DateTime.now());
@@ -207,7 +217,6 @@ public class FileManager {
                 }
             }
             FileMetadata newFileMetadata = fileMetadataBuilder.build();
-            managedFiles.put(path.toString(), newFileMetadata);
 
             boolean hasFileChanged = cachedMetadata == null ||
                     !cachedMetadata.getModifiedTime().equals(newFileMetadata.getModifiedTime()) ||
@@ -216,7 +225,10 @@ public class FileManager {
             // If there was a change update the storage managers.
             if(hasFileChanged) {
                 logger.info("Change detected in [{}]. Adding file to storage.", path);
-                storageManagers.forEach(sm -> sm.addFile(newFileMetadata.getMD5HashList(), fileLastModified, path));
+                for(StorageManager sm : storageManagers) {
+                    sm.addFile(newFileMetadata.getMD5HashList(), fileLastModified, path);
+                }
+                managedFiles.put(path.toString(), newFileMetadata);
             } else {
                 logger.debug("File rescanned but no changed detected [{}].", path);
             }

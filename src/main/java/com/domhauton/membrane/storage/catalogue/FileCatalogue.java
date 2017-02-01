@@ -6,6 +6,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -19,12 +21,12 @@ public class FileCatalogue {
     private Map<Path, FileVersion> fileInfoMap;
     private StorageJournal storageJournal;
 
-    public FileCatalogue() {
-        this(new HashMap<>());
+    FileCatalogue() {
+        this(new HashMap<>(), new LinkedList<>());
     }
 
-    public FileCatalogue(Map<Path, FileVersion> baseFileInfoMap) {
-        this(baseFileInfoMap, new StorageJournal(new LinkedList<>()));
+    public FileCatalogue(Map<Path, FileVersion> baseFileInfoMap, List<JournalEntry> entries) {
+        this(baseFileInfoMap, new StorageJournal(entries));
     }
 
     private FileCatalogue(Map<Path, FileVersion> baseFileInfoMap, StorageJournal storageJournal) {
@@ -46,6 +48,12 @@ public class FileCatalogue {
         return new FileCatalogue(newBaseMap, newJournal);
     }
 
+    public Map<Path, FileVersion> getCurrentFileMappings() {
+        Map<Path, FileVersion> map = new HashMap<>(fileInfoMap.size(), 1.0f);
+        map.putAll(fileInfoMap);
+        return map;
+    }
+
     /**
      * Reverts catalogue to given time
      */
@@ -59,10 +67,13 @@ public class FileCatalogue {
      * @param storedPath file that was add
      * @param modificationDateTime add/modification time
      */
-    public void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath) {
-        FileVersion fileVersion = new FileVersion(shardHash, modificationDateTime, storedPath);
-        storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
+    public void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
+        FileVersion fileVersion = new FileVersion(shardHash, modificationDateTime);
+
+        JournalEntry journalEntry = storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
         fileInfoMap.put(storedPath, fileVersion);
+
+        outputStreamWriter.write(journalEntry.toString() + "\n");
     }
 
     /**
@@ -71,7 +82,7 @@ public class FileCatalogue {
      * @param modificationDateTime removal time
      */
     public void removeFile(Path storedPath, DateTime modificationDateTime) {
-        FileVersion fileVersion = new FileVersion(Collections.emptyList(), modificationDateTime, storedPath);
+        FileVersion fileVersion = new FileVersion(Collections.emptyList(), modificationDateTime);
         storageJournal.addEntry(fileVersion, FileOperation.REMOVE, storedPath, modificationDateTime);
         fileInfoMap.remove(storedPath);
     }
@@ -113,13 +124,17 @@ public class FileCatalogue {
         return retList;
     }
 
+    public List<JournalEntry> getFullJournal() {
+        return storageJournal.getJournalEntries();
+    }
+
     /**
      * Get all shards referenced in the catalogue
      * @return set of all shard md5 hashes
      */
     public Set<String> getReferencedShards() {
         Set<String> retShards = baseFileInfoMap.values().stream()
-                .map(FileVersion::getShardHash)
+                .map(FileVersion::getMD5ShardList)
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
         Set<String> journalShards = storageJournal.getReferencedShards();
@@ -143,5 +158,11 @@ public class FileCatalogue {
         Set<Path> baseReferencedFiles = baseFileInfoMap.keySet();
         baseReferencedFiles.addAll(storageJournal.getReferencedPaths());
         return baseReferencedFiles;
+    }
+
+    public List<String> serializeBaseMap() {
+        return baseFileInfoMap.entrySet().stream()
+                .map(entry -> CatalogueUtils.serializeEntry(entry.getKey(), entry.getValue().getModificationDateTime(), entry.getValue().getMD5ShardList()))
+                .collect(Collectors.toList());
     }
 }

@@ -6,7 +6,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -26,15 +25,21 @@ public class StorageJournal {
     /**
      * Adds a new modification to the journal at this point.
      */
-    public synchronized void addEntry(FileVersion shardInfo, FileOperation fileOperation, Path filePath, DateTime dateTime) {
+    public synchronized JournalEntry addEntry(FileVersion shardInfo, FileOperation fileOperation, Path filePath, DateTime dateTime) {
         JournalEntry journalEntry = new JournalEntry(dateTime, shardInfo, fileOperation, filePath);
         addEntry(journalEntry);
+        return journalEntry;
     }
 
     private synchronized void addEntry(JournalEntry journalEntry) {
         logger.trace("Adding entry to log {} {} {}", journalEntry.getFilePath(), journalEntry.getFileOperation(), journalEntry.getDateTime());
         journalEntries.add(journalEntry);
-        // TODO: Consider persisting.
+    }
+
+    public synchronized List<JournalEntry> getJournalEntries() {
+        return journalEntries.stream()
+                .sorted(JournalEntry.getComparator())
+                .collect(Collectors.toList());
     }
 
     public synchronized List<JournalEntry> getJournalEntries(Path path) {
@@ -70,7 +75,7 @@ public class StorageJournal {
     public Set<String> getReferencedShards() {
         return journalEntries.stream()
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getShardHash)
+                .map(FileVersion::getMD5ShardList)
                 .flatMap(List::stream)
                 .collect(Collectors.toSet());
     }

@@ -9,7 +9,7 @@ public class WatchFolder {
     private String directory;
     private Boolean recursive;
 
-    private WatchFolder() {} // Used for loading
+    private WatchFolder() {} // Used for jackson loading
 
     public WatchFolder(String directory, Boolean recursive) {
         this.directory = directory;
