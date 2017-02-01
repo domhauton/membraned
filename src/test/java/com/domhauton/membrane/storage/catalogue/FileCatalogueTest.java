@@ -1,5 +1,6 @@
 package com.domhauton.membrane.storage.catalogue;
 
+import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
@@ -136,6 +137,82 @@ class FileCatalogueTest {
         Assertions.assertNull(fv2);
 
         Assertions.assertEquals(0, collapsedFC2.getReferencedShards().size());
+    }
+
+    @Test
+    void retrieveFileHistory() {
+        List<String> hashList1 = genRandHashSet();
+        DateTime modifiedDT1 = new DateTime(100L);
+        Path path = Paths.get("/tmp/membrane/foobar1");
+        fileCatalogue.addFile(hashList1, modifiedDT1, path);
+        List<String> hashList2 = genRandHashSet();
+        DateTime modifiedDT2 = new DateTime(200L);
+        fileCatalogue.addFile(hashList2, modifiedDT2, path);
+
+        List<JournalEntry> fileVersions = fileCatalogue.getFileVersionHistory(path);
+        Assertions.assertTrue(fileVersions.stream()
+                .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getShardHash)
+                .anyMatch(hashList1::equals));
+
+        Assertions.assertTrue(fileVersions.stream()
+                .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getShardHash)
+                .anyMatch(hashList2::equals));
+    }
+
+    @Test
+    void retrieveFileHistoryTrimmed() {
+        List<String> hashList1 = genRandHashSet();
+        DateTime modifiedDT1 = new DateTime(100L);
+        Path path = Paths.get("/tmp/membrane/foobar1");
+        fileCatalogue.addFile(hashList1, modifiedDT1, path);
+        List<String> hashList2 = genRandHashSet();
+        DateTime modifiedDT2 = new DateTime(200L);
+        fileCatalogue.addFile(hashList2, modifiedDT2, path);
+
+        fileCatalogue = fileCatalogue.cleanCatalogue(new DateTime(250L));
+
+        List<JournalEntry> fileVersions = fileCatalogue.getFileVersionHistory(path);
+
+        Assertions.assertTrue(fileVersions.stream()
+                .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getShardHash)
+                .noneMatch(hashList1::equals));
+
+        Assertions.assertTrue(fileVersions.stream()
+                .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getShardHash)
+                .anyMatch(hashList2::equals));
+    }
+
+    @Test
+    void retrieveFileAtTime() {
+        List<String> hashList1 = genRandHashSet();
+        DateTime modifiedDT1 = new DateTime(100L);
+        Path path = Paths.get("/tmp/membrane/foobar1");
+        fileCatalogue.addFile(hashList1, modifiedDT1, path);
+        List<String> hashList2 = genRandHashSet();
+        DateTime modifiedDT2 = new DateTime(200L);
+        fileCatalogue.addFile(hashList2, modifiedDT2, path);
+
+        Optional<FileVersion> fileVersion1 = fileCatalogue.getFileVersion(path, new DateTime(150L));
+
+        Assertions.assertTrue(fileVersion1.isPresent());
+        Assertions.assertTrue(fileVersion1.orElse(null).getShardHash().equals(hashList1));
+
+        Optional<FileVersion> fileVersion1b = fileCatalogue.getFileVersion(path, new DateTime(50L));
+
+        Assertions.assertNull(fileVersion1b.orElse(null));
+
+        Optional<FileVersion> fileVersion2 = fileCatalogue.getFileVersion(path, new DateTime(200L));
+
+        Assertions.assertTrue(fileVersion2.isPresent());
+        Assertions.assertTrue(fileVersion2.orElse(null).getShardHash().equals(hashList2));
     }
 
     private List<String> genRandHashSet() {

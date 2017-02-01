@@ -67,4 +67,25 @@ class FileManagerTest {
         Files.delete(Paths.get(embeddedDir));
         Files.delete(Paths.get(dir));
     }
+
+    @Test
+    void testRecogniseMissingFile() throws Exception {
+        StorageManager storageManager = Mockito.mock(StorageManager.class);
+
+        WatchFolder watchFolder = new WatchFolder(dir, true);
+        fileManager.addWatchFolder(watchFolder);
+        fileManager.addStorageManager(storageManager);
+        String embeddedDir = ProspectorTestUtils.createRandomFolder(dir);
+        ProspectorTestUtils.createTestFiles(embeddedDir);
+        fileManager.checkFolderChanges();
+
+        Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
+                .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+        Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+                .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+        ProspectorTestUtils.removeTestFiles(embeddedDir);
+        Files.delete(Paths.get(embeddedDir));
+        Files.delete(Paths.get(dir));
+    }
 }

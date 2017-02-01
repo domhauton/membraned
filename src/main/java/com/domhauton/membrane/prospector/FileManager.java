@@ -80,6 +80,19 @@ public class FileManager {
     }
 
     /**
+     * Add file to manager manually.
+     * @param path path of file
+     * @param dateTime last modified time of file
+     * @param md5ShardList List of md5 shards of the file.
+     */
+    public void addExistingFile(Path path, DateTime dateTime, List<String> md5ShardList) {
+        FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), dateTime)
+                .addShardList(md5ShardList)
+                .build();
+        managedFiles.put(path.toString(), fileMetadata);
+    }
+
+    /**
      * Adds a folder that should be watched.
      */
     public void addWatchFolder(WatchFolder watchFolder) {
@@ -139,7 +152,7 @@ public class FileManager {
     private void addFile(Path path) {
         File file = path.toFile();
         long lastModified = file.lastModified();
-        FileMetadata fileMetadata = managedFiles.getOrDefault(getKey(path, 0), null);
+        FileMetadata fileMetadata = managedFiles.getOrDefault(path.toString(), null);
         if(fileMetadata != null && lastModified == fileMetadata.getModifiedTime().getMillis()){
             logger.debug("Update not required. Modify time same for [{}]", path.toString());
         } else {
@@ -152,6 +165,7 @@ public class FileManager {
      * @param path path of removed file.
      */
     private void removeFile(Path path) {
+        managedFiles.remove(path.toString());
         for(StorageManager sm : storageManagers) {
             sm.removeFile(path, DateTime.now());
         }
@@ -165,12 +179,14 @@ public class FileManager {
         File file = path.toFile();
         byte[] buffer = new byte[MAX_CHUNK_SIZE];
         DateTime fileLastModified = new DateTime(file.lastModified());
-        List<String> shardList = new LinkedList<>();
+        FileMetadata cachedMetadata = managedFiles.get(path.toString());
+
         logger.trace("File size of [{}] is {}MB", path::toString, () -> ((float) file.length())/(1024*1024));
-        boolean hasFileChanged = false;
+
         try (
                 FileInputStream inputStream = new FileInputStream(file)
         ) {
+            FileMetadataBuilder fileMetadataBuilder = new FileMetadataBuilder(path.toString(), fileLastModified);
             for(int chunkSize = inputStream.read(buffer); chunkSize != -1; chunkSize = inputStream.read(buffer)) {
                 byte[] tailoredArray;
                 if(buffer.length != chunkSize) {
@@ -178,31 +194,29 @@ public class FileManager {
                 } else {
                     tailoredArray = buffer;
                 }
-                FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), shardList.size()+1, tailoredArray)
-                        .setModifiedTime(fileLastModified)
-                        .build();
-                shardList.add(fileMetadata.getStrongHash().toString());
+                String chunkMD5Hash = fileMetadataBuilder.addHashData(tailoredArray);
                 // Check if chunk has changed
-                FileMetadata oldMetaData = managedFiles.getOrDefault(getKey(path, shardList.size()), null);
-                boolean hasShardChanged = !fileMetadata.hashCodeEqual(oldMetaData);
-                hasFileChanged |= hasShardChanged;
-                if (hasShardChanged) {
-                    // New shards must be pushed to the storage managers.
-                    final int currentChunkSize = chunkSize;
-                    logger.trace("Chunk {} from file [{}] of size {}MB sent to storage.",
-                            shardList::size,
-                            path::toString,
-                            () -> ((float) currentChunkSize)/(1024*1024));
-                    for(StorageManager sm : storageManagers) {
-                        sm.storeShard(fileMetadata.getStrongHash().toString(), tailoredArray);
-                    }
-                    managedFiles.put(getKey(path, shardList.size()), fileMetadata);
+
+                final int currentChunkSize = chunkSize;
+                logger.trace("Chunk {} from file [{}] of size {}MB sent to storage.",
+                        () -> chunkMD5Hash,
+                        path::toString,
+                        () -> ((float) currentChunkSize)/(1024*1024));
+                for(StorageManager sm : storageManagers) {
+                    sm.storeShard(chunkMD5Hash, tailoredArray);
                 }
             }
+            FileMetadata newFileMetadata = fileMetadataBuilder.build();
+            managedFiles.put(path.toString(), newFileMetadata);
+
+            boolean hasFileChanged = cachedMetadata == null ||
+                    !cachedMetadata.getModifiedTime().equals(newFileMetadata.getModifiedTime()) ||
+                    !cachedMetadata.getMD5HashList().equals(newFileMetadata.getMD5HashList());
+
             // If there was a change update the storage managers.
             if(hasFileChanged) {
                 logger.info("Change detected in [{}]. Adding file to storage.", path);
-                storageManagers.forEach(storageManager -> storageManager.addFile(shardList, fileLastModified, path));
+                storageManagers.forEach(sm -> sm.addFile(newFileMetadata.getMD5HashList(), fileLastModified, path));
             } else {
                 logger.debug("File rescanned but no changed detected [{}].", path);
             }
@@ -212,13 +226,5 @@ public class FileManager {
             queuedAdditions.add(path);
             logger.error("Error while storing shard of file. Read attempt re-queued. [{}]", path);
         }
-    }
-
-    /**
-     * Returns the map key for the specific file.
-     * @return
-     */
-    private String getKey(Path path, int chunk) {
-        return path.toString() + KEY_SEP + chunk;
     }
 }

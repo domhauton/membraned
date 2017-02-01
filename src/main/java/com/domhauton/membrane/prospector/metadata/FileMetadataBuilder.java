@@ -4,32 +4,37 @@ import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import org.joda.time.DateTime;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * Created by dominic on 30/01/17.
  */
 public class FileMetadataBuilder {
-    private byte[] data;
     private final String fullPath;
-    private final int chunk;
     private DateTime modifiedTime;
+    private List<String> md5Hashes;
 
-    public FileMetadataBuilder(String fullPath, int chunk, byte[] data) {
+    public FileMetadataBuilder(String fullPath, DateTime modifiedTime) {
         this.fullPath = fullPath;
-        this.chunk = chunk;
-        this.data = data;
-
+        this.modifiedTime = modifiedTime;
+        md5Hashes = new LinkedList<>();
     }
 
-    public FileMetadataBuilder setModifiedTime(DateTime modifiedTime) {
-        this.modifiedTime = modifiedTime;
+    public String addHashData(byte[] data) {
+        String md5Hash = Hashing.md5().hashBytes(data).toString();
+        md5Hashes.add(md5Hash);
+        return md5Hash;
+    }
+
+    public FileMetadataBuilder addShardList(List<String> md5Hashes) {
+        this.md5Hashes.addAll(md5Hashes);
         return this;
     }
 
     public FileMetadata build() {
         DateTime accessTime = DateTime.now();
-        HashCode strongHashCode = Hashing.md5().hashBytes(data);
-        HashCode weakHashCode = Hashing.crc32().hashBytes(data);
         modifiedTime = modifiedTime == null ? accessTime : modifiedTime;
-        return new FileMetadata(fullPath, chunk, modifiedTime, accessTime, strongHashCode, weakHashCode);
+        return new FileMetadata(fullPath, modifiedTime, accessTime, md5Hashes);
     }
 }

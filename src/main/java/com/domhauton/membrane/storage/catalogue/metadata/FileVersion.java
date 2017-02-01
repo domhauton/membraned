@@ -1,5 +1,6 @@
 package com.domhauton.membrane.storage.catalogue.metadata;
 
+import com.google.common.base.Objects;
 import org.joda.time.DateTime;
 
 import java.nio.file.Path;
@@ -29,5 +30,20 @@ public class FileVersion {
 
     public Path getStoredPath() {
         return storedPath;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        FileVersion that = (FileVersion) o;
+        return Objects.equal(shardHash, that.shardHash) &&
+                Objects.equal(modificationDateTime, that.modificationDateTime) &&
+                Objects.equal(storedPath, that.storedPath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(shardHash, modificationDateTime, storedPath);
     }
 }

@@ -1,34 +1,29 @@
 package com.domhauton.membrane.prospector.metadata;
 
 import com.google.common.base.Objects;
-import com.google.common.hash.HashCode;
 
 import org.joda.time.DateTime;
+
+import java.util.List;
 
 /**
  * Created by dominic on 26/01/17.
  */
 public class FileMetadata {
     private final String fullPath;
-    private final int chunk;
     private final DateTime modifiedTime;
     private final DateTime accessTime;
-    private final HashCode strongHash;
-    private final HashCode weakHash;
+    private final List<String> md5HashList;
 
     FileMetadata(
             String fullPath,
-            int chunk,
             DateTime modifiedTime,
             DateTime accessTime,
-            HashCode strongHash,
-            HashCode weakHash) {
+            List<String> md5HashList) {
         this.fullPath = fullPath;
-        this.chunk = chunk;
         this.modifiedTime = modifiedTime;
         this.accessTime = accessTime;
-        this.strongHash = strongHash;
-        this.weakHash = weakHash;
+        this.md5HashList = md5HashList;
     }
 
     public String getFullPath() {
@@ -39,21 +34,16 @@ public class FileMetadata {
         return modifiedTime;
     }
 
-    public HashCode getStrongHash() {
-        return strongHash;
+    public List<String> getMD5HashList() {
+        return md5HashList;
     }
 
-    private HashCode getWeakHash() {
-        return weakHash;
-    }
 
     public synchronized boolean hashCodeEqual(FileMetadata that) {
         if(that == null) {
             return false;
         }
-        boolean weakHashCodeMatch = that.getWeakHash().equals(this.getWeakHash());
-
-        return weakHashCodeMatch && that.getStrongHash().equals(this.getStrongHash());
+        return that.getMD5HashList().equals(this.getMD5HashList());
     }
 
     @Override
@@ -63,12 +53,11 @@ public class FileMetadata {
         FileMetadata that = (FileMetadata) o;
         return Objects.equal(fullPath, that.fullPath) &&
                 Objects.equal(accessTime, that.accessTime) &&
-                Objects.equal(strongHash, that.strongHash) &&
-                Objects.equal(weakHash, that.weakHash);
+                Objects.equal(md5HashList, that.md5HashList);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(fullPath, accessTime, strongHash, weakHash);
+        return Objects.hashCode(fullPath, accessTime, md5HashList);
     }
 }
