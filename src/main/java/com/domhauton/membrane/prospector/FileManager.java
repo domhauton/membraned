@@ -13,10 +13,12 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by dominic on 26/01/17.
@@ -25,6 +27,7 @@ public class FileManager {
     private static final int FILE_RESCAN_FREQ_SEC = 10;
     private static final int FOLDER_RESCAN_FREQ_SEC = 120;
     private static final int MAX_CHUNK_SIZE = 1024 * 1024 * 64; // 64MB
+    private static final char KEY_SEP = '_';
 
     private final Logger logger;
     private final Prospector prospector;
@@ -51,24 +54,42 @@ public class FileManager {
         scanExecutor = Executors.newSingleThreadScheduledExecutor();
     }
 
+    /**
+     * Run file scanner loops at default rates
+     */
     public void runScanners() {
         runScanners(FILE_RESCAN_FREQ_SEC, FOLDER_RESCAN_FREQ_SEC);
     }
 
+    /**
+     * Run file scanner loops at given rates
+     * @param fileRescanFrequency seconds
+     * @param folderRescanFrequency seconds
+     */
     void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
         scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, fileRescanFrequency, TimeUnit.SECONDS);
         scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
     }
 
+    /**
+     * Adds a storage manager that files should be inserted into.
+     * @param storageManager storageManager to add
+     */
     void addStorageManager(StorageManager storageManager) {
         storageManagers.add(storageManager);
     }
 
+    /**
+     * Adds a folder that should be watched.
+     */
     public void addWatchFolder(WatchFolder watchFolder) {
-        Set<Path> newPaths = prospector.addFolder(watchFolder);
+        Set<Path> newPaths = prospector.addWatchFolder(watchFolder);
         addExistingFiles(newPaths);
     }
 
+    /**
+     * Scans folders for file changes.
+     */
     private void checkFileChanges() {
         ProspectorChangeSet pcs = prospector.checkChanges();
         Set<Path> retryPaths = queuedAdditions;
@@ -82,21 +103,39 @@ public class FileManager {
         }
     }
 
+    /**
+     * Scans for any added/removed folders
+     */
     void checkFolderChanges() {
         addExistingFiles(prospector.rediscoverFolders());
     }
 
+    /**
+     * Scans folders for existing files.
+     * @param folders folders to check.
+     */
     private void addExistingFiles(Collection<Path> folders) {
-        folders.stream()
+        Set<Path> existingFiles = folders.stream()
                 .peek(x -> logger.debug("Adding folder to file manager: [{}]", x))
                 .map(Path::toFile)
                 .map(File::listFiles)
                 .flatMap(Arrays::stream)
                 .map(File::toPath)
+                .collect(Collectors.toSet());
+        Set<Path> lostPaths = managedFiles.keySet().stream()
+                .map(x -> x.substring(0, x.lastIndexOf(KEY_SEP)))
+                .map(Paths::get)
                 .distinct()
-                .forEach(this::addFile);
+                .filter(x -> !existingFiles.contains(x))
+                .collect(Collectors.toSet());
+        lostPaths.forEach(this::removeFile);
+        existingFiles.forEach(this::addFile);
     }
 
+    /**
+     * Processes a possibly updated file.
+     * @param path path to check
+     */
     private void addFile(Path path) {
         File file = path.toFile();
         long lastModified = file.lastModified();
@@ -104,17 +143,26 @@ public class FileManager {
         if(fileMetadata != null && lastModified == fileMetadata.getModifiedTime().getMillis()){
             logger.debug("Update not required. Modify time same for [{}]", path.toString());
         } else {
-            fileChanged(path, file);
+            fileChanged(path);
         }
     }
 
+    /**
+     * Notifies storage managers that a file has been removed.
+     * @param path path of removed file.
+     */
     private void removeFile(Path path) {
         for(StorageManager sm : storageManagers) {
             sm.removeFile(path, DateTime.now());
         }
     }
 
-    private void fileChanged(Path path, File file) {
+    /**
+     * Checks if the data in a file has been changed and notifies storage managers if true.
+     * @param path Path of changed file.
+     */
+    private void fileChanged(Path path) {
+        File file = path.toFile();
         byte[] buffer = new byte[MAX_CHUNK_SIZE];
         DateTime fileLastModified = new DateTime(file.lastModified());
         List<String> shardList = new LinkedList<>();
@@ -166,7 +214,11 @@ public class FileManager {
         }
     }
 
+    /**
+     * Returns the map key for the specific file.
+     * @return
+     */
     private String getKey(Path path, int chunk) {
-        return path.toString() + "_" + chunk;
+        return path.toString() + KEY_SEP + chunk;
     }
 }

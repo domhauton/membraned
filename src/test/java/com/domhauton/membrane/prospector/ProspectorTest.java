@@ -54,7 +54,7 @@ class ProspectorTest {
     @Test
     @DisplayName("Test basic file detection")
     void testFileDetection() throws Exception {
-        prospector.addFolder(watchFolderNonRec);
+        prospector.addWatchFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
         Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
@@ -64,7 +64,7 @@ class ProspectorTest {
     @Test
     @DisplayName("Detecting a file that has been deleted")
     void testAddDeleteDetection() throws Exception {
-        prospector.addFolder(watchFolderNonRec);
+        prospector.addWatchFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
         Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, prospector.checkChanges().getChangedFiles().size());
@@ -77,7 +77,7 @@ class ProspectorTest {
     @Test
     @DisplayName("Detecting a file that has been modified")
     void testAddModifyDetection() throws Exception {
-        prospector.addFolder(watchFolderNonRec);
+        prospector.addWatchFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
@@ -95,7 +95,7 @@ class ProspectorTest {
     @DisplayName("Detect Recursive Files")
     void testAddModifyRecursive() throws Exception {
         String testRecDir = createRandomFolder(testDir);
-        prospector.addFolder(watchFolderRec);
+        prospector.addWatchFolder(watchFolderRec);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
@@ -118,7 +118,7 @@ class ProspectorTest {
     @DisplayName("Ignore Recursive Folders")
     void testAddModifyNonRecursive() throws Exception {
         String testRecDir = createRandomFolder(testDir);
-        prospector.addFolder(watchFolderNonRec);
+        prospector.addWatchFolder(watchFolderNonRec);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
@@ -142,7 +142,7 @@ class ProspectorTest {
         String testRecDir = createRandomFolder(testDir);
         String testRecDirInner = createRandomFolder(testRecDir);
         WatchFolder watchFolder = new WatchFolder(testDir + sep + "*", false);
-        prospector.addFolder(watchFolder);
+        prospector.addWatchFolder(watchFolder);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);
@@ -164,7 +164,7 @@ class ProspectorTest {
         String testRecDir = createRandomFolder(testDir);
         String testRecDirInner = createRandomFolder(testRecDir);
         WatchFolder watchFolder = new WatchFolder(testDir + sep + "*", true);
-        prospector.addFolder(watchFolder);
+        prospector.addWatchFolder(watchFolder);
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         Assertions.assertEquals(0, prospector.checkChanges().getChangedFiles().size());
         createTestFiles(testDir);

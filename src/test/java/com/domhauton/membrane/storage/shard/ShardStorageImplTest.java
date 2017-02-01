@@ -1,5 +1,6 @@
 package com.domhauton.membrane.storage.shard;
 
+import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import org.junit.jupiter.api.Assertions;
@@ -23,23 +24,20 @@ import static org.junit.jupiter.api.Assertions.*;
  * Created by dominic on 01/02/17.
  */
 class ShardStorageImplTest {
-
-    private static final String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "membrane";
-
     private ShardStorageImpl shardStorage;
     private String testDir;
     private Random random;
 
     @BeforeEach
     void setUp() throws Exception {
-        testDir = createRandomFolder();
+        testDir = StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR);
         shardStorage = new ShardStorageImpl(Paths.get(testDir));
         random = new Random(System.currentTimeMillis());
     }
 
     @Test
     void testCreateAndRetrieve() throws Exception {
-        String addedFile = addRandFile();
+        String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
         byte[] loadedData = shardStorage.retrieveShard(addedFile);
         String calculatedHash = Hashing.md5().hashBytes(loadedData).toString();
 
@@ -51,8 +49,8 @@ class ShardStorageImplTest {
 
     @Test
     void testCreateAndList() throws Exception {
-        String addedFile1 = addRandFile();
-        String addedFile2 = addRandFile();
+        String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
+        String addedFile2 = StorageManagerTestUtils.addRandFile(random, shardStorage);
         Set<String> list = shardStorage.listShards();
         Assertions.assertEquals(2, list.size());
         Assertions.assertTrue(list.contains(addedFile1));
@@ -65,30 +63,11 @@ class ShardStorageImplTest {
 
     @Test
     void testCreateAndRemoval() throws Exception {
-        String addedFile = addRandFile();
+        String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
         Assertions.assertEquals(1, shardStorage.listShards().size());
 
         shardStorage.removeShard(addedFile);
         Assertions.assertEquals(0, shardStorage.listShards().size());
         Files.delete(Paths.get(testDir));
-    }
-
-    private String addRandFile() throws Exception {
-        byte[] data = new byte[128];
-        random.nextBytes(data);
-        String hash = Hashing.md5().hashBytes(data).toString();
-        shardStorage.storeShard(hash, data);
-        return hash;
-    }
-
-    static String createRandomFolder() throws Exception {
-        String tmpDir = baseDir;
-        Path tmpPath = Paths.get(baseDir);
-        while(Files.exists(tmpPath, LinkOption.NOFOLLOW_LINKS)) {
-            tmpDir = baseDir + File.separator + new BigInteger(16, new SecureRandom()).toString(32);
-            tmpPath = Paths.get(tmpDir);
-        }
-        Files.createDirectory(tmpPath);
-        return tmpDir;
     }
 }

@@ -66,7 +66,7 @@ class FileCatalogueTest {
         List<String> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path);
-        FileCatalogue rewoundFC = fileCatalogue.getCatalogueAtTime(new DateTime(150L));
+        FileCatalogue rewoundFC = fileCatalogue.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
@@ -88,8 +88,8 @@ class FileCatalogueTest {
 
         Assertions.assertEquals(20, fileCatalogue.getReferencedShards().size());
 
-        FileCatalogue collapsedFC = fileCatalogue.collapseJournal(new DateTime(150L));
-        FileCatalogue rewoundFC = collapsedFC.getCatalogueAtTime(new DateTime(150L));
+        FileCatalogue collapsedFC = fileCatalogue.cleanCatalogue(new DateTime(150L));
+        FileCatalogue rewoundFC = collapsedFC.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
@@ -98,8 +98,8 @@ class FileCatalogueTest {
 
         Assertions.assertEquals(20, collapsedFC.getReferencedShards().size());
 
-        FileCatalogue collapsedFC2 = fileCatalogue.collapseJournal(new DateTime(250L));
-        FileCatalogue rewoundFC2 = collapsedFC2.getCatalogueAtTime(new DateTime(150L));
+        FileCatalogue collapsedFC2 = fileCatalogue.cleanCatalogue(new DateTime(250L));
+        FileCatalogue rewoundFC2 = collapsedFC2.revertTo(new DateTime(150L));
         FileVersion fv2 = rewoundFC2.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv2.getModificationDateTime(), modifiedDT2);
@@ -120,8 +120,8 @@ class FileCatalogueTest {
         fileCatalogue.removeFile(path, new DateTime(200L));
         Assertions.assertEquals(10, fileCatalogue.getReferencedShards().size());
 
-        FileCatalogue collapsedFC = fileCatalogue.collapseJournal(new DateTime(150L));
-        FileCatalogue rewoundFC = collapsedFC.getCatalogueAtTime(new DateTime(150L));
+        FileCatalogue collapsedFC = fileCatalogue.cleanCatalogue(new DateTime(150L));
+        FileCatalogue rewoundFC = collapsedFC.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
@@ -130,8 +130,8 @@ class FileCatalogueTest {
 
         Assertions.assertEquals(10, collapsedFC.getReferencedShards().size());
 
-        FileCatalogue collapsedFC2 = fileCatalogue.collapseJournal(new DateTime(250L));
-        FileCatalogue rewoundFC2 = collapsedFC2.getCatalogueAtTime(new DateTime(150L));
+        FileCatalogue collapsedFC2 = fileCatalogue.cleanCatalogue(new DateTime(250L));
+        FileCatalogue rewoundFC2 = collapsedFC2.revertTo(new DateTime(150L));
         FileVersion fv2 = rewoundFC2.getFileVersion(path).orElse(null);
         Assertions.assertNull(fv2);
 

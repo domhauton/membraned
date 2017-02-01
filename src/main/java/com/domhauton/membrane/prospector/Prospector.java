@@ -108,7 +108,7 @@ public class Prospector {
         return pcs;
     }
 
-    public Set<Path> addFolder(WatchFolder watchFolder) {
+    public Set<Path> addWatchFolder(WatchFolder watchFolder) {
         logger.info("Adding watch folder: {}", watchFolder.getDirectory());
         watchFolders.add(watchFolder);
         Set<Path> matchingFolders = findMatchingFolders(watchFolder);

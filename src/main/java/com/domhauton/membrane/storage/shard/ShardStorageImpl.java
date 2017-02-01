@@ -18,14 +18,9 @@ import java.util.stream.Collectors;
 public class ShardStorageImpl implements ShardStorage {
     private static final String FILE_EXTENSION = ".mem";
     private static final int FOLDER_SPLIT_LEN = 5;
-    private static final String DEFAULT_BASE_PATH = System.getProperty("user.home") + File.separator + ".membrane";
 
     private Logger logger;
     private Path basePath;
-
-    public ShardStorageImpl() {
-        this(Paths.get(DEFAULT_BASE_PATH));
-    }
 
     /**
      * @param basePath Directory to store shards.

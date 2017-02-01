@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -36,6 +37,13 @@ public class StorageJournal {
         // TODO: Consider persisting.
     }
 
+    public synchronized List<JournalEntry> getJournalEntries(Path path) {
+        return journalEntries.stream()
+                .filter(entry -> entry.getFilePath().equals(path))
+                .sorted(JournalEntry.getComparator())
+                .collect(Collectors.toList());
+    }
+
     public synchronized StorageJournal getJournalEntriesBeforeTime(DateTime until) {
         List<JournalEntry> newEntries = journalEntries.stream()
                 .filter(journalEntry -> !journalEntry.getDateTime().isAfter(until))
@@ -64,6 +72,12 @@ public class StorageJournal {
                 .map(JournalEntry::getShardInfo)
                 .map(FileVersion::getShardHash)
                 .flatMap(List::stream)
+                .collect(Collectors.toSet());
+    }
+
+    public Set<Path> getReferencedPaths() {
+        return journalEntries.stream()
+                .map(JournalEntry::getFilePath)
                 .collect(Collectors.toSet());
     }
 
