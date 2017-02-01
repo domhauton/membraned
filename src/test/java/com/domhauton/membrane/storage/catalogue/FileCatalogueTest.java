@@ -1,8 +1,7 @@
 package com.domhauton.membrane.storage.catalogue;
 
-import com.domhauton.membrane.storage.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.google.common.hash.HashCode;
-import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.Assertions;
@@ -14,8 +13,6 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Created by dominic on 31/01/17.

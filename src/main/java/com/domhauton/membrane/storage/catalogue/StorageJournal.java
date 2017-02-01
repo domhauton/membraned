@@ -1,7 +1,7 @@
 package com.domhauton.membrane.storage.catalogue;
 
-import com.domhauton.membrane.storage.metadata.FileVersion;
-import com.domhauton.membrane.storage.metadata.FileOperation;
+import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;

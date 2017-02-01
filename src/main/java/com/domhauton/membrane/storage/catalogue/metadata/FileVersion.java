@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.metadata;
+package com.domhauton.membrane.storage.catalogue.metadata;
 
 import org.joda.time.DateTime;
 

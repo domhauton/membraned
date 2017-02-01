@@ -1,10 +1,10 @@
 package com.domhauton.membrane.storage;
 
 import com.domhauton.membrane.storage.catalogue.FileCatalogue;
-import com.domhauton.membrane.storage.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.shard.ShardStorage;
 import com.domhauton.membrane.storage.shard.ShardStorageException;
 import com.domhauton.membrane.storage.shard.ShardStorageImpl;
-import com.google.common.hash.HashCode;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -15,7 +15,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 
 /**
@@ -23,7 +22,7 @@ import java.util.*;
  */
 public class StorageManager {
     private Logger logger;
-    private ShardStorageImpl shardStorage;
+    private ShardStorage shardStorage;
     private FileCatalogue fileCatalogue;
     private Set<String> tempProtectedShards;
 

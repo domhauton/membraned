@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.metadata;
+package com.domhauton.membrane.storage.catalogue.metadata;
 
 /**
  * Created by dominic on 30/01/17.

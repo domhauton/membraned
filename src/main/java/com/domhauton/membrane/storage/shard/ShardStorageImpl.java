@@ -15,9 +15,9 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 30/01/17.
  */
-public class ShardStorageImpl {
+public class ShardStorageImpl implements ShardStorage {
     private static final String FILE_EXTENSION = ".mem";
-    private static final int FOLDER_SPLIT_LEN = 3;
+    private static final int FOLDER_SPLIT_LEN = 5;
     private static final String DEFAULT_BASE_PATH = System.getProperty("user.home") + File.separator + ".membrane";
 
     private Logger logger;
@@ -85,6 +85,14 @@ public class ShardStorageImpl {
         Path filePath = getPath(basePath.toString(), md5Hash);
         try {
             Files.delete(filePath);
+            for(File folder = filePath.toFile().getParentFile(); !folder.toPath().equals(basePath); folder = folder.getParentFile()) {
+                File[] files = folder.listFiles();
+                if(files != null && files.length == 0) {
+                    Files.delete(folder.toPath());
+                } else {
+                    break;
+                }
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -99,9 +107,9 @@ public class ShardStorageImpl {
         try {
             Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
                 @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    if (!attrs.isDirectory() && dir.toString().endsWith(FILE_EXTENSION)) {
-                        memFiles.add(dir);
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (file.toString().endsWith(FILE_EXTENSION)) {
+                        memFiles.add(file);
                     }
                     return FileVisitResult.CONTINUE;
                 }
