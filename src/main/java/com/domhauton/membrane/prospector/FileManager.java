@@ -24,21 +24,19 @@ import java.util.stream.Collectors;
  * Created by dominic on 26/01/17.
  */
 public class FileManager {
-    private static final int FILE_RESCAN_FREQ_SEC = 10;
-    private static final int FOLDER_RESCAN_FREQ_SEC = 120;
-    private static final int MAX_CHUNK_SIZE = 1024 * 1024 * 64; // 64MB
-
     private final Logger logger;
     private final Prospector prospector;
     private final Map<String, FileMetadata> managedFiles;
+    private final int chunkSizeMB;
 
     private Set<Path> queuedAdditions;
 
     private final ScheduledExecutorService scanExecutor;
     private final Collection<StorageManager> storageManagers;
 
-    public FileManager() throws FileManagerException {
+    public FileManager(int chunkSizeMB) throws FileManagerException {
         logger = LogManager.getLogger();
+        this.chunkSizeMB = chunkSizeMB;
         try {
             prospector = new Prospector();
         } catch (IOException e) {
@@ -54,18 +52,11 @@ public class FileManager {
     }
 
     /**
-     * Run file scanner loops at default rates
-     */
-    public void runScanners() {
-        runScanners(FILE_RESCAN_FREQ_SEC, FOLDER_RESCAN_FREQ_SEC);
-    }
-
-    /**
      * Run file scanner loops at given rates
      * @param fileRescanFrequency seconds
      * @param folderRescanFrequency seconds
      */
-    void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
+    public void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
         scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, fileRescanFrequency, TimeUnit.SECONDS);
         scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
     }
@@ -73,7 +64,7 @@ public class FileManager {
     /**
      * Stop all scanners for graceful shutdown.
      */
-    void stopScanners() {
+    public void stopScanners() {
         try {
             scanExecutor.awaitTermination(10, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -187,7 +178,7 @@ public class FileManager {
      */
     private void fileChanged(Path path) {
         File file = path.toFile();
-        byte[] buffer = new byte[MAX_CHUNK_SIZE];
+        byte[] buffer = new byte[chunkSizeMB * 1024 * 1024];
         DateTime fileLastModified = new DateTime(file.lastModified());
         FileMetadata cachedMetadata = managedFiles.get(path.toString());
 
@@ -238,5 +229,12 @@ public class FileManager {
             queuedAdditions.add(path);
             logger.error("Error while storing shard of file. Read attempt re-queued. [{}]", path);
         }
+    }
+
+    /**
+     * Returns every folder currently watched. Including sub-folders
+     */
+    public Set<Path> getCurrentlyWatchedFolders() {
+        return new HashSet<>(prospector.getWatchedFolders());
     }
 }

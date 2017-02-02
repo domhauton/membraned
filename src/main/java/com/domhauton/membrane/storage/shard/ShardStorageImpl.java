@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
@@ -38,13 +40,15 @@ public class ShardStorageImpl implements ShardStorage {
      */
     public void storeShard(String md5Hash, byte[] data) throws ShardStorageException {
         Path filePath = getPath(basePath.toString(), md5Hash);
-        try {
-            boolean success = filePath.toFile().getParentFile().mkdirs();
-            logger.debug("Created directories for [{}]: {}", filePath, success);
-            Files.write(filePath, data);
-        } catch (IOException e) {
-            logger.error("Could not store shard [{}]. {}", md5Hash, e.getMessage());
-            throw new ShardStorageException("Could not store shard [" + md5Hash + "]. " + e.getMessage());
+        if(!filePath.toFile().exists()) {
+            try {
+                boolean success = filePath.toFile().getParentFile().mkdirs();
+                logger.debug("Created directories for [{}]: {}", filePath, success);
+                Files.write(filePath, data);
+            } catch (IOException e) {
+                logger.error("Could not store shard [{}]. {}", md5Hash, e.getMessage());
+                throw new ShardStorageException("Could not store shard [" + md5Hash + "]. " + e.getMessage());
+            }
         }
     }
 
@@ -74,11 +78,12 @@ public class ShardStorageImpl implements ShardStorage {
     /**
      * Removes the shard from the storage shard pool.
      * @param md5Hash the hash of the shard to remove
-     * @throws ShardStorageException
+     * @return length of shard removed
      */
-    public void removeShard(String md5Hash) throws ShardStorageException {
+    public long removeShard(String md5Hash) throws ShardStorageException {
         Path filePath = getPath(basePath.toString(), md5Hash);
         try {
+            long retLong = filePath.toFile().length();
             Files.delete(filePath);
             for(File folder = filePath.toFile().getParentFile(); !folder.toPath().equals(basePath); folder = folder.getParentFile()) {
                 File[] files = folder.listFiles();
@@ -88,8 +93,10 @@ public class ShardStorageImpl implements ShardStorage {
                     break;
                 }
             }
+            return retLong;
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error("Failed to remove shard {}. {}", md5Hash, e.getMessage());
+            throw new ShardStorageException("Cound not remove shard: " + md5Hash + ". " + e.getMessage());
         }
     }
 
@@ -133,5 +140,27 @@ public class ShardStorageImpl implements ShardStorage {
         }
         currentDir.append(File.separator).append(id).append(FILE_EXTENSION);
         return Paths.get(currentDir.toString());
+    }
+
+    /**
+     * Scans the root folder for shards.
+     * @return List of shard md5 hashes available for reading.
+     */
+    public long getStorageSize() {
+        final AtomicLong size = new AtomicLong(0);
+        try {
+            Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (file.toString().endsWith(FILE_EXTENSION)) {
+                        size.getAndAdd(attrs.size());
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            logger.error("Could not find stored shards in [{}].", basePath.toString());
+        }
+        return size.get();
     }
 }

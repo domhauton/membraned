@@ -67,7 +67,7 @@ public class FileCatalogue {
      * @param storedPath file that was add
      * @param modificationDateTime add/modification time
      */
-    public void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
+    public synchronized void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
         FileVersion fileVersion = new FileVersion(shardHash, modificationDateTime);
 
         JournalEntry journalEntry = storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
@@ -81,10 +81,20 @@ public class FileCatalogue {
      * @param storedPath file that was removed
      * @param modificationDateTime removal time
      */
-    public void removeFile(Path storedPath, DateTime modificationDateTime) {
+    public synchronized void removeFile(Path storedPath, DateTime modificationDateTime) {
         FileVersion fileVersion = new FileVersion(Collections.emptyList(), modificationDateTime);
         storageJournal.addEntry(fileVersion, FileOperation.REMOVE, storedPath, modificationDateTime);
         fileInfoMap.remove(storedPath);
+    }
+
+    /**
+     * Remove any reference to given file
+     * @param storedPath file that was removed
+     */
+    public synchronized void forgetFile(Path storedPath) {
+        fileInfoMap.remove(storedPath);
+        baseFileInfoMap.remove(storedPath);
+        storageJournal.forgetFile(storedPath);
     }
 
     /**
@@ -158,6 +168,10 @@ public class FileCatalogue {
         Set<Path> baseReferencedFiles = baseFileInfoMap.keySet();
         baseReferencedFiles.addAll(storageJournal.getReferencedPaths());
         return baseReferencedFiles;
+    }
+
+    public DateTime getOldestJournalEntryTime() {
+        return storageJournal.getEarliestDateTime();
     }
 
     public List<String> serializeBaseMap() {

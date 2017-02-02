@@ -1,5 +1,6 @@
 package com.domhauton.membrane.config;
 
+import com.domhauton.membrane.config.items.WatchFolder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +31,7 @@ class ConfigManagerTest {
         Files.deleteIfExists(Paths.get(testCfgLocation));
         Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
-        configManager.saveConfig(testCfgLocation);
+        configManager.saveConfig(Paths.get(testCfgLocation), configManager.loadDefaultConfig());
         Assertions.assertTrue(Files.deleteIfExists(Paths.get(testCfgLocation)));
         Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
     }
@@ -41,11 +42,13 @@ class ConfigManagerTest {
         Files.deleteIfExists(Paths.get(testCfgLocation));
         Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
-        configManager.saveConfig(testCfgLocation);
-        // Should be empty
-        Config config = configManager.loadConfig(testCfgLocation);
-        Assertions.assertTrue(config.getFolders().isEmpty());
-        Assertions.assertFalse(configManager.loadDefaultConfig().getFolders().isEmpty());
+        Config cfg =configManager.loadDefaultConfig();
+        cfg.getFolders().add(new WatchFolder("foobar", false));
+
+        configManager.saveConfig(Paths.get(testCfgLocation), cfg);
+        Config config = configManager.loadConfig(Paths.get(testCfgLocation));
+        Assertions.assertEquals(1, config.getFolders().size());
+        Assertions.assertTrue(configManager.loadDefaultConfig().getFolders().isEmpty());
     }
 
     @Test
@@ -54,10 +57,14 @@ class ConfigManagerTest {
         Files.deleteIfExists(Paths.get(testCfgLocation));
         Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
-        configManager.saveConfig(testCfgLocation);
-        Assertions.assertTrue(configManager.loadConfig(testCfgLocation).getFolders().isEmpty());
-        Assertions.assertFalse(configManager.loadDefaultConfig().getFolders().isEmpty());
-        configManager.saveConfig(testCfgLocation);
-        Assertions.assertFalse(configManager.loadConfig(testCfgLocation).getFolders().isEmpty());
+        Config cfg =configManager.loadDefaultConfig();
+        cfg.getFolders().add(new WatchFolder("foobar", false));
+
+        configManager.saveConfig(Paths.get(testCfgLocation), cfg);
+        Assertions.assertFalse(configManager.loadConfig(Paths.get(testCfgLocation)).getFolders().isEmpty());
+        Assertions.assertTrue(configManager.loadDefaultConfig().getFolders().isEmpty());
+        cfg.getFolders().add(new WatchFolder("foobar2", false));
+        configManager.saveConfig(Paths.get(testCfgLocation), cfg);
+        Assertions.assertEquals(2, configManager.loadConfig(Paths.get(testCfgLocation)).getFolders().size());
     }
 }

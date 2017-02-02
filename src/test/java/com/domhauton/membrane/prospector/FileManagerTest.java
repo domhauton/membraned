@@ -27,7 +27,7 @@ class FileManagerTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        fileManager = new FileManager();
+        fileManager = new FileManager(64);
         dir = ProspectorTestUtils.createRandomFolder(BASE_DIR);
         logger.info("Setting up in [{}]", dir);
     }

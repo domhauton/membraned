@@ -86,6 +86,18 @@ public class StorageJournal {
                 .collect(Collectors.toSet());
     }
 
+    public DateTime getEarliestDateTime() {
+        return new DateTime(journalEntries.stream()
+                .mapToLong(journalEntry -> journalEntry.getDateTime().getMillis())
+                .min()
+                .orElse(System.currentTimeMillis()));
+    }
+
+    synchronized void forgetFile(Path filePath) {
+        List<JournalEntry> entriesToForget = getJournalEntries(filePath);
+        journalEntries.removeAll(entriesToForget);
+    }
+
     private synchronized void applyJournalEntry(Map<Path, FileVersion> map, JournalEntry journalEntry) {
         switch(journalEntry.getFileOperation()) {
             case ADD:
