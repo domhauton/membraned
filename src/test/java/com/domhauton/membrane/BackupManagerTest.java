@@ -201,8 +201,8 @@ class BackupManagerTest {
 
         backupManager.trimStorage();
 
-        //assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
-        //assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime2));
+        assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
+        assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime2));
 
         backupManager.recoverFile(testFile1, recoveryDest, dateTime3);
         byte[] recoveredFile3 = Files.readAllBytes(recoveryDest);

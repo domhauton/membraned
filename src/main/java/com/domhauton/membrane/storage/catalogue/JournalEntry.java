@@ -3,6 +3,7 @@ package com.domhauton.membrane.storage.catalogue;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
+import com.google.common.base.Objects;
 import org.joda.time.DateTime;
 
 import java.nio.file.Path;
@@ -92,5 +93,19 @@ public class JournalEntry {
         return CatalogueUtils.listToString(retList);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        JournalEntry that = (JournalEntry) o;
+        return Objects.equal(dateTime, that.dateTime) &&
+                Objects.equal(shardInfo, that.shardInfo) &&
+                fileOperation == that.fileOperation &&
+                Objects.equal(filePath, that.filePath);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(dateTime, shardInfo, fileOperation, filePath);
+    }
 }

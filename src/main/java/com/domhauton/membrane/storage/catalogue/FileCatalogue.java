@@ -202,15 +202,17 @@ public class FileCatalogue {
 
         int removedByteCount = 0;
         for(JournalEntry journalEntry : storageJournal.getJournalEntries()) {
-            FileVersion latestFileVersion = fileInfoMap.get(journalEntry.getFilePath());
-            boolean isLatestEntry = latestFileVersion != null && latestFileVersion.equals(journalEntry.getShardInfo());
-            if(removedByteCount < bytesToRemove && !isLatestEntry) {
-                logger.trace("Removing old journal entry: {}", journalEntry::toString);
-                storageJournal.forgetEntry(journalEntry);
-                removedByteCount += journalEntry.getShardInfo().getMD5HashLengthPairs().stream()
-                        .filter(x -> shardCounts.remove(x.getMd5Hash(), 1) <= 1)
-                        .mapToInt(MD5HashLengthPair::getLength)
-                        .sum();
+            if(removedByteCount < bytesToRemove) {
+                FileVersion latestFileVersion = fileInfoMap.get(journalEntry.getFilePath());
+                boolean isLatestEntry = latestFileVersion != null && latestFileVersion.equals(journalEntry.getShardInfo());
+                if(!isLatestEntry) {
+                    logger.debug("Removing old journal entry: {}", journalEntry::toString);
+                    storageJournal.forgetEntry(journalEntry);
+                    removedByteCount += journalEntry.getShardInfo().getMD5HashLengthPairs().stream()
+                            .filter(x -> shardCounts.remove(x.getMd5Hash(), 1) <= 1)
+                            .mapToInt(MD5HashLengthPair::getLength)
+                            .sum();
+                }
             } else {
                 break;
             }
