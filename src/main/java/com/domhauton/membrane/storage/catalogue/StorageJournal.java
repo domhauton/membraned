@@ -2,6 +2,7 @@ package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -75,8 +76,9 @@ public class StorageJournal {
     public Set<String> getReferencedShards() {
         return journalEntries.stream()
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .flatMap(List::stream)
+                .map(MD5HashLengthPair::getMd5Hash)
                 .collect(Collectors.toSet());
     }
 
@@ -96,6 +98,10 @@ public class StorageJournal {
     synchronized void forgetFile(Path filePath) {
         List<JournalEntry> entriesToForget = getJournalEntries(filePath);
         journalEntries.removeAll(entriesToForget);
+    }
+
+    synchronized void forgetEntry(JournalEntry journalEntry) {
+        journalEntries.remove(journalEntry);
     }
 
     private synchronized void applyJournalEntry(Map<Path, FileVersion> map, JournalEntry journalEntry) {

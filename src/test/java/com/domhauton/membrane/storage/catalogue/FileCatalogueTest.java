@@ -2,6 +2,7 @@ package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.Hashing;
 import org.joda.time.DateTime;
@@ -35,56 +36,56 @@ class FileCatalogueTest {
 
     @Test
     void putAndRetrieveTest() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT, path, outputStreamWriter);
         FileVersion fv = fileCatalogue.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT);
-        Assertions.assertEquals(fv.getMD5ShardList(), hashList1);
+        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
     }
 
     @Test
     void putAndRetrieveTestOverWrite() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
         FileVersion fv = fileCatalogue.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT2);
-        Assertions.assertEquals(fv.getMD5ShardList(), hashList2);
+        Assertions.assertEquals(fv.getMD5HashList(), hashList2);
     }
 
     @Test
     void putAndRetrieveTestOverWriteRewind() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
         FileCatalogue rewoundFC = fileCatalogue.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5ShardList(), hashList1);
+        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
     }
 
     @Test
     void putAndRetrieveTestOverWriteCollapse() throws Exception {
         Path path = Paths.get("/tmp/membrane/foobar1");
 
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
 
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
@@ -95,7 +96,7 @@ class FileCatalogueTest {
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5ShardList(), hashList1);
+        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
 
         Assertions.assertEquals(20, collapsedFC.getReferencedShards().size());
 
@@ -104,7 +105,7 @@ class FileCatalogueTest {
         FileVersion fv2 = rewoundFC2.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv2.getModificationDateTime(), modifiedDT2);
-        Assertions.assertEquals(fv2.getMD5ShardList(), hashList2);
+        Assertions.assertEquals(fv2.getMD5HashList(), hashList2);
 
         Assertions.assertEquals(10, collapsedFC2.getReferencedShards().size());
     }
@@ -113,7 +114,7 @@ class FileCatalogueTest {
     void removalOverwriteTest() throws Exception {
         Path path = Paths.get("/tmp/membrane/foobar1");
 
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
 
@@ -125,7 +126,7 @@ class FileCatalogueTest {
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5ShardList(), hashList1);
+        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
 
         Assertions.assertEquals(10, collapsedFC.getReferencedShards().size());
 
@@ -139,11 +140,11 @@ class FileCatalogueTest {
 
     @Test
     void retrieveFileHistory() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
@@ -151,23 +152,23 @@ class FileCatalogueTest {
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashList)
                 .anyMatch(hashList1::equals));
 
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashList)
                 .anyMatch(hashList2::equals));
     }
 
     @Test
     void retrieveFileHistoryTrimmed() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
@@ -178,30 +179,30 @@ class FileCatalogueTest {
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashList)
                 .noneMatch(hashList1::equals));
 
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashList)
                 .anyMatch(hashList2::equals));
     }
 
     @Test
     void retrieveFileAtTime() throws Exception {
-        List<String> hashList1 = genRandHashSet();
+        List<MD5HashLengthPair> hashList1 = genRandHashSet();
         DateTime modifiedDT1 = new DateTime(100L);
         Path path = Paths.get("/tmp/membrane/foobar1");
         fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
-        List<String> hashList2 = genRandHashSet();
+        List<MD5HashLengthPair> hashList2 = genRandHashSet();
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
         Optional<FileVersion> fileVersion1 = fileCatalogue.getFileVersion(path, new DateTime(150L));
 
         Assertions.assertTrue(fileVersion1.isPresent());
-        Assertions.assertTrue(fileVersion1.orElse(null).getMD5ShardList().equals(hashList1));
+        Assertions.assertTrue(fileVersion1.orElse(null).getMD5HashList().equals(hashList1));
 
         Optional<FileVersion> fileVersion1b = fileCatalogue.getFileVersion(path, new DateTime(50L));
 
@@ -210,14 +211,15 @@ class FileCatalogueTest {
         Optional<FileVersion> fileVersion2 = fileCatalogue.getFileVersion(path, new DateTime(200L));
 
         Assertions.assertTrue(fileVersion2.isPresent());
-        Assertions.assertTrue(fileVersion2.orElse(null).getMD5ShardList().equals(hashList2));
+        Assertions.assertTrue(fileVersion2.orElse(null).getMD5HashList().equals(hashList2));
     }
 
-    private List<String> genRandHashSet() {
+    private List<MD5HashLengthPair> genRandHashSet() {
         return IntStream.range(0, 10)
                 .boxed()
                 .map(x -> genRandHash())
                 .map(HashCode::toString)
+                .map(x -> new MD5HashLengthPair(x, 128))
                 .collect(Collectors.toList());
     }
 

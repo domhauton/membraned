@@ -1,6 +1,7 @@
 package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import org.joda.time.DateTime;
 
 import java.nio.file.Path;
@@ -8,6 +9,7 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by dominic on 01/02/17.
@@ -39,11 +41,11 @@ public class CatalogueUtils {
         return inputMap;
     }
 
-    static String serializeEntry(Path path, DateTime modDateTime, List<String> shards) {
+    static String serializeEntry(Path path, DateTime modDateTime, List<MD5HashLengthPair> MD5HashLengthPairs) {
         LinkedList<String> fieldList = new LinkedList<>();
         fieldList.add(path.toString());
         fieldList.add(Long.toString(modDateTime.getMillis()));
-        fieldList.addAll(shards);
+        fieldList.addAll(MD5HashLengthPairs.stream().flatMap(x -> Stream.of(x.getMd5Hash(), x.getLength().toString())).collect(Collectors.toList()));
         return CatalogueUtils.listToString(fieldList);
     }
 
@@ -55,7 +57,16 @@ public class CatalogueUtils {
                 Path filePath = Paths.get(fieldList.get(0));
                 DateTime modDT = new DateTime(Long.parseLong(fieldList.get(1)));
                 List<String> shardList = fieldList.subList(2, fieldList.size());
-                FileVersion fv = new FileVersion(shardList, modDT);
+                LinkedList<MD5HashLengthPair> MD5HashLengthPairs = new LinkedList<>();
+                if(shardList.size() % 2 != 0) {
+                    throw new IllegalArgumentException("Entry has incomplete shard information");
+                }
+                for(int i = 0; i < shardList.size(); i++) {
+                    String md5Hash = shardList.get(i++);
+                    Integer length = Integer.parseInt(shardList.get(i));
+                    MD5HashLengthPairs.add(new MD5HashLengthPair(md5Hash, length));
+                }
+                FileVersion fv = new FileVersion(MD5HashLengthPairs, modDT);
                 inputMap.put(filePath, fv);
                 return inputMap;
             } catch (Exception e) {

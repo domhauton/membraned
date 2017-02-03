@@ -2,6 +2,8 @@ package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
+import com.google.common.collect.HashMultiset;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -64,11 +66,12 @@ public class FileCatalogue {
 
     /**
      * Add an add operation for the path to the catalogue
-     * @param storedPath file that was add
+     * @param MD5HashLengthPairs
      * @param modificationDateTime add/modification time
+     * @param storedPath file that was add
      */
-    public synchronized void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
-        FileVersion fileVersion = new FileVersion(shardHash, modificationDateTime);
+    public synchronized void addFile(List<MD5HashLengthPair> MD5HashLengthPairs, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
+        FileVersion fileVersion = new FileVersion(MD5HashLengthPairs, modificationDateTime);
 
         JournalEntry journalEntry = storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
         fileInfoMap.put(storedPath, fileVersion);
@@ -144,8 +147,9 @@ public class FileCatalogue {
      */
     public Set<String> getReferencedShards() {
         Set<String> retShards = baseFileInfoMap.values().stream()
-                .map(FileVersion::getMD5ShardList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .flatMap(List::stream)
+                .map(MD5HashLengthPair::getMd5Hash)
                 .collect(Collectors.toSet());
         Set<String> journalShards = storageJournal.getReferencedShards();
         retShards.addAll(journalShards);
@@ -176,7 +180,44 @@ public class FileCatalogue {
 
     public List<String> serializeBaseMap() {
         return baseFileInfoMap.entrySet().stream()
-                .map(entry -> CatalogueUtils.serializeEntry(entry.getKey(), entry.getValue().getModificationDateTime(), entry.getValue().getMD5ShardList()))
+                .map(entry -> CatalogueUtils.serializeEntry(entry.getKey(), entry.getValue().getModificationDateTime(), entry.getValue().getMD5HashLengthPairs()))
                 .collect(Collectors.toList());
+    }
+
+    public synchronized long removeOldestJournalEntries(int bytesToRemove) {
+        List<String> journalHashList = storageJournal.getJournalEntries().stream()
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getMD5HashLengthPairs)
+                .flatMap(List::stream)
+                .map(MD5HashLengthPair::getMd5Hash)
+                .collect(Collectors.toList());
+        List<String> baseHashList = baseFileInfoMap.values().stream()
+                .map(FileVersion::getMD5HashLengthPairs)
+                .flatMap(List::stream)
+                .map(MD5HashLengthPair::getMd5Hash)
+                .collect(Collectors.toList());
+
+        HashMultiset<String> shardCounts = HashMultiset.create(journalHashList);
+        shardCounts.addAll(baseHashList);
+
+        int removedByteCount = 0;
+        for(JournalEntry journalEntry : storageJournal.getJournalEntries()) {
+            FileVersion latestFileVersion = fileInfoMap.get(journalEntry.getFilePath());
+            boolean isLatestEntry = latestFileVersion != null && latestFileVersion.equals(journalEntry.getShardInfo());
+            if(removedByteCount < bytesToRemove && !isLatestEntry) {
+                logger.trace("Removing old journal entry: {}", journalEntry::toString);
+                storageJournal.forgetEntry(journalEntry);
+                removedByteCount += journalEntry.getShardInfo().getMD5HashLengthPairs().stream()
+                        .filter(x -> shardCounts.remove(x.getMd5Hash(), 1) <= 1)
+                        .mapToInt(MD5HashLengthPair::getLength)
+                        .sum();
+            } else {
+                break;
+            }
+            if(logger.isTraceEnabled()) {
+                logger.trace("Removing old journal entry. Currently removed {}MB", ((float)removedByteCount) / (1024*1024));
+            }
+        }
+        return removedByteCount;
     }
 }

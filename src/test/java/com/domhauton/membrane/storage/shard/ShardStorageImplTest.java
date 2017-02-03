@@ -31,7 +31,7 @@ class ShardStorageImplTest {
     @BeforeEach
     void setUp() throws Exception {
         testDir = StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR);
-        shardStorage = new ShardStorageImpl(Paths.get(testDir));
+        shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024*1024*1024);
         random = new Random(System.currentTimeMillis());
     }
 

@@ -43,7 +43,7 @@ public class BackupManager {
         this.config = config;
         try {
             fileManager = new FileManager(config.getChunkSizeMB());
-            storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()));
+            storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()), config.getMaxStorageSizeMB() * 1024 * 1024);
             fileManager.addStorageManager(storageManager);
             trimExecutor = Executors.newSingleThreadScheduledExecutor();
         } catch (FileManagerException | StorageManagerException e) {
@@ -74,12 +74,13 @@ public class BackupManager {
         storageManager.rebuildFile(originalPath, destPath, atTime);
     }
 
-    private void trimStorage() {
-        long maxSizeBytes = config.getMaxStorageSizeMB() * 1024 * 1024;
+    public void trimStorage() {
+        long gcBytes = config.getGarbageCollectThresholdMB() * 1024 * 1024;
         Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
         try {
-            logger.info("Attempting to trim storage to {}MB", config.getMaxStorageSizeMB());
-            storageManager.clampStorageToSize(maxSizeBytes, watchedFolders);
+            logger.info("Attempting to trim storage to {}MB.", config.getGarbageCollectThresholdMB());
+            logger.debug("Current watched folders: {}", watchedFolders);
+            storageManager.clampStorageToSize(gcBytes, watchedFolders);
             logger.info("Successfully trimmed storage.");
         } catch (StorageManagerException e) {
             logger.error("Failed to trim storage. Trying again in 1 min.");
@@ -98,7 +99,7 @@ public class BackupManager {
         logger.info("Moving {} mappings to listener", currentFileMapping.size());
         currentFileMapping.entrySet()
                 .forEach(x -> fileManager.addExistingFile(x.getKey(), x.getValue().getModificationDateTime(),
-                        x.getValue().getMD5ShardList()));
+                        x.getValue().getMD5HashLengthPairs()));
     }
 
     public void close() {

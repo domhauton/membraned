@@ -16,6 +16,7 @@ public class Config {
     private int folderRescanFrequencySec;
     private int storageTrimFrequencyMin;
     private int chunkSizeMB;
+    private int garbageCollectThresholdMB;
     private int maxStorageSizeMB;
     private List<WatchFolder> folders;
 
@@ -26,15 +27,17 @@ public class Config {
         folderRescanFrequencySec = 120;
         storageTrimFrequencyMin = 20;
         chunkSizeMB = 64;
-        maxStorageSizeMB = 2048;
+        maxStorageSizeMB = 4096;
+        garbageCollectThresholdMB = 2048;
     }
 
-    public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int maxStorageSizeMB, List<WatchFolder> folders) {
+    public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int garbageCollectThresholdMB, int maxStorageSizeMB, List<WatchFolder> folders) {
         this.shardStorageFolder = shardStorageFolder;
         this.fileRescanFrequencySec = fileRescanFrequencySec;
         this.folderRescanFrequencySec = folderRescanFrequencySec;
         this.storageTrimFrequencyMin = storageTrimFrequencyMin;
         this.chunkSizeMB = chunkSizeMB;
+        this.garbageCollectThresholdMB = garbageCollectThresholdMB;
         this.maxStorageSizeMB = maxStorageSizeMB;
         this.folders = folders;
     }
@@ -65,5 +68,9 @@ public class Config {
 
     public int getStorageTrimFrequencyMin() {
         return storageTrimFrequencyMin;
+    }
+
+    public int getGarbageCollectThresholdMB() {
+        return garbageCollectThresholdMB;
     }
 }

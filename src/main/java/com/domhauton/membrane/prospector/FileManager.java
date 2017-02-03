@@ -5,6 +5,7 @@ import com.domhauton.membrane.prospector.metadata.FileMetadata;
 import com.domhauton.membrane.prospector.metadata.FileMetadataBuilder;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -81,11 +82,10 @@ public class FileManager {
      * Add file to manager manually.
      * @param path path of file
      * @param dateTime last modified time of file
-     * @param md5ShardList List of md5 shards of the file.
      */
-    public void addExistingFile(Path path, DateTime dateTime, List<String> md5ShardList) {
+    public void addExistingFile(Path path, DateTime dateTime, List<MD5HashLengthPair> md5HashLengthPairs) {
         FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), dateTime)
-                .addShardList(md5ShardList)
+                .addShardData(md5HashLengthPairs)
                 .build();
         managedFiles.put(path.toString(), fileMetadata);
     }
@@ -136,7 +136,9 @@ public class FileManager {
                 .map(File::toPath)
                 .filter(x -> !Files.isDirectory(x))
                 .collect(Collectors.toSet());
+        logger.debug("Existing files: {}", existingFiles);
         Set<Path> lostPaths = managedFiles.keySet().stream()
+                .filter(x -> folders.stream().anyMatch(folder -> x.startsWith(folder.toString())))
                 .map(Paths::get)
                 .filter(x -> !existingFiles.contains(x))
                 .collect(Collectors.toSet());
@@ -211,13 +213,13 @@ public class FileManager {
 
             boolean hasFileChanged = cachedMetadata == null ||
                     !cachedMetadata.getModifiedTime().equals(newFileMetadata.getModifiedTime()) ||
-                    !cachedMetadata.getMD5HashList().equals(newFileMetadata.getMD5HashList());
+                    !cachedMetadata.getMd5HashLengthPairs().equals(newFileMetadata.getMd5HashLengthPairs());
 
             // If there was a change update the storage managers.
             if(hasFileChanged) {
                 logger.info("Change detected in [{}]. Adding file to storage.", path);
                 for(StorageManager sm : storageManagers) {
-                    sm.addFile(newFileMetadata.getMD5HashList(), fileLastModified, path);
+                    sm.addFile(newFileMetadata.getMd5HashLengthPairs(), fileLastModified, path);
                 }
                 managedFiles.put(path.toString(), newFileMetadata);
             } else {
@@ -227,7 +229,7 @@ public class FileManager {
             logger.error("Error while reading from file [{}]. Ignoring file.", path);
         } catch (StorageManagerException e) {
             queuedAdditions.add(path);
-            logger.error("Error while storing shard of file. Read attempt re-queued. [{}]", path);
+            logger.error("Error while storing shard of file. File re-queued. [{}]", path);
         }
     }
 

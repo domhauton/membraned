@@ -2,6 +2,7 @@ package com.domhauton.membrane;
 
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.storage.StorageManagerException;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -72,6 +73,7 @@ class BackupManagerTest {
                 1,
                 4,
                 16,
+                30,
                 Arrays.asList(watchFolder1, watchFolder2));
 
         backupManager = new BackupManager(config, configPath);
@@ -124,6 +126,97 @@ class BackupManagerTest {
         backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
         byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
         Assertions.assertArrayEquals(data2, recoveredFile2);
+    }
+
+    @Test
+    void addAndRecoverFileVersionReboot() throws Exception {
+        byte[] data1 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data1);
+        Files.write(testFile1, data1);
+        DateTime dateTime1 = DateTime.now();
+
+        Thread.sleep(1500);
+
+        byte[] data2 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data2);
+        Files.write(testFile1, data2);
+        DateTime dateTime2 = DateTime.now();
+
+        Thread.sleep(1500);
+
+        backupManager.close();
+
+        backupManager = new BackupManager(config, configPath);
+
+        backupManager.recoverFile(testFile1, recoveryDest, dateTime1);
+        byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data1, recoveredFile1);
+
+        backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
+        byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data2, recoveredFile2);
+    }
+
+    @Test
+    void addAndRecoverFileVersionOverflowTest() throws Exception {
+        byte[] data5 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data5);
+        Files.write(testFile2, data5);
+        DateTime dateTime5 = DateTime.now();
+
+        byte[] data1 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data1);
+        Files.write(testFile1, data1);
+        DateTime dateTime1 = DateTime.now();
+
+        Thread.sleep(1500);
+
+        byte[] data2 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data2);
+        Files.write(testFile1, data2);
+        DateTime dateTime2 = DateTime.now();
+
+        Thread.sleep(1500);
+
+        byte[] data3 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data3);
+        Files.write(testFile1, data3);
+        DateTime dateTime3 = DateTime.now();
+
+        byte[] data4 = new byte[5 * 1024 * 1024];
+        random.nextBytes(data4);
+        Files.write(testFile3, data4);
+        DateTime dateTime4 = DateTime.now();
+
+        Thread.sleep(1500);
+
+        backupManager.close();
+
+        backupManager = new BackupManager(config, configPath);
+        backupManager.start();
+
+        backupManager.recoverFile(testFile1, recoveryDest, dateTime1);
+        byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data1, recoveredFile1);
+
+        backupManager.trimStorage();
+
+        //assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
+        //assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime2));
+
+        backupManager.recoverFile(testFile1, recoveryDest, dateTime3);
+        byte[] recoveredFile3 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data3, recoveredFile3);
+
+        backupManager.recoverFile(testFile3, recoveryDest, dateTime4);
+        byte[] recoveredFile4 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data4, recoveredFile4);
+
+        backupManager.recoverFile(testFile2, recoveryDest, dateTime5);
+        byte[] recoveredFile5 = Files.readAllBytes(recoveryDest);
+        Assertions.assertArrayEquals(data5, recoveredFile5);
+
+        Thread.sleep(1500);
     }
 
     @AfterEach

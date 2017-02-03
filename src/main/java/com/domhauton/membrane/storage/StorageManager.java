@@ -4,6 +4,7 @@ import com.domhauton.membrane.storage.catalogue.CatalogueUtils;
 import com.domhauton.membrane.storage.catalogue.FileCatalogue;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import com.domhauton.membrane.storage.shard.ShardStorage;
 import com.domhauton.membrane.storage.shard.ShardStorageException;
 import com.domhauton.membrane.storage.shard.ShardStorageImpl;
@@ -12,7 +13,6 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 
-import javax.swing.text.html.Option;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -42,16 +42,16 @@ public class StorageManager {
 
     private OutputStreamWriter journalOutput;
 
-    public StorageManager(Path basePath) throws StorageManagerException {
+    public StorageManager(Path basePath, int maxStorageSize) throws StorageManagerException {
         this(
                 Paths.get(basePath.toString() + File.separator + DEFAULT_CATALOGUE_FOLDER),
-                Paths.get(basePath.toString() + File.separator + DEFAULT_STORAGE_FOLDER));
+                Paths.get(basePath.toString() + File.separator + DEFAULT_STORAGE_FOLDER), maxStorageSize);
     }
 
-    private StorageManager(Path catalogue, Path data) throws StorageManagerException {
+    private StorageManager(Path catalogue, Path data, long maxStorageSize) throws StorageManagerException {
         logger = LogManager.getLogger();
         logger.info("Opening storage manager.");
-        shardStorage = new ShardStorageImpl(data);
+        shardStorage = new ShardStorageImpl(data, maxStorageSize);
         tempProtectedShards = new HashSet<>();
         journalPath = Paths.get(catalogue.toString() + File.separator + JOURNAL_NAME);
         List<JournalEntry> journalEntries = journalPath.toFile().exists() ? readJournal(journalPath) : new LinkedList<>();
@@ -83,7 +83,7 @@ public class StorageManager {
      * @param modificationDateTime Time the modification occurred.
      * @param storedPath The actual path of the file.
      */
-    public synchronized void addFile(List<String> shardHash, DateTime modificationDateTime, Path storedPath) throws StorageManagerException {
+    public synchronized void addFile(List<MD5HashLengthPair> shardHash, DateTime modificationDateTime, Path storedPath) throws StorageManagerException {
         logger.info("Adding file [{}] - Timestamp [{}] - Shards [{}]", storedPath, modificationDateTime, shardHash);
         try {
             fileCatalogue.addFile(shardHash, modificationDateTime, storedPath, journalOutput);
@@ -115,7 +115,7 @@ public class StorageManager {
         if(fileVersionOptional.isPresent()) {
             rebuildFile(originalPath, destPath, fileVersionOptional.get());
         } else {
-            logger.error("Rebuilding file [{}] - Failed to locate file metadata.", originalPath);
+            logger.error("Rebuilding file [{}] - Failed to locate file metadata for file at time {}.", originalPath, atTime);
             throw new StorageManagerException("File unknown. [" + originalPath + "]");
         }
     }
@@ -149,9 +149,9 @@ public class StorageManager {
                     FileOutputStream fos = new FileOutputStream(destPath.toFile());
                     BufferedOutputStream bus = new BufferedOutputStream(fos)
             ) {
-                for (String md5Hash : fileVersion.getMD5ShardList()) {
-                    logger.info("Rebuilding file [{}] - Shard [{}]", originalPath, md5Hash);
-                    byte[] data = shardStorage.retrieveShard(md5Hash);
+                for (MD5HashLengthPair MD5HashLengthPair : fileVersion.getMD5HashLengthPairs()) {
+                    logger.info("Rebuilding file [{}] - Shard [{}]. Size: {}", originalPath, MD5HashLengthPair.getMd5Hash(), MD5HashLengthPair.getLength());
+                    byte[] data = shardStorage.retrieveShard(MD5HashLengthPair.getMd5Hash());
                     bus.write(data);
                 }
                 logger.info("Rebuilding file [{}] - SUCCESS.", originalPath);
@@ -198,30 +198,33 @@ public class StorageManager {
     }
 
     public synchronized long clampStorageToSize(long bytes, Set<Path> trackedFolders) throws StorageManagerException {
-        long spaceToRecover = getStorageSize() - bytes;
-        logger.info("Space Recovery - Cleaning up {}MB", ((float)spaceToRecover)/(1024*1024));
+        long currentStorageSize = getStorageSize();
+        long spaceToRecover = currentStorageSize - bytes;
+        logger.info("Space Recovery - Reducing storage to {}MB. Current size {}MB. Need to remove {}MB", ((float)bytes)/(1024*1024), ((float)currentStorageSize)/(1024*1024), ((float)spaceToRecover)/(1024*1024));
         if(spaceToRecover > 0) {
             spaceToRecover -= collectGarbage();
         }
 
+        logger.info("Space Recovery - Finding untracked files.");
         if(spaceToRecover > 0) {
             Set<Path> notTrackedFiles = fileCatalogue.getCurrentFiles().stream()
                     .filter(x -> !trackedFolders.contains(x.getParent()))
                     .collect(Collectors.toSet());
-            logger.info("Space Recovery - Removing {} untracked files.", notTrackedFiles.size());
-            notTrackedFiles.forEach(x -> fileCatalogue.forgetFile(x));
-            spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
+            if(notTrackedFiles.size() > 0) {
+                logger.info("Space Recovery - Removing {} untracked files.", notTrackedFiles.size());
+                notTrackedFiles.forEach(x -> fileCatalogue.forgetFile(x));
+                spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
+            } else {
+                logger.info("Space Recovery - No untracked files found.", notTrackedFiles.size());
+            }
         }
 
-        DateTime earliestJournalEntry = fileCatalogue.getOldestJournalEntryTime();
-        while(spaceToRecover > 0 && earliestJournalEntry.isBefore(DateTime.now().minusSeconds(10)) ) {
-            earliestJournalEntry = fileCatalogue.getOldestJournalEntryTime();
-            DateTime trimToTime = earliestJournalEntry.plusHours(3);
-            spaceToRecover -= cleanStorage(trimToTime);
-        }
+        logger.info("Space Recovery - Retiring older journal entries.");
+        fileCatalogue.removeOldestJournalEntries((int) spaceToRecover);
+        spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
 
         if(spaceToRecover > 0) {
-            logger.info("Space Recovery - Could not meet {}MB requirement. Excess is {}MB.", ((float)bytes)/(1024*1024), ((float)spaceToRecover)/(1024*1024));
+            logger.warn("Space Recovery - Could not meet {}MB requirement. Excess is {}MB.", ((float)bytes)/(1024*1024), ((float)spaceToRecover)/(1024*1024));
         } else {
             logger.info("Space Recovery - Successful file size reduction. Reduced to {}MB.", ((float)(bytes+spaceToRecover))/(1024*1024));
         }

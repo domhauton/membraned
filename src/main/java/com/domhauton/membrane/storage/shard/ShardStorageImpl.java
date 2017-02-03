@@ -23,13 +23,17 @@ public class ShardStorageImpl implements ShardStorage {
 
     private Logger logger;
     private Path basePath;
+    private long currentStorageSize;
+    private final long maxStorageSize;
 
     /**
      * @param basePath Directory to store shards.
      */
-    public ShardStorageImpl(Path basePath) {
+    public ShardStorageImpl(Path basePath, long maxStorageSize) {
         this.basePath = basePath;
         logger = LogManager.getLogger();
+        this.maxStorageSize = maxStorageSize;
+        currentStorageSize = getStorageSize();
     }
 
     /**
@@ -41,10 +45,22 @@ public class ShardStorageImpl implements ShardStorage {
     public void storeShard(String md5Hash, byte[] data) throws ShardStorageException {
         Path filePath = getPath(basePath.toString(), md5Hash);
         if(!filePath.toFile().exists()) {
+            if(currentStorageSize + data.length > maxStorageSize) {
+                currentStorageSize = getStorageSize(); // Refresh to ensure value is correct
+                if(currentStorageSize + data.length > maxStorageSize) {
+                    logger.warn("Not enough space to store shard [{}] of size {}MB. {}MB of {}MB stored",
+                            md5Hash,
+                            ((float)data.length)/(1024*1024),
+                            ((float)currentStorageSize)/(1024*1024),
+                            ((float)maxStorageSize)/(1024*1024));
+                    throw new ShardStorageException("Not enough space to store shard. " + md5Hash);
+                }
+            }
             try {
                 boolean success = filePath.toFile().getParentFile().mkdirs();
                 logger.debug("Created directories for [{}]: {}", filePath, success);
                 Files.write(filePath, data);
+                currentStorageSize += data.length;
             } catch (IOException e) {
                 logger.error("Could not store shard [{}]. {}", md5Hash, e.getMessage());
                 throw new ShardStorageException("Could not store shard [" + md5Hash + "]. " + e.getMessage());
@@ -93,6 +109,7 @@ public class ShardStorageImpl implements ShardStorage {
                     break;
                 }
             }
+            currentStorageSize -= retLong;
             return retLong;
         } catch (IOException e) {
             logger.error("Failed to remove shard {}. {}", md5Hash, e.getMessage());
@@ -148,18 +165,20 @@ public class ShardStorageImpl implements ShardStorage {
      */
     public long getStorageSize() {
         final AtomicLong size = new AtomicLong(0);
-        try {
-            Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.toString().endsWith(FILE_EXTENSION)) {
-                        size.getAndAdd(attrs.size());
+        if(basePath.toFile().exists()) {
+            try {
+                Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        if (file.toString().endsWith(FILE_EXTENSION)) {
+                            size.getAndAdd(attrs.size());
+                        }
+                        return FileVisitResult.CONTINUE;
                     }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            logger.error("Could not find stored shards in [{}].", basePath.toString());
+                });
+            } catch (IOException e) {
+                logger.error("Could not find stored shards in [{}].", basePath.toString());
+            }
         }
         return size.get();
     }

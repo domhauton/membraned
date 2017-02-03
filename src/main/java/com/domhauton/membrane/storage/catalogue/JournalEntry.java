@@ -2,6 +2,7 @@ package com.domhauton.membrane.storage.catalogue;
 
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import org.joda.time.DateTime;
 
 import java.nio.file.Path;
@@ -10,6 +11,8 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Created by dominic on 30/01/17.
@@ -36,8 +39,17 @@ public class JournalEntry {
                 fileOperation = FileOperation.valueOf(decoded.get(1));
                 filePath = Paths.get(decoded.get(2));
                 DateTime modifiedDateTime = new DateTime(Long.parseLong(decoded.get(3)));
-                List<String> hashes = decoded.subList(4, decoded.size());
-                shardInfo = new FileVersion(hashes, modifiedDateTime);
+                List<MD5HashLengthPair> MD5HashLengthPairs = new LinkedList<>();
+                List<String> dataSubList = decoded.subList(4, decoded.size());
+                if(dataSubList.size() % 2 != 0) {
+                    throw new IllegalArgumentException("Entry has incomplete shard information");
+                }
+                for(int i = 0; i < dataSubList.size(); i++) {
+                    String md5Hash = dataSubList.get(i++);
+                    Integer length = Integer.parseInt(dataSubList.get(i));
+                    MD5HashLengthPairs.add(new MD5HashLengthPair(md5Hash, length));
+                }
+                shardInfo = new FileVersion(MD5HashLengthPairs, modifiedDateTime);
             } catch (Exception e) {
                 throw new IllegalArgumentException(e);
             }
@@ -74,7 +86,9 @@ public class JournalEntry {
                 Long.toString(shardInfo.getModificationDateTime().getMillis()));
         LinkedList<String> retList = new LinkedList<>();
         retList.addAll(baseList);
-        retList.addAll(shardInfo.getMD5ShardList());
+        retList.addAll(shardInfo.getMD5HashLengthPairs().stream()
+                .flatMap(x -> Stream.of(x.getMd5Hash(), x.getLength().toString()))
+                .collect(Collectors.toList()));
         return CatalogueUtils.listToString(retList);
     }
 

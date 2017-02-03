@@ -72,7 +72,7 @@ public class Prospector {
                 logger.debug("Watch Service interrupted during poll.");
             }
             if(key == null) {
-                logger.debug("{} files in {} watchFolders updated during sweep", pcs.getChangedFiles().size() + pcs.getRemovedFiles().size(), i);
+                logger.debug("{} file updates in {} watch instances detected.", pcs.getChangedFiles().size() + pcs.getRemovedFiles().size(), i);
                 return pcs;
             }
 
