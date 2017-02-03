@@ -29,6 +29,16 @@ public class Config {
         maxStorageSizeMB = 2048;
     }
 
+    public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int maxStorageSizeMB, List<WatchFolder> folders) {
+        this.shardStorageFolder = shardStorageFolder;
+        this.fileRescanFrequencySec = fileRescanFrequencySec;
+        this.folderRescanFrequencySec = folderRescanFrequencySec;
+        this.storageTrimFrequencyMin = storageTrimFrequencyMin;
+        this.chunkSizeMB = chunkSizeMB;
+        this.maxStorageSizeMB = maxStorageSizeMB;
+        this.folders = folders;
+    }
+
     public List<WatchFolder> getFolders() {
         return folders;
     }

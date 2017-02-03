@@ -87,7 +87,7 @@ public class Prospector {
                     WatchEvent<Path> ev = cast(event);
                     Path path = ev.context();
                     Path fullPath = Paths.get(basePath.toString() + SEP + path.toString());
-                    if(!Files.isDirectory(fullPath, LinkOption.NOFOLLOW_LINKS)) {
+                    if(!Files.isDirectory(fullPath)) {
                         logger.trace("Prospector detected file {} at [{}]", kind, fullPath);
                         if(kind == StandardWatchEventKinds.ENTRY_DELETE) {
                             pcs.addRemoval(fullPath);
@@ -138,24 +138,28 @@ public class Prospector {
 
     Set<Path> findMatchingFolders(final Path searchRoot, final String[] pattern, final boolean recursive) {
         final Set<Path> retSet = new HashSet<>();
-        try {
-            Files.walkFileTree(searchRoot, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    logger.trace("Checking {}", dir.toString());
-                    String[] splitDir = dir.toString().split(SEP);
-                    if(directoriesMatch(pattern, splitDir, recursive)) {
-                        retSet.add(dir);
+        if(searchRoot.toFile().exists()){
+            try {
+                Files.walkFileTree(searchRoot, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
+                        logger.trace("Checking if should be watched [{}]", dir.toString());
+                        String[] splitDir = dir.toString().split(SEP);
+                        if(directoriesMatch(pattern, splitDir, recursive)) {
+                            retSet.add(dir);
+                        }
+                        if(!recursive && splitDir.length > pattern.length) { // Don't go too deep
+                            return FileVisitResult.SKIP_SUBTREE;
+                        } else {
+                            return FileVisitResult.CONTINUE;
+                        }
                     }
-                    if(!recursive && splitDir.length > pattern.length) { // Don't go too deep
-                        return FileVisitResult.SKIP_SUBTREE;
-                    } else {
-                        return FileVisitResult.CONTINUE;
-                    }
-                }
-            });
-        } catch (IOException e) {
-            logger.error("Could not find watchFolders matching [{}]. No access to root [{}].", searchRoot.toString());
+                });
+            } catch (IOException e) {
+                logger.error("Could not find watchFolders matching [{}]. No access to root [{}].", searchRoot.toString());
+            }
+        } else {
+            logger.debug("Skipping watch directory. Root folder does not exist. [{}]", searchRoot);
         }
         return retSet;
     }

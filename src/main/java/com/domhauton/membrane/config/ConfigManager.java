@@ -17,16 +17,11 @@ import java.nio.file.Path;
  *
  * Responsible for loading and saving the config
  */
-public class ConfigManager {
-    private Logger logger;
-    private ObjectMapper mapper;
+public abstract class ConfigManager {
+    private final static Logger logger = LogManager.getLogger();
+    private final static ObjectMapper mapper = new ObjectMapper(new YAMLFactory());
 
-    public ConfigManager() {
-        logger = LogManager.getLogger();
-        mapper = new ObjectMapper(new YAMLFactory());
-    }
-
-    public void saveConfig(Path configPath, Config config) throws ConfigException {
+    public static void saveConfig(Path configPath, Config config) throws ConfigException {
         try {
             logger.info("Membrane Config - Saving config. \t\t[{}]", configPath);
             mapper.writeValue(configPath.toFile(), config);
@@ -37,7 +32,7 @@ public class ConfigManager {
         }
     }
 
-    public Config loadConfig(Path filePath) throws ConfigException {
+    public static Config loadConfig(Path filePath) throws ConfigException {
         try{
             logger.info("Membrane Config - Loading config. \t[{}]", filePath);
             return mapper.readValue(filePath.toFile(), Config.class);
@@ -56,7 +51,7 @@ public class ConfigManager {
         }
     }
 
-    public Config loadDefaultConfig() throws ConfigException {
+    public static Config loadDefaultConfig() throws ConfigException {
         try {
             return new Config();
         } catch (NullPointerException e) {

@@ -12,6 +12,7 @@ import org.joda.time.DateTime;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
@@ -65,18 +66,14 @@ public class FileManager {
      * Stop all scanners for graceful shutdown.
      */
     public void stopScanners() {
-        try {
-            scanExecutor.awaitTermination(10, TimeUnit.SECONDS);
-        } catch (InterruptedException e) {
-            logger.error("Interrupted while sleeping to stop scanners! Can be ignored.");
-        }
+        scanExecutor.shutdown();
     }
 
     /**
      * Adds a storage manager that files should be inserted into.
      * @param storageManager storageManager to add
      */
-    void addStorageManager(StorageManager storageManager) {
+    public void addStorageManager(StorageManager storageManager) {
         storageManagers.add(storageManager);
     }
 
@@ -105,6 +102,7 @@ public class FileManager {
      * Scans folders for file changes.
      */
     private void checkFileChanges() {
+        logger.debug("Checking for File changes.");
         ProspectorChangeSet pcs = prospector.checkChanges();
         Set<Path> retryPaths = queuedAdditions;
         queuedAdditions = new HashSet<>();
@@ -121,6 +119,7 @@ public class FileManager {
      * Scans for any added/removed folders
      */
     void checkFolderChanges() {
+        logger.debug("Checking for Folder changes.");
         addExistingFiles(prospector.rediscoverFolders());
     }
 
@@ -135,6 +134,7 @@ public class FileManager {
                 .map(File::listFiles)
                 .flatMap(Arrays::stream)
                 .map(File::toPath)
+                .filter(x -> !Files.isDirectory(x))
                 .collect(Collectors.toSet());
         Set<Path> lostPaths = managedFiles.keySet().stream()
                 .map(Paths::get)

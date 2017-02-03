@@ -11,6 +11,7 @@ import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -27,36 +28,35 @@ import java.util.concurrent.TimeUnit;
  * Created by dominic on 23/01/17.
  */
 public class BackupManager {
-    private ConfigManager configManager;
-    private Config config;
-    private Path configPath;
-    private FileManager fileManager;
+    private final Config config;
+    private final Path configPath;
+
+    private final FileManager fileManager;
     private StorageManager storageManager;
     private Logger logger;
 
     private final ScheduledExecutorService trimExecutor;
 
-    public BackupManager(Path configPath) {
+    BackupManager(Config config, Path configPath) throws IllegalArgumentException {
         logger = LogManager.getLogger();
         this.configPath = configPath;
-        configManager = new ConfigManager();
+        this.config = config;
         try {
-            config = configPath.toFile().exists() ? configManager.loadConfig(configPath) : configManager.loadDefaultConfig();
             fileManager = new FileManager(config.getChunkSizeMB());
             storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()));
-        } catch (ConfigException | FileManagerException | StorageManagerException e) {
+            fileManager.addStorageManager(storageManager);
+            trimExecutor = Executors.newSingleThreadScheduledExecutor();
+        } catch (FileManagerException | StorageManagerException e) {
             logger.error("Failed to start membrane backup manager.");
             logger.error(e.getMessage());
-            System.exit(0);
+            throw new IllegalArgumentException("Could not start with given config.", e);
         }
-        trimExecutor = Executors.newSingleThreadScheduledExecutor();
-        registerShutdownHook();
     }
 
     /**
      * Start backup processes
      */
-    public void start() {
+    void start() {
         loadStorageMappingToProspector();
         loadWatchFoldersToProspector();
         fileManager.runScanners(config.getFileRescanFrequencySec(), config.getFolderRescanFrequencySec());
@@ -64,6 +64,14 @@ public class BackupManager {
                 1,
                 config.getStorageTrimFrequencyMin(),
                 TimeUnit.MINUTES);
+    }
+
+    void recoverFile(Path originalPath, Path destPath) throws StorageManagerException {
+        storageManager.rebuildFile(originalPath, destPath);
+    }
+
+    void recoverFile(Path originalPath, Path destPath, DateTime atTime) throws StorageManagerException {
+        storageManager.rebuildFile(originalPath, destPath, atTime);
     }
 
     private void trimStorage() {
@@ -93,27 +101,34 @@ public class BackupManager {
                         x.getValue().getMD5ShardList()));
     }
 
+    public void close() {
+        logger.info("Shutdown - Start");
+        try {
+            logger.info("Shutdown - Saving config.");
+            ConfigManager.saveConfig(configPath, config);
+        } catch (ConfigException e) {
+            logger.error("Failed to save current config.");
+        }
+        logger.info("Shutdown - Storage trimmer.");
+        trimExecutor.shutdown();
+        logger.info("Shutdown - Storage Manager.");
+        try {
+            storageManager.close();
+        } catch (StorageManagerException e) {
+            logger.error("Shutdown - Failed to shutdown storage manager.");
+        }
+        logger.info("Shutdown - File Manager.");
+        fileManager.stopScanners();
+        logger.info("Shutdown - Complete");
+    }
+
     /**
      * Registers a shutdown hook for graceful shutdown
      */
-    private void registerShutdownHook() {
+    public void registerShutdownHook() {
         logger.info("Registering shutdown hook.");
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            logger.info("Starting shutdown.\nSaving config.");
-            try {
-                configManager.saveConfig(configPath, config);
-            } catch (ConfigException e) {
-                logger.error("Failed to save current config.");
-            }
-            logger.info("Shutting down storage manager.");
-            try {
-                storageManager.close();
-            } catch (StorageManagerException e) {
-                logger.error("Failed to shutdown storage manager.");
-            }
-            logger.info("Shutting down file manager.");
-            fileManager.stopScanners();
-            logger.info("Shutdown complete. Exit.");
+            close();
             System.exit(1);
         }));
     }
