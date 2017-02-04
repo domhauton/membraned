@@ -123,18 +123,20 @@ public class ShardStorageImpl implements ShardStorage {
      */
     public Set<String> listShards() {
         final Set<Path> memFiles = new HashSet<>();
-        try {
-            Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
-                @Override
-                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    if (file.toString().endsWith(FILE_EXTENSION)) {
-                        memFiles.add(file);
+        if(basePath.toFile().exists()) {
+            try {
+                Files.walkFileTree(basePath, new SimpleFileVisitor<Path>() {
+                    @Override
+                    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                        if (file.toString().endsWith(FILE_EXTENSION)) {
+                            memFiles.add(file);
+                        }
+                        return FileVisitResult.CONTINUE;
                     }
-                    return FileVisitResult.CONTINUE;
-                }
-            });
-        } catch (IOException e) {
-            logger.error("Could not find stored shards in [{}].", basePath.toString());
+                });
+            } catch (IOException e) {
+                logger.error("Could not find stored shards in [{}].", basePath.toString());
+            }
         }
         return memFiles.stream()
                 .map(Path::toString)

@@ -47,6 +47,11 @@ public class FileCatalogue {
         StorageJournal oldJournal = storageJournal.getJournalEntriesBeforeTime(until);
         StorageJournal newJournal = storageJournal.getJournalEntriesAfterTime(until);
         Map<Path, FileVersion> newBaseMap = oldJournal.mapWithJournal(baseFileInfoMap);
+        Set<Path> oldEntries = newBaseMap.entrySet().stream()
+                .filter(x -> x.getValue().getModificationDateTime().isBefore(until))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+        oldEntries.forEach(newBaseMap::remove);
         return new FileCatalogue(newBaseMap, newJournal);
     }
 

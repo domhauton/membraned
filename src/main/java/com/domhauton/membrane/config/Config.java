@@ -76,4 +76,8 @@ public class Config {
     public int getGarbageCollectThresholdMB() {
         return garbageCollectThresholdMB;
     }
+
+    public int getVerticlePort() {
+        return verticlePort;
+    }
 }

@@ -30,6 +30,7 @@ public class Main {
     }
 
     private static Path getDefaultConfigLocation() {
+        LogManager.getLogger().info("Loading default config.");
         return Paths.get(System.getProperty("user.home") + File.separator + ".config" + File.separator + "membrane.yaml");
     }
 

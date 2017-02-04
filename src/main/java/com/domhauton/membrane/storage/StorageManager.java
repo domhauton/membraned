@@ -200,28 +200,31 @@ public class StorageManager {
     public synchronized long clampStorageToSize(long bytes, Set<Path> trackedFolders) throws StorageManagerException {
         long currentStorageSize = getStorageSize();
         long spaceToRecover = currentStorageSize - bytes;
-        logger.info("Space Recovery - Reducing storage to {}MB. Current size {}MB. Need to remove {}MB", ((float)bytes)/(1024*1024), ((float)currentStorageSize)/(1024*1024), ((float)spaceToRecover)/(1024*1024));
+        logger.info("Space Recovery - Reducing storage to {}MB. Current size {}MB. Need to remove {}MB", ((float)bytes)/(1024*1024), ((float)currentStorageSize)/(1024*1024), ((float)Math.max(spaceToRecover,0))/(1024*1024));
         if(spaceToRecover > 0) {
+            logger.info("Space Recovery - Collecting unnecessary shards.");
             spaceToRecover -= collectGarbage();
         }
 
-        logger.info("Space Recovery - Finding untracked files.");
         if(spaceToRecover > 0) {
+            logger.info("Space Recovery - Finding un-tracked files.");
             Set<Path> notTrackedFiles = fileCatalogue.getCurrentFiles().stream()
                     .filter(x -> !trackedFolders.contains(x.getParent()))
                     .collect(Collectors.toSet());
             if(notTrackedFiles.size() > 0) {
-                logger.info("Space Recovery - Removing {} untracked files.", notTrackedFiles.size());
+                logger.info("Space Recovery - Removing {} un-tracked files.", notTrackedFiles.size());
                 notTrackedFiles.forEach(x -> fileCatalogue.forgetFile(x));
                 spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
             } else {
-                logger.info("Space Recovery - No untracked files found.", notTrackedFiles.size());
+                logger.info("Space Recovery - No un-tracked files found.", notTrackedFiles.size());
             }
         }
 
-        logger.info("Space Recovery - Retiring older journal entries.");
-        fileCatalogue.removeOldestJournalEntries((int) spaceToRecover);
-        spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
+        if(spaceToRecover > 0) {
+            logger.info("Space Recovery - Retiring older journal entries.");
+            fileCatalogue.removeOldestJournalEntries((int) spaceToRecover);
+            spaceToRecover -= cleanStorage(fileCatalogue.getOldestJournalEntryTime());
+        }
 
         if(spaceToRecover > 0) {
             logger.warn("Space Recovery - Could not meet {}MB requirement. Excess is {}MB.", ((float)bytes)/(1024*1024), ((float)spaceToRecover)/(1024*1024));

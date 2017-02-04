@@ -76,10 +76,10 @@ public class BackupManager {
     }
 
     public void trimStorage() {
-        long gcBytes = config.getGarbageCollectThresholdMB() * 1024 * 1024;
+        long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
         Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
         try {
-            logger.info("Attempting to trim storage to {}MB.", config.getGarbageCollectThresholdMB());
+            logger.info("Attempting to trim storage to {}MB.", (float)gcBytes/(1024*1024));
             logger.debug("Current watched folders: {}", watchedFolders);
             storageManager.clampStorageToSize(gcBytes, watchedFolders);
             logger.info("Successfully trimmed storage.");
@@ -121,21 +121,15 @@ public class BackupManager {
 
     public void close() {
         logger.info("Shutdown - Start");
-        try {
-            logger.info("Shutdown - Saving config.");
-            ConfigManager.saveConfig(configPath, config);
-        } catch (ConfigException e) {
-            logger.error("Failed to save current config.");
-        }
-        logger.info("Shutdown - Storage trimmer.");
+        logger.info("Shutdown - Stopping Storage trimmer.");
         trimExecutor.shutdown();
-        logger.info("Shutdown - Storage Manager.");
+        logger.info("Shutdown - Stopping Storage Manager.");
         try {
             storageManager.close();
         } catch (StorageManagerException e) {
             logger.error("Shutdown - Failed to shutdown storage manager.");
         }
-        logger.info("Shutdown - File Manager.");
+        logger.info("Shutdown - Stopping File Manager.");
         fileManager.stopScanners();
         logger.info("Shutdown - Complete");
     }
@@ -145,10 +139,7 @@ public class BackupManager {
      */
     public void registerShutdownHook() {
         logger.info("Registering shutdown hook.");
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-            close();
-            System.exit(1);
-        }));
+        Runtime.getRuntime().addShutdownHook(new Thread(this::close));
     }
 
 
