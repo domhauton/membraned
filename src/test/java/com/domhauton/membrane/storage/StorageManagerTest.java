@@ -161,7 +161,7 @@ class StorageManagerTest {
         storageManager.storeShard(hash1, data1);
         storageManager.storeShard(hash2, data2);
 
-        storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(100L), srcFile);
+        storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(250L), srcFile);
 
         storageManager.cleanStorage(new DateTime(250L));
         storageManager.close();
@@ -171,8 +171,8 @@ class StorageManagerTest {
         Assertions.assertEquals(0, journalSize);
         // Delete to journal to ensure it doesn't interfere anyway.
         Files.delete(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME));
-        storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
 
+        storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
         storageManager.rebuildFile(srcFile, tgtFile);
 
         byte[] reconstructed = Files.readAllBytes(tgtFile);

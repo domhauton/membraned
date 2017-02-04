@@ -1,8 +1,6 @@
 package com.domhauton.membrane;
 
 import com.domhauton.membrane.config.Config;
-import com.domhauton.membrane.config.ConfigException;
-import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
@@ -13,7 +11,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -21,7 +18,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -93,6 +89,7 @@ public class BackupManager {
         List<WatchFolder> watchFolders = config.getFolders();
         logger.info("Adding {} watch folders from config to listener", watchFolders.size());
         watchFolders.forEach(fileManager::addWatchFolder);
+        fileManager.fullFileScanSweep();
     }
 
     private void loadStorageMappingToProspector() {

@@ -40,6 +40,7 @@ class FileManagerTest {
         WatchFolder watchFolder = new WatchFolder(dir, false);
         fileManager.addStorageManager(storageManager);
         fileManager.addWatchFolder(watchFolder);
+        fileManager.fullFileScanSweep();
 
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());
@@ -59,7 +60,7 @@ class FileManagerTest {
         fileManager.addStorageManager(storageManager);
         String embeddedDir = ProspectorTestUtils.createRandomFolder(dir);
         ProspectorTestUtils.createTestFiles(embeddedDir);
-        fileManager.checkFolderChanges();
+        fileManager.fullFileScanSweep();
 
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());
@@ -86,7 +87,7 @@ class FileManagerTest {
         fileManager.addExistingFile(Paths.get(embeddedDir + File.separator + '0'), DateTime.now(), Collections.emptyList());
 
         ProspectorTestUtils.createTestFiles(embeddedDir);
-        fileManager.checkFolderChanges();
+        fileManager.fullFileScanSweep();
 
         Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
                 .addFile(Mockito.any(), Mockito.any(), Mockito.any());

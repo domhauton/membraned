@@ -60,7 +60,7 @@ public class FileManager {
      */
     public void runScanners(int fileRescanFrequency, int folderRescanFrequency) {
         scanExecutor.scheduleWithFixedDelay(this::checkFileChanges, 0, fileRescanFrequency, TimeUnit.SECONDS);
-        scanExecutor.scheduleWithFixedDelay(this::checkFolderChanges, 0, folderRescanFrequency, TimeUnit.SECONDS);
+        scanExecutor.scheduleWithFixedDelay(this::fullFileScanSweep, 0, folderRescanFrequency, TimeUnit.SECONDS);
     }
 
     /**
@@ -84,6 +84,7 @@ public class FileManager {
      * @param dateTime last modified time of file
      */
     public void addExistingFile(Path path, DateTime dateTime, List<MD5HashLengthPair> md5HashLengthPairs) {
+        logger.debug("Adding existing file to file manager: [{}]", path);
         FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), dateTime)
                 .addShardData(md5HashLengthPairs)
                 .build();
@@ -94,8 +95,7 @@ public class FileManager {
      * Adds a folder that should be watched.
      */
     public void addWatchFolder(WatchFolder watchFolder) {
-        Set<Path> newPaths = prospector.addWatchFolder(watchFolder);
-        addExistingFiles(newPaths);
+        prospector.addWatchFolder(watchFolder);
     }
 
     /**
@@ -111,25 +111,18 @@ public class FileManager {
         pcs.getChangedFiles().forEach(this::addFile);
         pcs.getRemovedFiles().forEach(this::removeFile);
         if(pcs.hasOverflown()) {
-            addExistingFiles(prospector.getWatchedFolders());
+            fullFileScanSweep();
         }
     }
 
     /**
-     * Scans for any added/removed folders
-     */
-    void checkFolderChanges() {
-        logger.debug("Checking for Folder changes.");
-        addExistingFiles(prospector.rediscoverFolders());
-    }
-
-    /**
      * Scans folders for existing files.
-     * @param folders folders to check.
      */
-    private void addExistingFiles(Collection<Path> folders) {
+    public void fullFileScanSweep() {
+        logger.debug("Running full file scan.");
+        Collection<Path> folders = prospector.rediscoverFolders();
         Set<Path> existingFiles = folders.stream()
-                .peek(x -> logger.debug("Adding folder to file manager: [{}]", x))
+                .peek(x -> logger.debug("Checking folder for existing files: [{}]", x))
                 .map(Path::toFile)
                 .map(File::listFiles)
                 .flatMap(Arrays::stream)
@@ -137,12 +130,18 @@ public class FileManager {
                 .filter(x -> !Files.isDirectory(x))
                 .collect(Collectors.toSet());
         logger.debug("Existing files: {}", existingFiles);
-        Set<Path> lostPaths = managedFiles.keySet().stream()
-                .filter(x -> folders.stream().anyMatch(folder -> x.startsWith(folder.toString())))
+        Set<Path> missingFiles = managedFiles.keySet().stream()
                 .map(Paths::get)
+                .filter(x -> folders.stream().anyMatch(folder -> x.getParent().equals(folder)))
                 .filter(x -> !existingFiles.contains(x))
                 .collect(Collectors.toSet());
-        lostPaths.forEach(this::removeFile);
+        Set<Path> orphanedPaths = managedFiles.keySet().stream()
+                .filter(x -> folders.stream().noneMatch(folder -> Paths.get(x).getParent().equals(folder)))
+                .map(Paths::get)
+                .collect(Collectors.toSet());
+        orphanedPaths.addAll(missingFiles);
+        logger.debug("Lost files: {}", orphanedPaths);
+        orphanedPaths.forEach(this::removeFile);
         existingFiles.forEach(this::addFile);
     }
 

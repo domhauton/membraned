@@ -40,7 +40,7 @@ class ViewVerticleTest {
     @Test
     void waitTest() throws Exception {
         viewVerticle.start();
-        Thread.sleep(20 * 1000);
+        //Thread.sleep(20 * 1000);
     }
 
     @AfterEach

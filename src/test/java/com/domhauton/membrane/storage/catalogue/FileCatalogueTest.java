@@ -43,7 +43,7 @@ class FileCatalogueTest {
         FileVersion fv = fileCatalogue.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT);
-        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
+        Assertions.assertEquals(hashList1, fv.getMD5HashLengthPairs());
     }
 
     @Test
@@ -58,7 +58,7 @@ class FileCatalogueTest {
         FileVersion fv = fileCatalogue.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT2);
-        Assertions.assertEquals(fv.getMD5HashList(), hashList2);
+        Assertions.assertEquals(hashList2, fv.getMD5HashLengthPairs());
     }
 
     @Test
@@ -74,7 +74,7 @@ class FileCatalogueTest {
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
         Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
+        Assertions.assertEquals(hashList1, fv.getMD5HashLengthPairs());
     }
 
     @Test
@@ -94,20 +94,19 @@ class FileCatalogueTest {
         FileCatalogue collapsedFC = fileCatalogue.cleanCatalogue(new DateTime(150L));
         FileCatalogue rewoundFC = collapsedFC.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
+        FileVersion fvb = collapsedFC.getFileVersion(path, new DateTime(201L)).orElse(null);
+        Assertions.assertNull(fv);
+        Assertions.assertNotNull(fvb);
 
-        Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
-
-        Assertions.assertEquals(20, collapsedFC.getReferencedShards().size());
+        Assertions.assertEquals(10, collapsedFC.getReferencedShards().size());
 
         FileCatalogue collapsedFC2 = fileCatalogue.cleanCatalogue(new DateTime(250L));
         FileCatalogue rewoundFC2 = collapsedFC2.revertTo(new DateTime(150L));
         FileVersion fv2 = rewoundFC2.getFileVersion(path).orElse(null);
 
-        Assertions.assertEquals(fv2.getModificationDateTime(), modifiedDT2);
-        Assertions.assertEquals(fv2.getMD5HashList(), hashList2);
+        Assertions.assertNull(fv2);
 
-        Assertions.assertEquals(10, collapsedFC2.getReferencedShards().size());
+        Assertions.assertEquals(0, collapsedFC2.getReferencedShards().size());
     }
 
     @Test
@@ -125,10 +124,9 @@ class FileCatalogueTest {
         FileCatalogue rewoundFC = collapsedFC.revertTo(new DateTime(150L));
         FileVersion fv = rewoundFC.getFileVersion(path).orElse(null);
 
-        Assertions.assertEquals(fv.getModificationDateTime(), modifiedDT1);
-        Assertions.assertEquals(fv.getMD5HashList(), hashList1);
+        Assertions.assertNull(fv);
 
-        Assertions.assertEquals(10, collapsedFC.getReferencedShards().size());
+        Assertions.assertEquals(0, collapsedFC.getReferencedShards().size());
 
         FileCatalogue collapsedFC2 = fileCatalogue.cleanCatalogue(new DateTime(250L));
         FileCatalogue rewoundFC2 = collapsedFC2.revertTo(new DateTime(150L));
@@ -149,16 +147,17 @@ class FileCatalogueTest {
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
         List<JournalEntry> fileVersions = fileCatalogue.getFileVersionHistory(path);
+
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5HashList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .anyMatch(hashList1::equals));
 
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5HashList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .anyMatch(hashList2::equals));
     }
 
@@ -172,21 +171,30 @@ class FileCatalogueTest {
         DateTime modifiedDT2 = new DateTime(200L);
         fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
 
-        fileCatalogue = fileCatalogue.cleanCatalogue(new DateTime(250L));
+        fileCatalogue = fileCatalogue.cleanCatalogue(new DateTime(150L));
 
         List<JournalEntry> fileVersions = fileCatalogue.getFileVersionHistory(path);
-
+        System.out.println(fileVersions);
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5HashList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .noneMatch(hashList1::equals));
 
         Assertions.assertTrue(fileVersions.stream()
                 .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
                 .map(JournalEntry::getShardInfo)
-                .map(FileVersion::getMD5HashList)
+                .map(FileVersion::getMD5HashLengthPairs)
                 .anyMatch(hashList2::equals));
+
+        fileCatalogue = fileCatalogue.cleanCatalogue(new DateTime(250L));
+        fileVersions = fileCatalogue.getFileVersionHistory(path);
+        Assertions.assertTrue(fileVersions.stream()
+                .filter(x -> x.getFileOperation().equals(FileOperation.ADD))
+                .map(JournalEntry::getShardInfo)
+                .map(FileVersion::getMD5HashLengthPairs)
+                .noneMatch(hashList2::equals));
+
     }
 
     @Test
@@ -202,7 +210,7 @@ class FileCatalogueTest {
         Optional<FileVersion> fileVersion1 = fileCatalogue.getFileVersion(path, new DateTime(150L));
 
         Assertions.assertTrue(fileVersion1.isPresent());
-        Assertions.assertTrue(fileVersion1.orElse(null).getMD5HashList().equals(hashList1));
+        Assertions.assertTrue(fileVersion1.orElse(null).getMD5HashLengthPairs().equals(hashList1));
 
         Optional<FileVersion> fileVersion1b = fileCatalogue.getFileVersion(path, new DateTime(50L));
 
@@ -211,7 +219,7 @@ class FileCatalogueTest {
         Optional<FileVersion> fileVersion2 = fileCatalogue.getFileVersion(path, new DateTime(200L));
 
         Assertions.assertTrue(fileVersion2.isPresent());
-        Assertions.assertTrue(fileVersion2.orElse(null).getMD5HashList().equals(hashList2));
+        Assertions.assertTrue(fileVersion2.orElse(null).getMD5HashLengthPairs().equals(hashList2));
     }
 
     private List<MD5HashLengthPair> genRandHashSet() {

@@ -52,7 +52,7 @@ public class Prospector {
                 .map(x -> keys.inverse().get(x))
                 .peek(keys::remove)
                 .forEach(WatchKey::cancel);
-        return new HashSet<>(newFolders);
+        return new HashSet<>(allFolders);
     }
 
     public Set<Path> getWatchedFolders() {
