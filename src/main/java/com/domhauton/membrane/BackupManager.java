@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * Created by dominic on 23/01/17.
@@ -100,6 +101,22 @@ public class BackupManager {
         currentFileMapping.entrySet()
                 .forEach(x -> fileManager.addExistingFile(x.getKey(), x.getValue().getModificationDateTime(),
                         x.getValue().getMD5HashLengthPairs()));
+    }
+
+    public Path getConfigPath() {
+        return configPath;
+    }
+
+    public Config getConfig() {
+        return config;
+    }
+
+    public Set<String> getWatchedFolders() {
+        return fileManager.getCurrentlyWatchedFolders().stream().map(Path::toString).collect(Collectors.toSet());
+    }
+
+    public Set<String> getWatchedFiles() {
+        return fileManager.getCurrentlyWatchedFiles();
     }
 
     public void close() {

@@ -67,6 +67,9 @@ dependencies{
     compile group: 'joda-time', name: 'joda-time', version: '2.9.7'
     // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
+    // https://mvnrepository.com/artifact/io.vertx/vertx-core
+    compile group: 'io.vertx', name: 'vertx-core', version: '3.3.3'
+    compile group: 'io.vertx', name: 'vertx-web', version: '3.3.3'
 }
 
 dependencies {

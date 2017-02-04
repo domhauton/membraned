@@ -239,4 +239,8 @@ public class FileManager {
     public Set<Path> getCurrentlyWatchedFolders() {
         return new HashSet<>(prospector.getWatchedFolders());
     }
+
+    public Set<String> getCurrentlyWatchedFiles() {
+        return managedFiles.keySet();
+    }
 }

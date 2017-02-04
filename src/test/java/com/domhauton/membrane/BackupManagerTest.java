@@ -74,7 +74,8 @@ class BackupManagerTest {
                 4,
                 16,
                 30,
-                Arrays.asList(watchFolder1, watchFolder2));
+                Arrays.asList(watchFolder1, watchFolder2),
+                13200);
 
         backupManager = new BackupManager(config, configPath);
         backupManager.start();

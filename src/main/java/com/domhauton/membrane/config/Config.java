@@ -19,6 +19,7 @@ public class Config {
     private int garbageCollectThresholdMB;
     private int maxStorageSizeMB;
     private List<WatchFolder> folders;
+    private int verticlePort;
 
     public Config() {
         folders = new ArrayList<>();
@@ -29,9 +30,10 @@ public class Config {
         chunkSizeMB = 64;
         maxStorageSizeMB = 4096;
         garbageCollectThresholdMB = 2048;
+        verticlePort = 13200;
     }
 
-    public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int garbageCollectThresholdMB, int maxStorageSizeMB, List<WatchFolder> folders) {
+    public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int garbageCollectThresholdMB, int maxStorageSizeMB, List<WatchFolder> folders, int verticlePort) {
         this.shardStorageFolder = shardStorageFolder;
         this.fileRescanFrequencySec = fileRescanFrequencySec;
         this.folderRescanFrequencySec = folderRescanFrequencySec;
@@ -40,6 +42,7 @@ public class Config {
         this.garbageCollectThresholdMB = garbageCollectThresholdMB;
         this.maxStorageSizeMB = maxStorageSizeMB;
         this.folders = folders;
+        this.verticlePort = verticlePort;
     }
 
     public List<WatchFolder> getFolders() {
