@@ -1,4 +1,4 @@
-folders:
+watchFolders:
   -
     directory: /home/dominic/test/
     recursive: false

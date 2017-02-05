@@ -23,7 +23,7 @@ import java.util.stream.Stream;
 /**
  * Created by dominic on 01/02/17.
  */
-class StorageManagerTest {
+class StorageConfigManagerTest {
 
     private String testDir;
     private Path srcFile;

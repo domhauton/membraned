@@ -1,4 +1,4 @@
-package com.domhauton.membrane.view.responses;
+package com.domhauton.membrane.restful.responses;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -6,7 +6,7 @@ import java.net.UnknownHostException;
 /**
  * Created by dominic on 03/02/17.
  */
-public class MembraneInfo {
+public class MembraneInfo implements MembraneResponse {
     private String name;
     private String hostname;
     private int port;

@@ -1,14 +1,11 @@
-package com.domhauton.membrane.view.responses;
+package com.domhauton.membrane.restful.responses;
 
-import com.domhauton.membrane.config.items.WatchFolder;
-
-import java.util.List;
 import java.util.Set;
 
 /**
  * Created by dominic on 03/02/17.
  */
-public class FileManagerStatus {
+public class FileManagerStatus implements MembraneResponse {
     private Set<String> trackedFolders;
     private Set<String> trackedFiles;
 

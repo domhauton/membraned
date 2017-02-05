@@ -247,12 +247,12 @@ public class StorageManager {
         fileCatalogue = fileCatalogue.cleanCatalogue(moveTo);
         String dtString = DateTime.now().toString(DateTimeFormat.forPattern("yyyyMMdd-HHmmss"));
         try{
-            logger.info("Clean Storage - Closing journal temporarily. [{}}", journalPath);
+            logger.info("Clean StorageConfig - Closing journal temporarily. [{}}", journalPath);
             journalOutput.close();
 
             if(journalPath.toFile().exists()) {
                 Path backupJournalPath = Paths.get(journalPath.toString() + ".bkp." + dtString);
-                logger.info("Clean Storage - Journal backup to [{}]", backupJournalPath);
+                logger.info("Clean StorageConfig - Journal backup to [{}]", backupJournalPath);
                 Files.deleteIfExists(backupJournalPath);
                 Files.copy(journalPath, backupJournalPath);
                 Files.delete(journalPath);
@@ -261,7 +261,7 @@ public class StorageManager {
 
             if(baseFileMapPath.toFile().exists()){
                 Path baseFileMapBackupPath = Paths.get(baseFileMapPath.toString() + ".bkp." + dtString);
-                logger.info("Clean Storage - Base File Map backup to [{}]", baseFileMapBackupPath);
+                logger.info("Clean StorageConfig - Base File Map backup to [{}]", baseFileMapBackupPath);
                 Files.deleteIfExists(baseFileMapBackupPath);
                 Files.move(baseFileMapPath, baseFileMapBackupPath);
             }
@@ -271,15 +271,15 @@ public class StorageManager {
                     .map(s -> s + "\n")
                     .collect(Collectors.toList());
 
-            logger.info("Clean Storage - Writing {} entries to new journal to [{}]", newJournalEntries.size(), journalPath);
+            logger.info("Clean StorageConfig - Writing {} entries to new journal to [{}]", newJournalEntries.size(), journalPath);
             logger.trace("Writing entries: {}", () -> newJournalEntries);
             Files.write(journalPath, newJournalEntries);
-            logger.info("Clean Storage - Writing new base file map to [{}]", baseFileMapPath);
+            logger.info("Clean StorageConfig - Writing new base file map to [{}]", baseFileMapPath);
             Files.write(baseFileMapPath, fileCatalogue.serializeBaseMap());
-            logger.info("Clean Storage - Reopening journal. [{}]", journalPath);
+            logger.info("Clean StorageConfig - Reopening journal. [{}]", journalPath);
             journalOutput = openJournalOutputStream(journalPath);
         } catch (IOException e) {
-            logger.error("Clean Storage - There was an IOException while cleaning storage! Might need to manually recover!");
+            logger.error("Clean StorageConfig - There was an IOException while cleaning storage! Might need to manually recover!");
             throw new StorageManagerException("IOException while cleaning storage: " + e.toString());
         }
         return collectGarbage();
@@ -298,6 +298,10 @@ public class StorageManager {
      */
     public Map<Path, FileVersion> getCurrentFileMapping() {
         return fileCatalogue.getCurrentFileMappings();
+    }
+
+    public Set<Path> getReferencedFiles() {
+        return fileCatalogue.getReferencedFiles();
     }
 
     /**

@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Created by dominic on 01/02/17.
  */
-class ShardStorageImplTest {
+class ShardStorageConfigImplTest {
     private ShardStorageImpl shardStorage;
     private String testDir;
     private Random random;

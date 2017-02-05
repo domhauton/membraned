@@ -1,7 +1,6 @@
-package com.domhauton.membrane.view;
+package com.domhauton.membrane.restful;
 
 import com.domhauton.membrane.BackupManager;
-import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,14 +11,12 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * Created by dominic on 03/02/17.
  */
-class ViewVerticleTest {
+class RestfulAPITest {
 
-    private ViewVerticle viewVerticle;
+    private RestfulAPI viewVerticle;
     private BackupManager backupManager;
 
     @BeforeEach
@@ -32,15 +29,28 @@ class ViewVerticleTest {
                         Arrays.asList("/tmp/membrane/watchfolder1/file1.txt",
                                 "/tmp/membrane/watchfolder1/file2.txt",
                                 "/tmp/membrane/watchfolder2/file3.txt")));
+        Mockito.when(backupManager.getCurrentFiles())
+                .thenReturn(new HashSet<>(
+                        Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
+                                Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
+                                Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
+        Mockito.when(backupManager.getReferencedFiles())
+                .thenReturn(new HashSet<>(
+                        Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
+                                Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
+                                Paths.get("/tmp/membrane/watchfolder1/file2.txt.bkp"),
+                                Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
         Mockito.when(backupManager.getWatchedFolders())
                 .thenReturn(new HashSet<>(Arrays.asList("/tmp/membrane/watchfolder1", "/tmp/membrane/watchfolder2")));
-        viewVerticle = new ViewVerticle(13300, backupManager);
+        Mockito.when(backupManager.getStorageSize())
+                .thenReturn(1024L);
+        viewVerticle = new RestfulAPI(13300, backupManager);
     }
 
     @Test
     void waitTest() throws Exception {
         viewVerticle.start();
-        //Thread.sleep(20 * 1000);
+        Thread.sleep(20 * 1000);
     }
 
     @AfterEach

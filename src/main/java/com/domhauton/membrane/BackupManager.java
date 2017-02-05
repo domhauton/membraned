@@ -6,6 +6,7 @@ import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
+import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -63,26 +64,30 @@ public class BackupManager {
                 TimeUnit.MINUTES);
     }
 
-    void recoverFile(Path originalPath, Path destPath) throws StorageManagerException {
+    public void recoverFile(Path originalPath, Path destPath) throws StorageManagerException {
         storageManager.rebuildFile(originalPath, destPath);
     }
 
-    void recoverFile(Path originalPath, Path destPath, DateTime atTime) throws StorageManagerException {
+    public void recoverFile(Path originalPath, Path destPath, DateTime atTime) throws StorageManagerException {
         storageManager.rebuildFile(originalPath, destPath, atTime);
     }
 
     public void trimStorage() {
-        long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
-        Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
         try {
-            logger.info("Attempting to trim storage to {}MB.", (float)gcBytes/(1024*1024));
-            logger.debug("Current watched folders: {}", watchedFolders);
-            storageManager.clampStorageToSize(gcBytes, watchedFolders);
-            logger.info("Successfully trimmed storage.");
+            trimStorageAttempt();
         } catch (StorageManagerException e) {
             logger.error("Failed to trim storage. Trying again in 1 min.");
             trimExecutor.schedule(this::trimStorage, 1, TimeUnit.MINUTES);
         }
+    }
+
+    public void trimStorageAttempt() throws StorageManagerException {
+        long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
+        Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
+        logger.info("Attempting to trim storage to {}MB.", (float)gcBytes/(1024*1024));
+        logger.debug("Current watched folders: {}", watchedFolders);
+        storageManager.clampStorageToSize(gcBytes, watchedFolders);
+        logger.info("Successfully trimmed storage.");
     }
 
     private void loadWatchFoldersToProspector() {
@@ -116,11 +121,30 @@ public class BackupManager {
         return fileManager.getCurrentlyWatchedFiles();
     }
 
+    public Set<Path> getCurrentFiles() {
+        return storageManager.getCurrentFileMapping().entrySet()
+                .stream()
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+    }
+
+    public long getStorageSize() {
+        return storageManager.getStorageSize();
+    }
+
+    public Set<Path> getReferencedFiles() {
+        return storageManager.getReferencedFiles();
+    }
+
+    public List<JournalEntry> getFileHistory(Path filePath) {
+        return storageManager.getFileHistory(filePath);
+    }
+
     public void close() {
         logger.info("Shutdown - Start");
-        logger.info("Shutdown - Stopping Storage trimmer.");
+        logger.info("Shutdown - Stopping StorageConfig trimmer.");
         trimExecutor.shutdown();
-        logger.info("Shutdown - Stopping Storage Manager.");
+        logger.info("Shutdown - Stopping StorageConfig Manager.");
         try {
             storageManager.close();
         } catch (StorageManagerException e) {

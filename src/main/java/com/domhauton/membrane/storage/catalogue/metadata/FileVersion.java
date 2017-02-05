@@ -26,6 +26,10 @@ public class FileVersion {
         return getMD5HashLengthPairs().stream().map(MD5HashLengthPair::getMd5Hash).collect(Collectors.toList());
     }
 
+    public long getTotalSize() {
+        return getMD5HashLengthPairs().stream().mapToLong(MD5HashLengthPair::getLength).sum();
+    }
+
     public DateTime getModificationDateTime() {
         return modificationDateTime;
     }

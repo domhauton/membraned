@@ -1,4 +1,4 @@
-package com.domhauton.membrane.view.responses;
+package com.domhauton.membrane.restful.responses;
 
 /**
  * Created by dominic on 03/02/17.
