@@ -4,6 +4,8 @@ import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
+import com.domhauton.membrane.restful.RestfulAPI;
+import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -30,20 +32,31 @@ public class BackupManager {
     private final Path configPath;
 
     private final FileManager fileManager;
+    private final boolean monitorMode;
     private StorageManager storageManager;
+    private RestfulAPI restfulAPI;
     private Logger logger;
 
     private final ScheduledExecutorService trimExecutor;
 
-    BackupManager(Config config, Path configPath) throws IllegalArgumentException {
+    BackupManager(Config config, Path configPath) {
+        this(config, configPath, false);
+    }
+
+    BackupManager(Config config, Path configPath, boolean monitorMode) throws IllegalArgumentException {
         logger = LogManager.getLogger();
         this.configPath = configPath;
         this.config = config;
+        this.monitorMode = monitorMode;
         try {
             fileManager = new FileManager(config.getChunkSizeMB());
             storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()), config.getMaxStorageSizeMB() * 1024 * 1024);
-            fileManager.addStorageManager(storageManager);
+            if(monitorMode){
+                fileManager.addStorageManager(storageManager);
+            }
             trimExecutor = Executors.newSingleThreadScheduledExecutor();
+            restfulAPI = new RestfulAPI(config.getVerticlePort(), this, monitorMode);
+            restfulAPI.start();
         } catch (FileManagerException | StorageManagerException e) {
             logger.error("Failed to start membrane backup manager.");
             logger.error(e.getMessage());
@@ -58,10 +71,12 @@ public class BackupManager {
         loadStorageMappingToProspector();
         loadWatchFoldersToProspector();
         fileManager.runScanners(config.getFileRescanFrequencySec(), config.getFolderRescanFrequencySec());
-        trimExecutor.scheduleWithFixedDelay(this::trimStorage,
-                1,
-                config.getStorageTrimFrequencyMin(),
-                TimeUnit.MINUTES);
+        if(monitorMode) {
+            trimExecutor.scheduleWithFixedDelay(this::trimStorage,
+                    1,
+                    config.getStorageTrimFrequencyMin(),
+                    TimeUnit.MINUTES);
+        }
     }
 
     public void recoverFile(Path originalPath, Path destPath) throws StorageManagerException {
@@ -82,12 +97,16 @@ public class BackupManager {
     }
 
     public void trimStorageAttempt() throws StorageManagerException {
-        long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
-        Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
-        logger.info("Attempting to trim storage to {}MB.", (float)gcBytes/(1024*1024));
-        logger.debug("Current watched folders: {}", watchedFolders);
-        storageManager.clampStorageToSize(gcBytes, watchedFolders);
-        logger.info("Successfully trimmed storage.");
+        if(monitorMode) {
+            logger.warn("Attempted to trim storage in monitor mode!");
+        } else {
+            long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
+            Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
+            logger.info("Attempting to trim storage to {}MB.", (float)gcBytes/(1024*1024));
+            logger.debug("Current watched folders: {}", watchedFolders);
+            storageManager.clampStorageToSize(gcBytes, watchedFolders);
+            logger.info("Successfully trimmed storage.");
+        }
     }
 
     private void loadWatchFoldersToProspector() {
@@ -142,8 +161,10 @@ public class BackupManager {
 
     public void close() {
         logger.info("Shutdown - Start");
-        logger.info("Shutdown - Stopping StorageConfig trimmer.");
-        trimExecutor.shutdown();
+        if(monitorMode) {
+            logger.info("Shutdown - Stopping StorageConfig trimmer.");
+            trimExecutor.shutdown();
+        }
         logger.info("Shutdown - Stopping StorageConfig Manager.");
         try {
             storageManager.close();

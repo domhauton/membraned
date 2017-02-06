@@ -4,6 +4,8 @@
     <bytecodeTargetLevel>
       <module name="membrane_main" target="1.8" />
       <module name="membrane_test" target="1.8" />
+      <module name="membraned_main" target="1.8" />
+      <module name="membraned_test" target="1.8" />
     </bytecodeTargetLevel>
   </component>
 </project>

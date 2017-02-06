@@ -2,9 +2,9 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membrane.iml" filepath="$PROJECT_DIR$/.idea/modules/membrane.iml" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membrane_main.iml" filepath="$PROJECT_DIR$/.idea/modules/membrane_main.iml" group="membrane" />
-      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membrane_test.iml" filepath="$PROJECT_DIR$/.idea/modules/membrane_test.iml" group="membrane" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membraned.iml" filepath="$PROJECT_DIR$/.idea/modules/membraned.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membraned_main.iml" filepath="$PROJECT_DIR$/.idea/modules/membraned_main.iml" group="membraned" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/membraned_test.iml" filepath="$PROJECT_DIR$/.idea/modules/membraned_test.iml" group="membraned" />
     </modules>
   </component>
 </project>
