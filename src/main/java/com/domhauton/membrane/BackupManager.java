@@ -51,7 +51,7 @@ public class BackupManager {
         try {
             fileManager = new FileManager(config.getChunkSizeMB());
             storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()), config.getMaxStorageSizeMB() * 1024 * 1024);
-            if(monitorMode){
+            if(!monitorMode){
                 fileManager.addStorageManager(storageManager);
             }
             trimExecutor = Executors.newSingleThreadScheduledExecutor();
