@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 public class RestfulAPI {
     private static final long BODY_LIMIT = 1024 * 1024 * 64;
     private static String ALLOWED_HOST = "127.0.0.1";
-    private final boolean monitorMode;
 
     private final Logger logger;
     private final int port;
@@ -57,9 +56,8 @@ public class RestfulAPI {
 
     private final BackupManager backupManager;
 
-    public RestfulAPI(int port, BackupManager backupManager, boolean monitorMode)  {
+    public RestfulAPI(int port, BackupManager backupManager)  {
         logger = LogManager.getLogger();
-        this.monitorMode = monitorMode;
         this.port = port;
         this.backupManager = backupManager;
         vertx = Vertx.vertx();
@@ -106,7 +104,12 @@ public class RestfulAPI {
     }
 
     private void rootHandler(RoutingContext routingContext) {
-        MembraneInfo runtimeInfo = new MembraneInfo(port, "0.2.0", monitorMode ? MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL, "Welcome to Membrane!");
+        MembraneStatus membraneStatus = backupManager.isMonitorMode() ?
+                MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL;
+        String version = backupManager.getVersion();
+        DateTime startTime = backupManager.getStartTime();
+
+        MembraneInfo runtimeInfo = new MembraneInfo(port, startTime, version, membraneStatus, "Welcome to Membrane!");
         try {
             String response = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(runtimeInfo);
             logger.info("Sending response to {}", routingContext.request().remoteAddress().host());

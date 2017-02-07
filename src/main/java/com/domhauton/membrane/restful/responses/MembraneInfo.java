@@ -1,5 +1,10 @@
 package com.domhauton.membrane.restful.responses;
 
+import org.joda.time.DateTime;
+import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
+import org.joda.time.format.ISODateTimeFormat;
+
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
@@ -7,19 +12,20 @@ import java.net.UnknownHostException;
  * Created by dominic on 03/02/17.
  */
 public class MembraneInfo implements MembraneResponse {
-    private String name;
     private String hostname;
+    private String startTime;
     private int port;
     private String version;
     private MembraneStatus status;
     private String tagline;
 
-    public MembraneInfo(int port, String version, MembraneStatus status, String tagline) {
+    public MembraneInfo(int port, DateTime startTime, String version, MembraneStatus status, String tagline) {
         try {
             this.hostname = InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException e) {
             this.hostname = "unknown";
         }
+        this.startTime = startTime.toString(ISODateTimeFormat.dateHourMinuteSecondMillis()).concat("Z");
         this.port = port;
         this.version = version;
         this.status = status;
@@ -36,6 +42,10 @@ public class MembraneInfo implements MembraneResponse {
 
     public String getVersion() {
         return version;
+    }
+
+    public String getStartTime() {
+        return startTime;
     }
 
     public MembraneStatus getStatus() {

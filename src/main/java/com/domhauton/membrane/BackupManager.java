@@ -5,7 +5,6 @@ import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.restful.RestfulAPI;
-import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -30,6 +29,8 @@ import java.util.stream.Collectors;
 public class BackupManager {
     private final Config config;
     private final Path configPath;
+    private final DateTime startTime;
+    private final static String VERSION = "1.0.0-alpha.1";
 
     private final FileManager fileManager;
     private final boolean monitorMode;
@@ -48,6 +49,7 @@ public class BackupManager {
         this.configPath = configPath;
         this.config = config;
         this.monitorMode = monitorMode;
+        this.startTime = DateTime.now();
         try {
             fileManager = new FileManager(config.getChunkSizeMB());
             storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()), config.getMaxStorageSizeMB() * 1024 * 1024);
@@ -55,7 +57,7 @@ public class BackupManager {
                 fileManager.addStorageManager(storageManager);
             }
             trimExecutor = Executors.newSingleThreadScheduledExecutor();
-            restfulAPI = new RestfulAPI(config.getVerticlePort(), this, monitorMode);
+            restfulAPI = new RestfulAPI(config.getVerticlePort(), this);
             restfulAPI.start();
         } catch (FileManagerException | StorageManagerException e) {
             logger.error("Failed to start membrane backup manager.");
@@ -157,6 +159,18 @@ public class BackupManager {
 
     public List<JournalEntry> getFileHistory(Path filePath) {
         return storageManager.getFileHistory(filePath);
+    }
+
+    public DateTime getStartTime() {
+        return startTime;
+    }
+
+    public String getVersion() {
+        return VERSION;
+    }
+
+    public boolean isMonitorMode() {
+        return monitorMode;
     }
 
     public void close() {
