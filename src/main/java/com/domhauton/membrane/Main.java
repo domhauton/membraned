@@ -23,7 +23,7 @@ public class Main {
 
         String arg;
         char flag;
-        boolean verboseLogging = false;
+        int verboseLogging = 0;
         boolean demoMode = false;
         Optional<String> configFile = Optional.empty();
 
@@ -32,7 +32,7 @@ public class Main {
 
             switch (arg) {
                 case "-verbose":
-                    verboseLogging = true;
+                    verboseLogging++;
                     break;
                 case "-config":
                 case "-c":
@@ -51,7 +51,7 @@ public class Main {
                                 logger.info("Monitor-only mode enabled. Will not write to storage.");
                                 break;
                             case 'v':
-                                verboseLogging = true;
+                                verboseLogging++;
                                 break;
                             case 'c':
                                 logger.error("-c requires a filename");
@@ -67,17 +67,23 @@ public class Main {
             }
         }
 
-        if(verboseLogging && !logger.isDebugEnabled()) {
+        if(verboseLogging > 0) {
             LoggerContext ctx = (LoggerContext) LogManager.getContext(false);
             Configuration config = ctx.getConfiguration();
             LoggerConfig loggerConfig = config.getLoggerConfig(LogManager.ROOT_LOGGER_NAME);
-            loggerConfig.setLevel(Level.DEBUG);
-            ctx.updateLoggers();
+            if(verboseLogging == 1 && !logger.isDebugEnabled()) {
+                loggerConfig.setLevel(Level.DEBUG);
+                ctx.updateLoggers();
+            } else if(verboseLogging >= 2 && !logger.isTraceEnabled()) {
+                loggerConfig.setLevel(Level.TRACE);
+                ctx.updateLoggers();
+            }
         }
 
         Path configPath = configFile.isPresent() ? Paths.get(configFile.get()) : getDefaultConfigLocation();
         logger.info("Using config [{}]", configPath);
         logger.debug("Verbose logging enabled.");
+        logger.debug("Trace logging enabled.");
 
         try {
             Config config = configPath.toFile().exists() ? ConfigManager.loadConfig(configPath) : ConfigManager.loadDefaultConfig();
