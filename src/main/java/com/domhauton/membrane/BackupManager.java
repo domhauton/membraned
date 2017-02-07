@@ -173,6 +173,8 @@ public class BackupManager {
         }
         logger.info("Shutdown - Stopping File Manager.");
         fileManager.stopScanners();
+        logger.info("Shutdown - Stopping Restful Interface.");
+        restfulAPI.close();
         logger.info("Shutdown - Complete");
     }
 

@@ -91,9 +91,11 @@ public class Main {
             backupManager.registerShutdownHook();
             backupManager.start();
         } catch (ConfigException e) {
-            logger.error("Unable to load config [{}]. Refusing to start up.", configPath);
+            logger.fatal("Unable to load config [{}]. Refusing to start up.", configPath);
         } catch (IllegalArgumentException e) {
-            logger.error("Failed to startup with given config. {}", e.toString());
+            logger.fatal("Failed to startup with given config. {}", e.toString());
+        } catch (Exception e) {
+            logger.fatal("An unknown error occurred. {}", e);
         }
     }
 
