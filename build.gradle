@@ -70,6 +70,8 @@ dependencies{
     // https://mvnrepository.com/artifact/io.vertx/vertx-core
     compile group: 'io.vertx', name: 'vertx-core', version: '3.3.3'
     compile group: 'io.vertx', name: 'vertx-web', version: '3.3.3'
+    // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
+    compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.56'
 }
 
 dependencies {
