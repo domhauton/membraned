@@ -14,6 +14,7 @@ import org.joda.time.DateTime;
 import java.io.File;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.KeyPair;
@@ -49,45 +50,60 @@ public class AuthManager {
 //    private static final String KEY_STORE_TYPE = "JKS";
 
 
+    public AuthManager() {
+    }
+
     public void genKey(Path path) throws AuthManagerException {
         try {
             KeyPair keyPair = generateRSAKeyPair();
 
             RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
             Path privKeyPath = getPrivateKeyPath(path);
-            PemFile pemFile = new PemFile(privateKey, RSA_PRIVATE_FILE_DESCRIPTION);
-            pemFile.write(privKeyPath);
+            PemFileUtils.write(privKeyPath, privateKey, RSA_PRIVATE_FILE_DESCRIPTION);
 
             RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
             Path pubKeyPath = getPublicKeyPath(path);
-            PemFile publicPemFile = new PemFile(publicKey, RSA_PUBIC_FILE_DESCRIPTION);
-            publicPemFile.write(pubKeyPath);
+            PemFileUtils.write(pubKeyPath, publicKey, RSA_PUBIC_FILE_DESCRIPTION);
 
             Certificate x509Cert = generate(keyPair);
             Path certKeyPath = getCertPath(path);
-            PemFile certPemFile = new PemFile(x509Cert);
-            certPemFile.write(certKeyPath);
+            PemFileUtils.write(certKeyPath, x509Cert);
         } catch (NoSuchProviderException e) {
             logger.error("Bouncy Castle Encryption provider not found. {}", e.getMessage());
             throw new AuthManagerException("Bouncy Castle Encryption provider not found.");
         } catch (IOException e) {
-            logger.error("Could not write RSA key to file. {}",  e.getMessage());
+            logger.error("Could not write auth info to file. {}",  e.getMessage());
             throw new AuthManagerException("Could not write RSA key to file." + e.getMessage());
         } catch (NoSuchAlgorithmException e) {
-            logger.error("Could not generate RSA key as algo not found. {}", e.getMessage());
+            logger.error("Could not generate key as algo not found. {}", e.getMessage());
             throw new AuthManagerException("Could not write RSA key to file." + e.getMessage());
         }
     }
 
-    public void loadCertificate(Path path) {
-
+    public byte[] loadCertificate(Path dir) throws AuthManagerException {
+        Path certPath = getCertPath(dir);
+        try {
+            return Files.readAllBytes(certPath);
+        } catch (IOException e) {
+            logger.warn("Failed to read certificate. {}", e.getMessage());
+            throw new AuthManagerException("Could not read certificate. " + e.getMessage());
+        }
     }
 
-    public X509Certificate generate(KeyPair keyPair) throws AuthManagerException {
-        // Start creating a self-signed X.509 certificate with the public key
+    public byte[] loadPrivateKey(Path dir) throws AuthManagerException {
+        Path privateKeyPath = getPrivateKeyPath(dir);
+        try {
+            return Files.readAllBytes(privateKeyPath);
+        } catch (IOException e) {
+            logger.warn("Failed to read private key. {}", e.getMessage());
+            throw new AuthManagerException("Could not read private key. " + e.getMessage());
+        }
+    }
 
-        X500Name subjName = new X500Name("C=NA, ST=NA, O=Membrane, CN=membrane.domhauton.com");
-        BigInteger serialNumber = new BigInteger("900");
+    private X509Certificate generate(KeyPair keyPair) throws AuthManagerException {
+        // Start creating a self-signed X.509 certificate with the public key
+        X500Name subjName = new X500Name("O=Membrane, CN=membrane.domhauton.com");
+        BigInteger serialNumber = new BigInteger("0");
 
         Date startDate = DateTime.now().minusHours(1).toDate();
         Date endDate = DateTime.now().plusYears(100).toDate();

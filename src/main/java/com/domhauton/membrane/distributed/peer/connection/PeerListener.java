@@ -2,10 +2,12 @@ package com.domhauton.membrane.distributed.peer.connection;
 
 import com.domhauton.membrane.distributed.peer.Peer;
 import io.vertx.core.Vertx;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ClientAuth;
 import io.vertx.core.net.NetServer;
 import io.vertx.core.net.NetServerOptions;
 import io.vertx.core.net.NetSocket;
+import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -16,6 +18,9 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 import java.util.function.Consumer;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.security.cert.X509Certificate;
 
 /**
  * Created by dominic on 08/02/17.
@@ -30,17 +35,20 @@ public class PeerListener {
 
     private final Consumer<Peer> peerConsumer;
 
-    public PeerListener(int port, Consumer<Peer> peerConsumer, ) {
+    public PeerListener(int port, Consumer<Peer> peerConsumer, byte[] privateKey, byte[] cert) {
         this.vertx = Vertx.vertx();
         this.port = port;
         this.peerConsumer = peerConsumer;
 
-        PfxOptions pfxOptions = new PfxOptions().setValue();
+        PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
+                .setCertValue(Buffer.buffer(cert))
+                .setKeyValue(Buffer.buffer(privateKey));
+
         NetServerOptions netServerOptions = new NetServerOptions()
                 .setPort(port)
                 .setReceiveBufferSize(1024*1024*RECIEVE_BUFFER_MB)
-                .setClientAuth(ClientAuth.REQUIRED)
-                .setPemKeyCertOptions();
+                .setPemKeyCertOptions(pemKeyCertOptions)
+                .setSsl(true);
         server = vertx.createNetServer(netServerOptions);
         logger.info("TCP listening server set-up complete.");
     }
@@ -57,10 +65,21 @@ public class PeerListener {
         server.connectHandler(this::connectionHandler);
     }
 
-    public void connectionHandler(final NetSocket netSocket) {
+    void connectionHandler(final NetSocket netSocket) {
         PeerConnection peerConnection = new PeerConnection(netSocket);
-        // Ensure handshake
-        peerConsumer.accept();
+        try {
+            X509Certificate[] certificates = netSocket.peerCertificateChain();
+            if(certificates != null && certificates.length == 1) {
+                peerConsumer.accept();
+            } else {
+                logger.error("Certificate count invalid for {}. Dropping connection.", netSocket.localAddress());
+                netSocket.close();
+            }
+        } catch (SSLPeerUnverifiedException e) {
+            logger.error("Connection unverified. Dropping.");
+            netSocket.close();
+        }
+
     }
 
     public void close() {
