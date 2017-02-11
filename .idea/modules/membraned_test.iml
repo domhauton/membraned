@@ -49,8 +49,8 @@
     <orderEntry type="library" name="Gradle: com.github.jnr:jffi:1.2.10" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jnr:jffi:native:1.2.10" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm:5.0.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.ow2.asm:asm-commons:5.0.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.platform:junit-platform-engine:1.0.0-M3" level="project" />
+    <orderEntry type="library" name="Gradle: org.ow2.asm:asm-commons:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-analysis:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-tree:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-util:5.0.3" level="project" />
