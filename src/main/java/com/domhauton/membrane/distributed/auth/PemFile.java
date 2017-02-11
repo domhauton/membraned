@@ -4,29 +4,33 @@ package com.domhauton.membrane.distributed.auth;
  * Created by dominic on 11/02/17.
  */
 
+import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.util.io.pem.PemObject;
-import org.bouncycastle.util.io.pem.PemWriter;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.file.Path;
 import java.security.Key;
-
+import java.security.cert.Certificate;
 
 public class PemFile {
 
-    private PemObject pemObject;
+    private Object pemObject;
 
     PemFile(Key key, String description) {
-        this.pemObject = new PemObject(description, key.getEncoded());
+        pemObject = new PemObject(description, key.getEncoded());
+    }
+
+    PemFile(Certificate certificate) {
+        this.pemObject = pemObject;
     }
 
     public void write(Path filename) throws IOException {
         try (
                 FileOutputStream fileOutputStream = new FileOutputStream(filename.toFile());
                 OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-                PemWriter pemWriter = new PemWriter(outputStreamWriter))
+                JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter))
         {
             pemWriter.writeObject(this.pemObject);
         }
