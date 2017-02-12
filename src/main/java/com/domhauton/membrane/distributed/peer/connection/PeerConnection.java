@@ -1,88 +1,70 @@
 package com.domhauton.membrane.distributed.peer.connection;
 
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.messaging.PeerMessageUtils;
 import com.domhauton.membrane.distributed.peer.PeerException;
+import com.google.common.hash.Hashing;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetSocket;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.security.cert.CertificateEncodingException;
+import javax.security.cert.X509Certificate;
 import java.util.function.Consumer;
-
-import static java.util.Optional.of;
 
 /**
  * Created by dominic on 08/02/17.
  */
 public class PeerConnection {
-    private final static int AUTHENTICATION_TIMEOUT_SEC = 20;
     private final Logger logger = LogManager.getLogger();
-    private NetSocket netSocket;
-    private DateTime connectionStartTime;
-    private Buffer writeBuffer;
-    private Set<Consumer<PeerMessage>> eventConsumer;
-    private CompletableFuture<String> completableFutureUID;
+    private final X509Certificate x509Certificate;
+    private final String clientID;
+    private final NetSocket netSocket;
+    private final Consumer<PeerMessage> messageConsumer;
+    private final DateTime connectionStartTime;
 
-    private boolean isClosed;
-
-    public PeerConnection(NetSocket netSocket) {
-        isClosed = false;
+    public PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer) throws PeerException {
         connectionStartTime = DateTime.now();
-        completableFutureUID = new CompletableFuture<>();
         this.netSocket = netSocket;
-        this.writeBuffer = Buffer.buffer();
-        this.netSocket.handler(this::eventFilter);
+        this.messageConsumer = messageConsumer;
+        this.netSocket.handler(this::messageHandler);
+        try {
+            X509Certificate[] certificates = netSocket.peerCertificateChain();
+            if (certificates != null && certificates.length == 1) {
+                x509Certificate = certificates[0];
+                clientID = Hashing.md5().hashBytes(x509Certificate.getEncoded()).toString();
+            } else {
+                logger.error("Certificate count invalid for {}. Dropping connection.", netSocket.localAddress());
+                netSocket.close();
+                throw new PeerException("Connection had incorrect number of certificates. Dropping");
+            }
+        } catch (SSLPeerUnverifiedException e) {
+            logger.error("Connection unverified. Dropping.");
+            netSocket.close();
+            throw new PeerException("Connection could not be verified. Dropping.");
+        } catch (CertificateEncodingException e) {
+            logger.error("Invalid certificated received. Could not generate client ID");
+            netSocket.close();
+            throw new PeerException("Connection could not parse certificate. Dropping.");
+        }
     }
 
     public void sendData(PeerMessage peerMessage) throws PeerException {
         Buffer writeBuffer = Buffer.buffer(peerMessage.getBytes());
-        if(!netSocket.writeQueueFull()) {
+        if (!netSocket.writeQueueFull()) {
+            logger.trace("Sending data from client [{}]: ", clientID, peerMessage);
             netSocket.write(writeBuffer);
         } else {
             throw new PeerException("Write queue was full.");
         }
     }
 
-    public void eventFilter(Buffer buffer) {
-        PeerMessage peerMessage = null; //FIXME PARSE BUFFER TO MESSAGE
-        //TODO CHECK Authentication matches.
-        if(completableFutureUID.isDone()) {
-            // Check authentication
-        } else {
-            // Authentication should be included in message.
-            // Check message self-authenticates. (Prove they actually own the key)
-            // Set the new key.
-            completableFutureUID.complete("foobarkey"); //FIXME This is NOT PRODUCTION
-        }
-    }
-
-    public void setMessageConsumer(Consumer<byte[]> messageConsumer) {
-    }
-
-    public synchronized Optional<String> authenticate() {
-        PeerMessage authMessage = null; //FIXME Write auth message
-        Buffer messageBuffer = Buffer.buffer(authMessage.getBytes());
-        this.netSocket.write(messageBuffer);
-        try {
-            return of(completableFutureUID.get(AUTHENTICATION_TIMEOUT_SEC, TimeUnit.SECONDS));
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error("Authentication wait for address failed. {}",
-                    netSocket.remoteAddress(), e.getMessage());
-            close();
-            return Optional.empty();
-        } catch (TimeoutException e) {
-            logger.error("Authentication timeout for {} after {} seconds.",
-                    netSocket.remoteAddress(), AUTHENTICATION_TIMEOUT_SEC);
-            close();
-            return Optional.empty();
-        }
+    private void messageHandler(Buffer buffer) {
+        PeerMessage peerMessage = PeerMessageUtils.parseMessage(buffer.getBytes());
+        messageConsumer.accept(peerMessage);
     }
 
     public String getIP() {
@@ -93,12 +75,15 @@ public class PeerConnection {
         return netSocket.remoteAddress().port();
     }
 
-    public synchronized boolean isAuthenticated() {
-        return completableFutureUID.isDone() && !isClosed;
+    public String getClientID() {
+        return clientID;
+    }
+
+    public DateTime getConnectionStartTime() {
+        return connectionStartTime;
     }
 
     public synchronized void close() {
-        isClosed = true;
         netSocket.close();
     }
 }

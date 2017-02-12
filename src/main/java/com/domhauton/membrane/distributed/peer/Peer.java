@@ -9,7 +9,7 @@ public class Peer {
     private String uid;
     private PeerConnection peerConnection;
 
-    private Peer(PeerConnection peerConnection) {
+    public Peer(PeerConnection peerConnection) {
         this.peerConnection.getIP();
     }
 }

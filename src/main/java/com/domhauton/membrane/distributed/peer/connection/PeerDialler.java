@@ -1,6 +1,8 @@
 package com.domhauton.membrane.distributed.peer.connection;
 
+import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import com.domhauton.membrane.distributed.peer.Peer;
+import com.domhauton.membrane.distributed.peer.PeerException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -8,12 +10,9 @@ import io.vertx.core.net.NetClient;
 import io.vertx.core.net.NetClientOptions;
 import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PemTrustOptions;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -28,10 +27,10 @@ public class PeerDialler {
     private final NetClient client;
 
     private final Consumer<Peer> peerConsumer;
+    private final Consumer<PeerMessage> peerMessageConsumer;
 
-    public PeerDialler(Consumer<Peer> peerConsumer, byte[] privateKey, byte[] cert) {
+    public PeerDialler(Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, byte[] privateKey, byte[] cert) {
         vertx = Vertx.vertx();
-
         PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
                 .setKeyValue(Buffer.buffer(privateKey))
                 .setCertValue(Buffer.buffer(cert));
@@ -44,6 +43,7 @@ public class PeerDialler {
 
         client = vertx.createNetClient(options);
         this.peerConsumer = peerConsumer;
+        this.peerMessageConsumer = peerMessageConsumer;
     }
 
     public void dialClient(String ip, int port) {
@@ -52,13 +52,15 @@ public class PeerDialler {
 
     public void connectionHandler(AsyncResult<NetSocket> result) {
         if (result.succeeded()) {
-            logger.info("Connected!");
             NetSocket socket = result.result();
-            PeerConnection peerConnection = new PeerConnection(socket);
-            //TODO ensure connection authenticated.
-
-            CompletableFuture.runAsync(peerConnection::authenticate)
-
+            logger.info("Connection to peer established. {}", socket.remoteAddress());
+            try {
+                PeerConnection peerConnection = new PeerConnection(socket, peerMessageConsumer);
+                logger.debug("Successfully configured connection to new peer. {}", socket.remoteAddress());
+                peerConsumer.accept(new Peer(peerConnection));
+            } catch (PeerException e) {
+                logger.warn("Failed to connect: " + e.getMessage());
+            }
         } else {
             logger.warn("Failed to connect: " + result.cause().getMessage());
         }
