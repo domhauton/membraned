@@ -1,8 +1,9 @@
-package com.domhauton.membrane.distributed.peer.connection;
+package com.domhauton.membrane.distributed.connection;
 
+import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
+import com.domhauton.membrane.distributed.connection.peer.Peer;
+import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
-import com.domhauton.membrane.distributed.peer.Peer;
-import com.domhauton.membrane.distributed.peer.PeerException;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
@@ -29,11 +30,11 @@ public class PeerDialler {
     private final Consumer<Peer> peerConsumer;
     private final Consumer<PeerMessage> peerMessageConsumer;
 
-    public PeerDialler(Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, byte[] privateKey, byte[] cert) {
+    public PeerDialler(Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
         vertx = Vertx.vertx();
         PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
-                .setKeyValue(Buffer.buffer(privateKey))
-                .setCertValue(Buffer.buffer(cert));
+                .setKeyValue(Buffer.buffer(membraneAuthInfo.getEncodedPrivateKey()))
+                .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()));
 
         NetClientOptions options = new NetClientOptions()
                 .setConnectTimeout(10000)

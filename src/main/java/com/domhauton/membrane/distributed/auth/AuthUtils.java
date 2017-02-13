@@ -11,18 +11,8 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.joda.time.DateTime;
 
-import java.io.File;
-import java.io.IOException;
 import java.math.BigInteger;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.KeyPair;
-import java.security.KeyPairGenerator;
-import java.security.NoSuchAlgorithmException;
-import java.security.NoSuchProviderException;
-import java.security.Security;
-import java.security.cert.Certificate;
+import java.security.*;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -33,74 +23,32 @@ import java.util.Date;
 /**
  * Created by dominic on 09/02/17.
  */
-public class AuthManager {
-    private final Logger logger = LogManager.getLogger();
-
+public abstract class AuthUtils {
+    private static final Logger logger = LogManager.getLogger();
     private static final int KEY_SIZE = 2048;
-    private static final String RSA_PUBIC_FILE_NAME = "membrane_rsa.pub";
-    private static final String RSA_PUBIC_FILE_DESCRIPTION = "RSA PUBLIC KEY";
-
-    private static final String RSA_PRIVATE_FILE_NAME = "membrane_rsa";
-    private static final String RSA_PRIVATE_FILE_DESCRIPTION = "RSA PRIVATE KEY";
-
-    private static final String CERT_FILE_NAME = "membrane.cert";
-    private static final String RSA_CERT_FILE_DESCRIPTION = "CERTIFICATE";
-
     private static final String SIGNATURE_ALGORITHM = "SHA256WITHRSA";
-//    private static final String KEY_STORE_TYPE = "JKS";
 
 
-    public AuthManager() {
-    }
-
-    public void genKey(Path path) throws AuthManagerException {
+    public static MembraneAuthInfo generateAuthenticationInfo() throws AuthException {
         try {
+            logger.info("Generating RSA key pair using {}", SIGNATURE_ALGORITHM);
             KeyPair keyPair = generateRSAKeyPair();
-
             RSAPrivateKey privateKey = (RSAPrivateKey) keyPair.getPrivate();
-            Path privKeyPath = getPrivateKeyPath(path);
-            PemFileUtils.write(privKeyPath, privateKey, RSA_PRIVATE_FILE_DESCRIPTION);
-
             RSAPublicKey publicKey = (RSAPublicKey) keyPair.getPublic();
-            Path pubKeyPath = getPublicKeyPath(path);
-            PemFileUtils.write(pubKeyPath, publicKey, RSA_PUBIC_FILE_DESCRIPTION);
-
-            Certificate x509Cert = generate(keyPair);
-            Path certKeyPath = getCertPath(path);
-            PemFileUtils.write(certKeyPath, x509Cert);
+            X509Certificate x509Cert = generate(keyPair);
+            logger.info("Auth info successfully generated.");
+            return new MembraneAuthInfo(x509Cert, publicKey, privateKey);
         } catch (NoSuchProviderException e) {
             logger.error("Bouncy Castle Encryption provider not found. {}", e.getMessage());
-            throw new AuthManagerException("Bouncy Castle Encryption provider not found.");
-        } catch (IOException e) {
-            logger.error("Could not write auth info to file. {}",  e.getMessage());
-            throw new AuthManagerException("Could not write RSA key to file." + e.getMessage());
+            throw new AuthException("Bouncy Castle Encryption provider not found.");
         } catch (NoSuchAlgorithmException e) {
             logger.error("Could not generate key as algo not found. {}", e.getMessage());
-            throw new AuthManagerException("Could not write RSA key to file." + e.getMessage());
+            throw new AuthException("Could not write RSA key to file." + e.getMessage());
         }
     }
 
-    public byte[] loadCertificate(Path dir) throws AuthManagerException {
-        Path certPath = getCertPath(dir);
-        try {
-            return Files.readAllBytes(certPath);
-        } catch (IOException e) {
-            logger.warn("Failed to read certificate. {}", e.getMessage());
-            throw new AuthManagerException("Could not read certificate. " + e.getMessage());
-        }
-    }
-
-    public byte[] loadPrivateKey(Path dir) throws AuthManagerException {
-        Path privateKeyPath = getPrivateKeyPath(dir);
-        try {
-            return Files.readAllBytes(privateKeyPath);
-        } catch (IOException e) {
-            logger.warn("Failed to read private key. {}", e.getMessage());
-            throw new AuthManagerException("Could not read private key. " + e.getMessage());
-        }
-    }
-
-    private X509Certificate generate(KeyPair keyPair) throws AuthManagerException {
+    private static X509Certificate generate(KeyPair keyPair) throws AuthException {
+        logger.info("Generating X.509 certificate.");
         // Start creating a self-signed X.509 certificate with the public key
         X500Name subjName = new X500Name("O=Membrane, CN=membrane.domhauton.com");
         BigInteger serialNumber = new BigInteger("0");
@@ -125,15 +73,15 @@ public class AuthManager {
             return converter.getCertificate(x509Builder.build(signer));
         } catch (OperatorCreationException e) {
             logger.error("Could not sign certificate {}", e.getMessage());
-            throw new AuthManagerException("Could not sign certificate. " + e.getMessage());
+            throw new AuthException("Could not sign certificate. " + e.getMessage());
         } catch (CertificateException e) {
             logger.error("Could not create certificate. {}", e.getMessage());
-            throw new AuthManagerException("Could not create certificate. " + e.getMessage());
+            throw new AuthException("Could not create certificate. " + e.getMessage());
         }
     }
 
 //    private void saveSelfSignedCert(KeyPair keyPair, X509Certificate certificate, char[] password, Path targetPath) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-//        KeyStore ks = KeyStore.getInstance(KEY_STORE_TYPE);
+//        KeyStore ks = KeyStore.getInstance("JKS");
 //        ks.load(null, password);
 //
 //        KeyStore.PrivateKeyEntry privKeyEntry = new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[] {certificate});
@@ -145,7 +93,9 @@ public class AuthManager {
 //    }
 
     private static KeyPair generateRSAKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
+        logger.trace("Generating RSA pair");
         if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            logger.trace("Adding Bouncy Castle Provider.");
             Security.addProvider(new BouncyCastleProvider());
         }
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
@@ -153,15 +103,5 @@ public class AuthManager {
         return generator.generateKeyPair();
     }
 
-    private Path getPrivateKeyPath(Path path) {
-        return Paths.get(path + File.separator + RSA_PRIVATE_FILE_NAME);
-    }
 
-    private Path getPublicKeyPath(Path path) {
-        return Paths.get(path + File.separator + RSA_PUBIC_FILE_NAME);
-    }
-
-    private Path getCertPath(Path path) {
-        return Paths.get(path + File.separator + CERT_FILE_NAME);
-    }
 }

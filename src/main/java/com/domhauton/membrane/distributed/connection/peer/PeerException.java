@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.peer;
+package com.domhauton.membrane.distributed.connection.peer;
 
 /**
  * Created by dominic on 09/02/17.

@@ -1,8 +1,8 @@
-package com.domhauton.membrane.distributed.peer.connection;
+package com.domhauton.membrane.distributed.connection;
 
+import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import com.domhauton.membrane.distributed.messaging.PeerMessageUtils;
-import com.domhauton.membrane.distributed.peer.PeerException;
 import com.google.common.hash.Hashing;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetSocket;

@@ -1,8 +1,9 @@
-package com.domhauton.membrane.distributed.peer.connection;
+package com.domhauton.membrane.distributed.connection;
 
+import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
+import com.domhauton.membrane.distributed.connection.peer.Peer;
+import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
-import com.domhauton.membrane.distributed.peer.Peer;
-import com.domhauton.membrane.distributed.peer.PeerException;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetServer;
@@ -28,15 +29,15 @@ public class PeerListener {
     private final Consumer<Peer> peerConsumer;
     private final Consumer<PeerMessage> peerMessageConsumer;
 
-    public PeerListener(int port, Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, byte[] privateKey, byte[] cert) {
+    public PeerListener(int port, Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
         this.vertx = Vertx.vertx();
         this.port = port;
         this.peerConsumer = peerConsumer;
         this.peerMessageConsumer = peerMessageConsumer;
 
         PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
-                .setCertValue(Buffer.buffer(cert))
-                .setKeyValue(Buffer.buffer(privateKey));
+                .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()))
+                .setKeyValue(Buffer.buffer(membraneAuthInfo.getEncodedPrivateKey()));
 
         NetServerOptions netServerOptions = new NetServerOptions()
                 .setPort(port)
@@ -68,6 +69,7 @@ public class PeerListener {
     }
 
     public void close() {
+        logger.info("Closing Peer Listener on port {}", port);
         server.close();
     }
 }
