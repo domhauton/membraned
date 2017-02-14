@@ -7,10 +7,7 @@ import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.net.NetClient;
-import io.vertx.core.net.NetClientOptions;
-import io.vertx.core.net.NetSocket;
-import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,10 +34,14 @@ public class PeerDialler {
                 .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()));
 
         NetClientOptions options = new NetClientOptions()
-                .setConnectTimeout(10000)
+                .setLogActivity(true)
                 .setPemKeyCertOptions(pemKeyCertOptions)
-                .setReceiveBufferSize(RECIEVE_BUFFER_MB * 1024 * 1024)
+                .setTrustAll(true)
                 .setSsl(true);
+                //.setConnectTimeout(10000)
+                //.setHostnameVerificationAlgorithm("") // Disable hostname verification. Certs are self-signed.
+                //.setReceiveBufferSize(RECIEVE_BUFFER_MB * 1024 * 1024)
+
 
         client = vertx.createNetClient(options);
         this.peerConsumer = peerConsumer;
@@ -63,7 +64,7 @@ public class PeerDialler {
                 logger.warn("Failed to connect: " + e.getMessage());
             }
         } else {
-            logger.warn("Failed to connect: " + result.cause().getMessage());
+            logger.warn("Failed to connect! Reason: ", result.cause().getMessage() == null ? result.cause().getMessage() : "n/a");
         }
     }
 }

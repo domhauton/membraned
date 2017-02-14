@@ -3,6 +3,8 @@ package com.domhauton.membrane.distributed.auth;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.x500.X500Name;
+import org.bouncycastle.asn1.x500.X500NameBuilder;
+import org.bouncycastle.asn1.x500.style.BCStyle;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
 import org.bouncycastle.cert.jcajce.JcaX509v3CertificateBuilder;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -50,27 +52,39 @@ public abstract class AuthUtils {
     private static X509Certificate generate(KeyPair keyPair) throws AuthException {
         logger.info("Generating X.509 certificate.");
         // Start creating a self-signed X.509 certificate with the public key
-        X500Name subjName = new X500Name("O=Membrane, CN=membrane.domhauton.com");
-        BigInteger serialNumber = new BigInteger("0");
+        X500Name issuer = new X500NameBuilder()
+                .addRDN(BCStyle.O, "Membrane Distributed Storage")
+                .addRDN(BCStyle.CN, "Membrane")
+                .build();
+        // X500Name subjName = new X500Name("CN=SecureTrust CA, O=SecureTrust Corporation, C=US");
+        BigInteger serial = BigInteger.valueOf(900);
 
         Date startDate = DateTime.now().minusHours(1).toDate();
         Date endDate = DateTime.now().plusYears(100).toDate();
 
         JcaX509v3CertificateBuilder x509Builder = new JcaX509v3CertificateBuilder(
-                subjName,
-                serialNumber,
+                issuer,
+                serial,
                 startDate,
                 endDate,
-                subjName,
+                issuer,
                 keyPair.getPublic());
+
+//        ASN1EncodableVector purposes = new ASN1EncodableVector();
+//        purposes.add(KeyPurposeId.id_kp_serverAuth);
+//        purposes.add(KeyPurposeId.id_kp_clientAuth);
+//        purposes.add(KeyPurposeId.anyExtendedKeyUsage);
 
         // Create a signer to sign (self-sign) the certificate.
 
         JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
         JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
         try {
+//            x509Builder.addExtension(Extension.extendedKeyUsage, false, new DERSequence(purposes));
             ContentSigner signer = signerBuilder.build(keyPair.getPrivate());
-            return converter.getCertificate(x509Builder.build(signer));
+            X509Certificate x509Certificate = converter.getCertificate(x509Builder.build(signer));
+            logger.info("Successfully generated certificate.");
+            return x509Certificate;
         } catch (OperatorCreationException e) {
             logger.error("Could not sign certificate {}", e.getMessage());
             throw new AuthException("Could not sign certificate. " + e.getMessage());

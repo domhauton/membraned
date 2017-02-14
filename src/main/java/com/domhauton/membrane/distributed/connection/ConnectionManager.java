@@ -52,6 +52,10 @@ public class ConnectionManager {
         peerDialler.dialClient(ip, port);
     }
 
+    public int getListeningPort() {
+        return peerListener.getPort();
+    }
+
     public void close() {
         logger.info("Closing Connection Manager.");
         peerListener.close();

@@ -1,0 +1,112 @@
+package com.domhauton.membrane.distributed.auth;
+
+import com.sun.istack.internal.Nullable;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509TrustManager;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
+import java.util.stream.Stream;
+
+/**
+ * Created by dominic on 14/02/17.
+ */
+public class ReloadableX509TrustManager implements X509TrustManager {
+    private final Logger logger = LogManager.getLogger();
+
+    private final Path keystorePath;
+    private X509TrustManager trustManager;
+    private List<Certificate> tempCertList = new LinkedList<>();
+
+    public ReloadableX509TrustManager(@Nullable Path keyStorePath) throws AuthException {
+        this.keystorePath = keyStorePath;
+        tempCertList.add(AuthUtils.generateAuthenticationInfo().getX509Certificate());
+        reloadTrustManager();
+    }
+
+    @Override
+    public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        trustManager.checkClientTrusted(chain, authType);
+        try {
+            trustManager.checkClientTrusted(chain, authType);
+            logger.info("Client Cert Authentication Success.");
+        } catch (CertificateException cx) {
+            // Add new temporary certificate and check again.
+            logger.info("Client Cert Authentication Failed. Adding cert to trust store.");
+            addCertAndReload(chain[0]);
+            trustManager.checkClientTrusted(chain, authType);
+        }
+    }
+
+    @Override
+    public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+        try {
+            trustManager.checkServerTrusted(chain, authType);
+            logger.info("Server Cert Authentication Success.");
+        } catch (CertificateException cx) {
+            // Add new temporary certificate and check again.
+            logger.info("Server Cert Authentication Failed. Adding cert to trust store.");
+            addCertAndReload(chain[0]);
+            trustManager.checkServerTrusted(chain, authType);
+        }
+    }
+
+    @Override
+    public X509Certificate[] getAcceptedIssuers() {
+        return trustManager.getAcceptedIssuers();
+    }
+
+    private void reloadTrustManager() throws AuthException {
+        logger.debug("Reloading cert trust store with {} temp certs", tempCertList.size());
+        // load keystore from specified cert store (or default)
+        try (InputStream is = keystorePath != null ? new FileInputStream(keystorePath.toString()) : null) {
+            KeyStore ts = KeyStore.getInstance(KeyStore.getDefaultType());
+            ts.load(is, null);
+            for (Certificate cert : tempCertList) {
+                ts.setCertificateEntry(UUID.randomUUID().toString(), cert);
+            }
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(ts);
+            trustManager = Stream.of(tmf.getTrustManagers())
+                    .filter((TrustManager trustManager) -> trustManager instanceof X509TrustManager)
+                    .map((TrustManager trustManager) -> (X509TrustManager) trustManager)
+                    .findAny()
+                    .orElseThrow(() -> new NoSuchAlgorithmException("No X509TrustManager in TrustManagerFactory"));
+        } catch (IOException e) {
+            logger.error("Could not find trust store. {}", e.getMessage());
+            throw new AuthException("Could not find trust store. " + e.getMessage());
+        } catch (CertificateException e) {
+            logger.error("Failed to parse certificate. {}", e.getMessage());
+            throw new AuthException("Failed to parse certificate. " + e.getMessage());
+        } catch (NoSuchAlgorithmException e) {
+            logger.error("Failed to find new certificate manager. {}", e.getMessage());
+            throw new AuthException("Failed to find new certificate manager. " + e.getMessage());
+        } catch (KeyStoreException e) {
+            logger.error("Could not load keystore. {}", e.getMessage());
+            throw new AuthException("Could not load keystore. " + e.getMessage());
+        }
+    }
+
+    private void addCertAndReload(Certificate cert) {
+        tempCertList.add(cert);
+        try {
+            reloadTrustManager();
+        } catch (AuthException e) {
+            logger.error("Failed to add new cert. Authentication will fail.");
+        }
+    }
+}

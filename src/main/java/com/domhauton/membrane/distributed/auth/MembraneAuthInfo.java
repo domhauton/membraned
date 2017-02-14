@@ -66,7 +66,6 @@ public class MembraneAuthInfo {
     }
 
     public byte[] getEncodedPrivateKey() {
-        System.out.println(new String(privateKeyEncoded));
         return privateKeyEncoded;
     }
 
@@ -81,6 +80,10 @@ public class MembraneAuthInfo {
 
     public byte[] getEncodedCert() {
         return x509CertificateEncoded;
+    }
+
+    X509Certificate getX509Certificate() {
+        return x509Certificate;
     }
 
     public void write(Path path) throws IOException {

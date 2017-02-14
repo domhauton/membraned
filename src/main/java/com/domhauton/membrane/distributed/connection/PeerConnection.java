@@ -33,7 +33,7 @@ public class PeerConnection {
         this.netSocket.handler(this::messageHandler);
         try {
             X509Certificate[] certificates = netSocket.peerCertificateChain();
-            if (certificates != null && certificates.length == 1) {
+            if (certificates != null && certificates.length >= 1) {
                 x509Certificate = certificates[0];
                 clientID = Hashing.md5().hashBytes(x509Certificate.getEncoded()).toString();
             } else {
@@ -42,9 +42,9 @@ public class PeerConnection {
                 throw new PeerException("Connection had incorrect number of certificates. Dropping");
             }
         } catch (SSLPeerUnverifiedException e) {
-            logger.error("Connection unverified. Dropping.");
+            logger.error("Connection unverified. Dropping. {}", e.getMessage());
             netSocket.close();
-            throw new PeerException("Connection could not be verified. Dropping.");
+            throw new PeerException("Connection could not be verified. Dropping. " + e.getMessage());
         } catch (CertificateEncodingException e) {
             logger.error("Invalid certificated received. Could not generate client ID");
             netSocket.close();
