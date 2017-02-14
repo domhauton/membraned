@@ -1,17 +1,14 @@
 package com.domhauton.membrane.distributed.connection;
 
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
+import com.domhauton.membrane.distributed.auth.ReloadableTrustOptions;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import io.vertx.core.Vertx;
-import io.vertx.core.VertxOptions;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ClientAuth;
-import io.vertx.core.net.NetServer;
-import io.vertx.core.net.NetServerOptions;
-import io.vertx.core.net.NetSocket;
-import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -37,11 +34,11 @@ public class PeerListener {
         this.peerConsumer = peerConsumer;
         this.peerMessageConsumer = peerMessageConsumer;
 
-
-
         PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
                 .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()))
                 .setKeyValue(Buffer.buffer(membraneAuthInfo.getEncodedPrivateKey()));
+
+        TrustOptions trustOptions = new ReloadableTrustOptions();
 
         logger.info("TCP listening server set-up start.");
         NetServerOptions netServerOptions = new NetServerOptions()
@@ -49,6 +46,7 @@ public class PeerListener {
                 .setLogActivity(true)
                 .setClientAuth(ClientAuth.REQUIRED)
                 .setSsl(true)
+                .setTrustOptions(trustOptions)
                 .setPemKeyCertOptions(pemKeyCertOptions);
                 //.setReceiveBufferSize(1024 * 1024 * RECIEVE_BUFFER_MB)
 

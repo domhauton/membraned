@@ -1,6 +1,7 @@
 package com.domhauton.membrane.distributed.connection;
 
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
+import com.domhauton.membrane.distributed.auth.ReloadableTrustOptions;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
@@ -33,10 +34,13 @@ public class PeerDialler {
                 .setKeyValue(Buffer.buffer(membraneAuthInfo.getEncodedPrivateKey()))
                 .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()));
 
+        TrustOptions trustOptions = new ReloadableTrustOptions();
+
         NetClientOptions options = new NetClientOptions()
                 .setLogActivity(true)
                 .setPemKeyCertOptions(pemKeyCertOptions)
                 .setTrustAll(true)
+                .setTrustOptions(trustOptions)
                 .setSsl(true);
                 //.setConnectTimeout(10000)
                 //.setHostnameVerificationAlgorithm("") // Disable hostname verification. Certs are self-signed.
@@ -55,10 +59,9 @@ public class PeerDialler {
     public void connectionHandler(AsyncResult<NetSocket> result) {
         if (result.succeeded()) {
             NetSocket socket = result.result();
-            logger.info("Connection to peer established. {}", socket.remoteAddress());
             try {
+                logger.debug("Successfully Established TCP Link to new peer. [{}]. Converting to P2P Link.", socket.remoteAddress());
                 PeerConnection peerConnection = new PeerConnection(socket, peerMessageConsumer);
-                logger.debug("Successfully configured connection to new peer. {}", socket.remoteAddress());
                 peerConsumer.accept(new Peer(peerConnection));
             } catch (PeerException e) {
                 logger.warn("Failed to connect: " + e.getMessage());

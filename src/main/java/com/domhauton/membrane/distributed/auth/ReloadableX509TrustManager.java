@@ -40,13 +40,12 @@ public class ReloadableX509TrustManager implements X509TrustManager {
 
     @Override
     public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-        trustManager.checkClientTrusted(chain, authType);
         try {
             trustManager.checkClientTrusted(chain, authType);
             logger.info("Client Cert Authentication Success.");
         } catch (CertificateException cx) {
             // Add new temporary certificate and check again.
-            logger.info("Client Cert Authentication Failed. Adding cert to trust store.");
+            logger.trace("Client cert not present on host. Adding cert to trust store.");
             addCertAndReload(chain[0]);
             trustManager.checkClientTrusted(chain, authType);
         }

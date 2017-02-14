@@ -48,7 +48,7 @@ public class ConnectionManager {
     }
 
     public void connectToPeer(String ip, int port) {
-        logger.info("Dialling peer {}:{}", ip, port);
+        logger.info("Dialling Peer at [{}:{}]", ip, port);
         peerDialler.dialClient(ip, port);
     }
 

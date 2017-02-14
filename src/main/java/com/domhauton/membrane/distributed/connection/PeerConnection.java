@@ -33,7 +33,7 @@ public class PeerConnection {
         this.netSocket.handler(this::messageHandler);
         try {
             X509Certificate[] certificates = netSocket.peerCertificateChain();
-            if (certificates != null && certificates.length >= 1) {
+            if (certificates != null && certificates.length == 1) {
                 x509Certificate = certificates[0];
                 clientID = Hashing.md5().hashBytes(x509Certificate.getEncoded()).toString();
             } else {
@@ -50,6 +50,7 @@ public class PeerConnection {
             netSocket.close();
             throw new PeerException("Connection could not parse certificate. Dropping.");
         }
+        logger.info("Successfully Established P2P Link to {}", netSocket.remoteAddress());
     }
 
     public void sendData(PeerMessage peerMessage) throws PeerException {

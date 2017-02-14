@@ -8,7 +8,6 @@ import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import java.security.SecureRandom;
@@ -27,16 +26,16 @@ class ConnectionManagerTest {
     @BeforeEach
     void setUp() throws Exception {
         System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
-        System.setProperty("javax.net.debug", "ssl");
+        //System.setProperty("javax.net.debug", "ssl");
         membraneAuthInfo1 = AuthUtils.generateAuthenticationInfo();
         membraneAuthInfo2 = AuthUtils.generateAuthenticationInfo();
 
         // Install the all-trusting trust manager
         //Path keystoreDir = Paths.get(System.getProperty("user.home") + File.separator + ".keystore");
         //Files.createDirectories(keystoreDir);
-        SSLContext sslContext = getSSLContext();
-        SSLContext.setDefault(sslContext);
-        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
+//        SSLContext sslContext = getSSLContext();
+//        SSLContext.setDefault(sslContext);
+//        HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
     }
 
     @Test
