@@ -20,7 +20,7 @@ import java.util.function.Consumer;
 public class PeerDialler {
 
     private final Logger logger = LogManager.getLogger();
-    private final static int RECIEVE_BUFFER_MB = 256;
+    private final static int RECEIVE_BUFFER_MB = 256;
 
     private final Vertx vertx;
     private final NetClient client;
@@ -28,7 +28,13 @@ public class PeerDialler {
     private final Consumer<Peer> peerConsumer;
     private final Consumer<PeerMessage> peerMessageConsumer;
 
-    public PeerDialler(Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
+    /**
+     * Create a dialler that can call new peers.
+     * @param peerConsumer Callback for connected peers.
+     * @param peerMessageConsumer Connected peers will send messages here.
+     * @param membraneAuthInfo SSL Auth info to use while dialling.
+     */
+    PeerDialler(Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
         vertx = Vertx.vertx();
         PemKeyCertOptions pemKeyCertOptions = new PemKeyCertOptions()
                 .setKeyValue(Buffer.buffer(membraneAuthInfo.getEncodedPrivateKey()))
@@ -41,22 +47,28 @@ public class PeerDialler {
                 .setPemKeyCertOptions(pemKeyCertOptions)
                 .setTrustAll(true)
                 .setTrustOptions(trustOptions)
-                .setSsl(true);
-                //.setConnectTimeout(10000)
-                //.setHostnameVerificationAlgorithm("") // Disable hostname verification. Certs are self-signed.
-                //.setReceiveBufferSize(RECIEVE_BUFFER_MB * 1024 * 1024)
-
+                .setSsl(true)
+                .setConnectTimeout(10000)
+                .setReceiveBufferSize(RECEIVE_BUFFER_MB * 1024 * 1024)
+                .setReconnectAttempts(10)
+                .setReconnectInterval(60*1000);
 
         client = vertx.createNetClient(options);
         this.peerConsumer = peerConsumer;
         this.peerMessageConsumer = peerMessageConsumer;
     }
 
-    public void dialClient(String ip, int port) {
+    /**
+     * Start attempting to establish connection to given client. Async.
+     */
+    void dialClient(String ip, int port) {
         client.connect(port, ip, this::connectionHandler);
     }
 
-    public void connectionHandler(AsyncResult<NetSocket> result) {
+    /**
+     * Handles new and failed connections.
+     */
+    private void connectionHandler(AsyncResult<NetSocket> result) {
         if (result.succeeded()) {
             NetSocket socket = result.result();
             try {
@@ -67,7 +79,7 @@ public class PeerDialler {
                 logger.warn("Failed to connect: " + e.getMessage());
             }
         } else {
-            logger.warn("Failed to connect! Reason: ", result.cause().getMessage() == null ? result.cause().getMessage() : "n/a");
+            logger.warn("Failed to connect! Reason: ", result.cause().getMessage() != null ? result.cause().getMessage() : "n/a");
         }
     }
 }

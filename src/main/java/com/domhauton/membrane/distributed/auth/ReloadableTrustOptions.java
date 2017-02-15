@@ -9,6 +9,8 @@ import javax.net.ssl.TrustManagerFactory;
 
 /**
  * Created by dominic on 14/02/17.
+ *
+ * A custom trust option designed to load the ReadableX509TrustManager
  */
 public class ReloadableTrustOptions implements TrustOptions {
     private final Logger logger = LogManager.getLogger();

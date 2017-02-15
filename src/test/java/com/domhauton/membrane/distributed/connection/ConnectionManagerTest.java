@@ -2,15 +2,10 @@ package com.domhauton.membrane.distributed.connection;
 
 import com.domhauton.membrane.distributed.auth.AuthUtils;
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
-import com.domhauton.membrane.distributed.auth.ReloadableX509TrustManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManager;
-import java.security.SecureRandom;
 
 /**
  * Created by dominic on 13/02/17.
@@ -63,14 +58,4 @@ class ConnectionManagerTest {
 
         connectionManager1.close();
     }
-
-    public SSLContext getSSLContext() throws Exception {
-        // "/usr/lib/jvm/java-8-openjdk-amd64/jre/lib/security/cacerts"
-        TrustManager reloadableTrustStore = new ReloadableX509TrustManager(null);
-        TrustManager[] trustManagers = new TrustManager[] {reloadableTrustStore};
-        SSLContext sslContext = SSLContext.getInstance("SSL");
-        sslContext.init(null, trustManagers, new SecureRandom());
-        return sslContext;
-    }
-
 }

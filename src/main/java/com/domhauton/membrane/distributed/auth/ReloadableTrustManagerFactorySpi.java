@@ -13,10 +13,13 @@ import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by dominic on 14/02/17.
+ *
+ * An extension of TrustManagerFactorySpi that only returns the ReloadableX509TrustManager. This will accept unknown
+ * certificates and add them to the trust store.
  */
 public class ReloadableTrustManagerFactorySpi extends TrustManagerFactorySpi {
 
-    public ReloadableTrustManagerFactorySpi() throws NoSuchAlgorithmException {
+    ReloadableTrustManagerFactorySpi() throws NoSuchAlgorithmException {
         try {
             engineInit((KeyStore) null);
         } catch (KeyStoreException e) {

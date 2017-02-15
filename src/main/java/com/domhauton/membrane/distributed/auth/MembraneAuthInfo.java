@@ -21,9 +21,6 @@ public class MembraneAuthInfo {
 
     static final String INNER_PATH = File.separator + "auth";
 
-    private static final String RSA_PRIVATE_FILE_DESCRIPTION = "RSA PRIVATE KEY";
-    private static final String RSA_PUBIC_FILE_DESCRIPTION = "RSA PUBLIC KEY";
-
     private static final String RSA_PUBIC_FILE_NAME = "membrane_rsa.pub";
     private static final String RSA_PRIVATE_FILE_NAME = "membrane_rsa";
     private static final String CERT_FILE_NAME = "membrane.cert";
@@ -46,6 +43,11 @@ public class MembraneAuthInfo {
         }
     }
 
+    /**
+     * Load auth info from path. An extra inner path will be added.
+     * @param path base path containing auth folder
+     * @throws AuthException If files cannot be found.
+     */
     public MembraneAuthInfo(Path path) throws AuthException {
         Path fullPath = Paths.get(path.toString() + INNER_PATH);
         Path certPath = Paths.get(fullPath + File.separator + CERT_FILE_NAME);
@@ -56,7 +58,12 @@ public class MembraneAuthInfo {
         this.publicKey = AuthFileUtils.loadPublicKey(pubPath);
     }
 
-    private byte[] getEncodedPrivateKey(RSAPrivateKey privateKey) throws IOException {
+    /**
+     * Encodes the private key with PEM encoding and outputs as bytes
+     * @param privateKey private key to encode
+     * @throws IOException Unlikely. Would be thrown from String writer.
+     */
+    private static byte[] getEncodedPrivateKey(RSAPrivateKey privateKey) throws IOException {
         StringWriter privateKeyOut = new StringWriter();
         JcaPEMWriter privateWriter = new JcaPEMWriter(privateKeyOut);
         // Vert.x requires exactly "PRIVATE KEY"
@@ -65,11 +72,19 @@ public class MembraneAuthInfo {
         return privateKeyOut.toString().getBytes();
     }
 
+    /**
+     * Fetches the encoded private key with PEM headers
+     */
     public byte[] getEncodedPrivateKey() {
         return privateKeyEncoded;
     }
 
-    private byte[] getEncodedCertificate(X509Certificate certificate) throws IOException, CertificateEncodingException {
+    /**
+     * Encodes the certificate with PEM encoding and converts to bytes.
+     * @throws IOException If unable to write to String writer. Unlikely
+     * @throws CertificateEncodingException If unable to read certificate
+     */
+    private static byte[] getEncodedCertificate(X509Certificate certificate) throws IOException, CertificateEncodingException {
         StringWriter privateKeyOut = new StringWriter();
         JcaPEMWriter privateWriter = new JcaPEMWriter(privateKeyOut);
         // Vert.x requires exactly "CERTIFICATE"
@@ -78,6 +93,9 @@ public class MembraneAuthInfo {
         return privateKeyOut.toString().getBytes();
     }
 
+    /**
+     * Fetches the encoded certificate with PEM headers
+     */
     public byte[] getEncodedCert() {
         return x509CertificateEncoded;
     }
@@ -86,6 +104,11 @@ public class MembraneAuthInfo {
         return x509Certificate;
     }
 
+    /**
+     * Writes the Authentication info to an auth folder on the given path.
+     * @param path base path to create auth folder inside.
+     * @throws IOException If there is a problem writing the auth info
+     */
     public void write(Path path) throws IOException {
         Path fullPath = Paths.get(path.toString() + INNER_PATH);
 

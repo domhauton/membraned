@@ -70,17 +70,11 @@ public abstract class AuthUtils {
                 issuer,
                 keyPair.getPublic());
 
-//        ASN1EncodableVector purposes = new ASN1EncodableVector();
-//        purposes.add(KeyPurposeId.id_kp_serverAuth);
-//        purposes.add(KeyPurposeId.id_kp_clientAuth);
-//        purposes.add(KeyPurposeId.anyExtendedKeyUsage);
-
         // Create a signer to sign (self-sign) the certificate.
 
         JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
         JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
         try {
-//            x509Builder.addExtension(Extension.extendedKeyUsage, false, new DERSequence(purposes));
             ContentSigner signer = signerBuilder.build(keyPair.getPrivate());
             X509Certificate x509Certificate = converter.getCertificate(x509Builder.build(signer));
             logger.info("Successfully generated certificate.");
@@ -93,18 +87,6 @@ public abstract class AuthUtils {
             throw new AuthException("Could not create certificate. " + e.getMessage());
         }
     }
-
-//    private void saveSelfSignedCert(KeyPair keyPair, X509Certificate certificate, char[] password, Path targetPath) throws KeyStoreException, IOException, NoSuchAlgorithmException, CertificateException {
-//        KeyStore ks = KeyStore.getInstance("JKS");
-//        ks.load(null, password);
-//
-//        KeyStore.PrivateKeyEntry privKeyEntry = new KeyStore.PrivateKeyEntry(keyPair.getPrivate(), new Certificate[] {certificate});
-//        ks.setEntry("membraneRSAKey", privKeyEntry, new KeyStore.PasswordProtection(password));
-//
-//        try (FileOutputStream fos = new FileOutputStream(targetPath.toFile())){
-//            ks.store(fos, password);
-//        }
-//    }
 
     private static KeyPair generateRSAKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
         logger.trace("Generating RSA pair");

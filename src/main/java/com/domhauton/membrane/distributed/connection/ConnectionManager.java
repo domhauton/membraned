@@ -10,18 +10,18 @@ import java.util.HashMap;
 
 /**
  * Created by dominic on 08/02/17.
+ *
+ * Manages PeerConnection Lifecycle. Dialling, Communication and Closing.
  */
 public class ConnectionManager {
     private final static Logger logger = LogManager.getLogger();
 
-    private final MembraneAuthInfo membraneAuthInfo;
     private final PeerListener peerListener;
     private final PeerDialler peerDialler;
 
     private final HashMap<String, Peer> peerConnections;
 
-    public ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) {
-        this.membraneAuthInfo = membraneAuthInfo;
+    ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) {
         peerConnections = new HashMap<>();
         this.peerListener = new PeerListener(
                 listenPort,
@@ -35,11 +35,16 @@ public class ConnectionManager {
                 membraneAuthInfo);
     }
 
+    /**
+     * Add a new peer when connected. Ensures any previous connection is terminated.
+     */
     private synchronized void addPeer(Peer peer) {
         Peer oldConnection = peerConnections.get(peer.getUid());
         if(oldConnection != null) {
+            logger.info("Peer Connection - Removing connection to peer [{}]", peer.getUid());
             oldConnection.close();
         }
+        logger.info("Peer Connection - New Peer Connection Established [{}]", peer.getUid());
         peerConnections.put(peer.getUid(), peer);
     }
 
@@ -47,7 +52,10 @@ public class ConnectionManager {
         logger.info("Received: {}", peerMessage);
     }
 
-    public void connectToPeer(String ip, int port) {
+    /**
+     * Attempt to connect to new peer at given ip and port. Non-blocking.
+     */
+    void connectToPeer(String ip, int port) {
         logger.info("Dialling Peer at [{}:{}]", ip, port);
         peerDialler.dialClient(ip, port);
     }
@@ -56,6 +64,9 @@ public class ConnectionManager {
         return peerListener.getPort();
     }
 
+    /**
+     * Close the listener and all connected peers.
+     */
     public void close() {
         logger.info("Closing Connection Manager.");
         peerListener.close();

@@ -17,6 +17,8 @@ import java.util.function.Consumer;
 
 /**
  * Created by dominic on 08/02/17.
+ *
+ * Converts a NetSocket to a P2P connection that can be used by higher-level classes.
  */
 public class PeerConnection {
     private final Logger logger = LogManager.getLogger();
@@ -26,7 +28,14 @@ public class PeerConnection {
     private final Consumer<PeerMessage> messageConsumer;
     private final DateTime connectionStartTime;
 
-    public PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer) throws PeerException {
+
+    /**
+     * Establishes a P2P connection from a TCP connection. Ensures client presented one certificate for identity.
+     * @param netSocket Socket to communicate over
+     * @param messageConsumer Consumer for incoming messages
+     * @throws PeerException If connection could not be converted to P2P.
+     */
+    PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer) throws PeerException {
         connectionStartTime = DateTime.now();
         this.netSocket = netSocket;
         this.messageConsumer = messageConsumer;
@@ -53,7 +62,11 @@ public class PeerConnection {
         logger.info("Successfully Established P2P Link to {}", netSocket.remoteAddress());
     }
 
-    public void sendData(PeerMessage peerMessage) throws PeerException {
+    /**
+     * Sends message to the given peer. Async.
+     * @throws PeerException If message buffer was full.
+     */
+    public void sendMessage(PeerMessage peerMessage) throws PeerException {
         Buffer writeBuffer = Buffer.buffer(peerMessage.getBytes());
         if (!netSocket.writeQueueFull()) {
             logger.trace("Sending data from client [{}]: ", clientID, peerMessage);

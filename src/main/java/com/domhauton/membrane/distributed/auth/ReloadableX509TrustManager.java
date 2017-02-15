@@ -24,6 +24,8 @@ import java.util.stream.Stream;
 
 /**
  * Created by dominic on 14/02/17.
+ *
+ * Reloadable Trust Manager that will accept all certs and store new certs in-memory on connection.
  */
 public class ReloadableX509TrustManager implements X509TrustManager {
     private final Logger logger = LogManager.getLogger();
@@ -32,7 +34,7 @@ public class ReloadableX509TrustManager implements X509TrustManager {
     private X509TrustManager trustManager;
     private List<Certificate> tempCertList = new LinkedList<>();
 
-    public ReloadableX509TrustManager(@Nullable Path keyStorePath) throws AuthException {
+    ReloadableX509TrustManager(@Nullable Path keyStorePath) throws AuthException {
         this.keystorePath = keyStorePath;
         tempCertList.add(AuthUtils.generateAuthenticationInfo().getX509Certificate());
         reloadTrustManager();

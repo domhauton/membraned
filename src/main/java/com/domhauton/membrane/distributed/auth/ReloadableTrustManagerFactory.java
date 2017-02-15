@@ -6,9 +6,12 @@ import java.security.NoSuchAlgorithmException;
 
 /**
  * Created by dominic on 14/02/17.
+ *
+ * A wrapper for TrustManagerFactory that calls the protected
+ * constructor and loads the ReloadableTrustManagerFactorySpi
  */
-public class ReloadableTrustManagerFactory extends TrustManagerFactory {
-    public ReloadableTrustManagerFactory() throws NoSuchAlgorithmException {
+class ReloadableTrustManagerFactory extends TrustManagerFactory {
+    ReloadableTrustManagerFactory() throws NoSuchAlgorithmException {
         super(new ReloadableTrustManagerFactorySpi(),
                 KeyPairGenerator.getInstance("RSA").getProvider(),
                 KeyPairGenerator.getInstance("RSA").getAlgorithm());

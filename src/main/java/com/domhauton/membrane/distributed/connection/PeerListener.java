@@ -16,10 +16,12 @@ import java.util.function.Consumer;
 
 /**
  * Created by dominic on 08/02/17.
+ *
+ * Listens for incoming TCP connections.
  */
-public class PeerListener {
+class PeerListener {
     private final Logger logger = LogManager.getLogger();
-    private final static int RECIEVE_BUFFER_MB = 256;
+    private final static int RECEIVE_BUFFER_MB = 256;
 
     private final Vertx vertx;
     private final int port;
@@ -28,7 +30,13 @@ public class PeerListener {
     private final Consumer<Peer> peerConsumer;
     private final Consumer<PeerMessage> peerMessageConsumer;
 
-    public PeerListener(int port, Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
+    /**
+     * Create a listener for incoming connections on the given port.
+     * @param peerConsumer Callback for connected peers.
+     * @param peerMessageConsumer Connected peers will send messages here.
+     * @param membraneAuthInfo SSL Auth info to use while dialling.
+     */
+    PeerListener(int port, Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
         this.vertx = Vertx.vertx();
         this.port = port;
         this.peerConsumer = peerConsumer;
@@ -47,14 +55,17 @@ public class PeerListener {
                 .setClientAuth(ClientAuth.REQUIRED)
                 .setSsl(true)
                 .setTrustOptions(trustOptions)
-                .setPemKeyCertOptions(pemKeyCertOptions);
-                //.setReceiveBufferSize(1024 * 1024 * RECIEVE_BUFFER_MB)
+                .setPemKeyCertOptions(pemKeyCertOptions)
+                .setReceiveBufferSize(1024 * 1024 * RECEIVE_BUFFER_MB);
 
         server = vertx.createNetServer(netServerOptions);
         logger.info("TCP listening server set-up complete.");
     }
 
-    public void start() {
+    /**
+     * Start listening.
+     */
+    void start() {
         logger.info("Starting TCP Server");
         server.connectHandler(this::connectionHandler);
         server.listen(res -> {
@@ -67,6 +78,9 @@ public class PeerListener {
         logger.info("Starting TCP Server Completed.");
     }
 
+    /**
+     * Handles new successful connections.
+     */
     private void connectionHandler(final NetSocket netSocket) {
         try {
             PeerConnection peerConnection = new PeerConnection(netSocket, peerMessageConsumer);
@@ -76,11 +90,11 @@ public class PeerListener {
         }
     }
 
-    public int getPort() {
+    int getPort() {
         return port;
     }
 
-    public void close() {
+    void close() {
         logger.info("Closing Peer Listener on port {}", port);
         server.close();
     }
