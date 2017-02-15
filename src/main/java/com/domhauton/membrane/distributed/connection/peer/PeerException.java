@@ -5,7 +5,7 @@ package com.domhauton.membrane.distributed.connection.peer;
  */
 public class PeerException extends Exception {
 
-    public PeerException(String s) {
-        super(s);
-    }
+  public PeerException(String s) {
+    super(s);
+  }
 }

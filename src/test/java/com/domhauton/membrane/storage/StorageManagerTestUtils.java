@@ -17,25 +17,25 @@ import java.util.Random;
  */
 public abstract class StorageManagerTestUtils {
 
-    public static final String BASE_DIR = System.getProperty("java.io.tmpdir") + File.separator + "membrane";
+  public static final String BASE_DIR = System.getProperty("java.io.tmpdir") + File.separator + "membrane";
 
-    public static String addRandFile(Random random, ShardStorage shardStorage) throws Exception {
-        byte[] data = new byte[128];
-        random.nextBytes(data);
-        String hash = Hashing.md5().hashBytes(data).toString();
-        shardStorage.storeShard(hash, data);
-        return hash;
-    }
+  public static String addRandFile(Random random, ShardStorage shardStorage) throws Exception {
+    byte[] data = new byte[128];
+    random.nextBytes(data);
+    String hash = Hashing.md5().hashBytes(data).toString();
+    shardStorage.storeShard(hash, data);
+    return hash;
+  }
 
-    public static String createRandomFolder(String baseDir) throws Exception {
-        String tmpDir = baseDir;
-        Path tmpPath = Paths.get(baseDir);
-        Files.createDirectories(tmpPath);
-        while(Files.exists(tmpPath, LinkOption.NOFOLLOW_LINKS)) {
-            tmpDir = baseDir + File.separator + new BigInteger(16, new SecureRandom()).toString(32);
-            tmpPath = Paths.get(tmpDir);
-        }
-        Files.createDirectories(tmpPath);
-        return tmpDir;
+  public static String createRandomFolder(String baseDir) throws Exception {
+    String tmpDir = baseDir;
+    Path tmpPath = Paths.get(baseDir);
+    Files.createDirectories(tmpPath);
+    while (Files.exists(tmpPath, LinkOption.NOFOLLOW_LINKS)) {
+      tmpDir = baseDir + File.separator + new BigInteger(16, new SecureRandom()).toString(32);
+      tmpPath = Paths.get(tmpDir);
     }
+    Files.createDirectories(tmpPath);
+    return tmpDir;
+  }
 }

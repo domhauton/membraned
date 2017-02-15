@@ -43,7 +43,7 @@ public class ConnectionManager {
             this::receiveMessage,
             membraneAuthInfo);
     try {
-      if(!successfullyConnectedFuture.get(5, TimeUnit.SECONDS)) {
+      if (!successfullyConnectedFuture.get(5, TimeUnit.SECONDS)) {
         throw new ConnectionException("Server could not start listening successfully.");
       }
     } catch (InterruptedException | ExecutionException | TimeoutException e) {

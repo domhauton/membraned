@@ -139,18 +139,13 @@ class ConnectionManagerTest {
     Assertions.assertEquals(1, connectionManager1.getAllConnectedPeers().size(), "Only one peer connection");
     Assertions.assertEquals(1, connectionManager2.getAllConnectedPeers().size(), "Only one peer connection");
 
-    Assertions.assertTrue(con1Callback_1.get().isClosed());
-    Assertions.assertTrue(con1Callback_2.get().isClosed());
-    Assertions.assertTrue(con2Callback_1.get().isClosed());
-    Assertions.assertTrue(con2Callback_2.get().isClosed());
-
     connectionManager1.close();
     connectionManager2.close();
   }
 
   private Consumer<Peer> getPeerConsumer(CompletableFuture<Peer> con1Callback_1, CompletableFuture<Peer> con1Callback_2, CompletableFuture<Peer> con1Callback_3) {
     return peer -> {
-      if(!con1Callback_1.isDone()) {
+      if (!con1Callback_1.isDone()) {
         con1Callback_1.complete(peer);
       } else if (!con1Callback_2.isDone()) {
         con1Callback_2.complete(peer);
