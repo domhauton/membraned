@@ -5,6 +5,7 @@ import com.domhauton.membrane.distributed.auth.ReloadableTrustOptions;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.sun.istack.internal.Nullable;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ClientAuth;
@@ -12,6 +13,7 @@ import io.vertx.core.net.*;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -65,10 +67,11 @@ class PeerListener {
     /**
      * Start listening.
      */
-    void start() {
+    void start(@Nullable CompletableFuture<Boolean> successCallback) {
         logger.info("Starting TCP Server");
         server.connectHandler(this::connectionHandler);
         server.listen(res -> {
+            successCallback.complete(res.succeeded());
             if (res.succeeded()) {
                 logger.info("Listening for incoming TCP connections started on: {}", port);
             } else {

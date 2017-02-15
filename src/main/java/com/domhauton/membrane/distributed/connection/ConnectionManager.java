@@ -8,7 +8,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Collection;
 import java.util.LinkedList;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 
 /**
@@ -27,7 +27,7 @@ public class ConnectionManager {
   private final Collection<Consumer<Peer>> newPeerJoinedCallbacks;
   private final Collection<Consumer<PeerMessage>> newPeerMessageCallbacks;
 
-  ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) {
+  ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) throws ConnectionException {
     peerConnections = new ConcurrentHashMap<>();
     newPeerJoinedCallbacks = new LinkedList<>();
     newPeerMessageCallbacks = new LinkedList<>();
@@ -36,11 +36,20 @@ public class ConnectionManager {
             this::addPeer,
             this::receiveMessage,
             membraneAuthInfo);
-    peerListener.start();
+    CompletableFuture<Boolean> successfullyConnectedFuture = new CompletableFuture<>();
+    peerListener.start(successfullyConnectedFuture);
     this.peerDialler = new PeerDialler(
             this::addPeer,
             this::receiveMessage,
             membraneAuthInfo);
+    try {
+      if(!successfullyConnectedFuture.get(5, TimeUnit.SECONDS)) {
+        throw new ConnectionException("Server could not start listening successfully.");
+      }
+    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+      logger.warn("Server could not start listening in time. {}", e.getMessage());
+      throw new ConnectionException("Server could not start listening in time. " + e.getMessage());
+    }
   }
 
   /**

@@ -2,32 +2,37 @@ package com.domhauton.membrane.distributed.connection.peer;
 
 import com.domhauton.membrane.distributed.connection.PeerConnection;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Created by dominic on 08/02/17.
  */
 public class Peer {
-    private String uid;
-    private PeerConnection peerConnection;
+  private Logger logger = LogManager.getLogger();
 
-    public Peer(PeerConnection peerConnection) {
-        this.peerConnection = peerConnection;
-        this.uid = peerConnection.getClientID();
-    }
+  private String uid;
+  private PeerConnection peerConnection;
 
-    public String getUid() {
-        return uid;
-    }
+  public Peer(PeerConnection peerConnection) {
+    this.peerConnection = peerConnection;
+    this.uid = peerConnection.getClientID();
+  }
 
-    public void sendPeerMessage(PeerMessage peerMessage) throws PeerException {
-        peerConnection.sendMessage(peerMessage);
-    }
+  public String getUid() {
+    return uid;
+  }
 
-    public boolean isClosed() {
-        return peerConnection.isClosed();
-    }
+  public void sendPeerMessage(PeerMessage peerMessage) throws PeerException {
+    peerConnection.sendMessage(peerMessage);
+  }
 
-    public void close() {
-        peerConnection.close();
-    }
+  public boolean isClosed() {
+    return peerConnection.isClosed();
+  }
+
+  public void close() {
+    logger.info("Closing connection to peer [{}]", uid);
+    peerConnection.close();
+  }
 }
