@@ -33,76 +33,76 @@ import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
 
 public abstract class AuthFileUtils {
-    private static final Logger logger = LogManager.getLogger();
+  private static final Logger logger = LogManager.getLogger();
 
-    static void writePublicKey(Path filename, RSAPublicKey key) throws IOException {
-        logger.info("Writing public key to [{}]", filename);
-        write(filename, key);
-    }
+  static void writePublicKey(Path filename, RSAPublicKey key) throws IOException {
+    logger.info("Writing public key to [{}]", filename);
+    write(filename, key);
+  }
 
-    static void writePrivateKey(Path filename, RSAPrivateKey key) throws IOException {
-        logger.info("Writing private key to [{}]", filename);
-        write(filename, key);
-    }
+  static void writePrivateKey(Path filename, RSAPrivateKey key) throws IOException {
+    logger.info("Writing private key to [{}]", filename);
+    write(filename, key);
+  }
 
-    static void writeCertificate(Path filename, X509Certificate certificate) throws IOException {
-        logger.info("Writing certificate to [{}]", filename);
-        write(filename, certificate);
-    }
+  static void writeCertificate(Path filename, X509Certificate certificate) throws IOException {
+    logger.info("Writing certificate to [{}]", filename);
+    write(filename, certificate);
+  }
 
-    private static void write(Path filename, Object pemObject) throws IOException {
-        boolean directoriesCreated = filename.toFile().getParentFile().mkdirs();
-        if (directoriesCreated) {
-            logger.info("Created auth directories for [{}]", filename.getParent());
-        }
-        try (
-                FileOutputStream fileOutputStream = new FileOutputStream(filename.toFile());
-                OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
-                JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
-            pemWriter.writeObject(pemObject);
-        }
+  private static void write(Path filename, Object pemObject) throws IOException {
+    boolean directoriesCreated = filename.toFile().getParentFile().mkdirs();
+    if (directoriesCreated) {
+      logger.info("Created auth directories for [{}]", filename.getParent());
     }
+    try (
+            FileOutputStream fileOutputStream = new FileOutputStream(filename.toFile());
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(fileOutputStream);
+            JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
+      pemWriter.writeObject(pemObject);
+    }
+  }
 
-    static X509Certificate loadCertificate(Path filePath) throws AuthException {
-        logger.trace("Loading certificate key from [{}]", filePath);
-        try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
-            X509CertificateHolder x509CertificateHolder = (X509CertificateHolder) new PEMParser(bufferedReader).readObject();
-            if(Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
-                logger.trace("Adding Bouncy Castle Provider.");
-                Security.addProvider(new BouncyCastleProvider());
-            }
-            return new JcaX509CertificateConverter()
-                    .setProvider(BouncyCastleProvider.PROVIDER_NAME)
-                    .getCertificate(x509CertificateHolder);
-        } catch (IOException | CertificateException | ClassCastException e) {
-            logger.warn("Failed to read certificate. {}", e.getMessage());
-            throw new AuthException("Could not read certificate. " + e.getMessage());
-        }
+  static X509Certificate loadCertificate(Path filePath) throws AuthException {
+    logger.trace("Loading certificate key from [{}]", filePath);
+    try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
+      X509CertificateHolder x509CertificateHolder = (X509CertificateHolder) new PEMParser(bufferedReader).readObject();
+      if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+        logger.trace("Adding Bouncy Castle Provider.");
+        Security.addProvider(new BouncyCastleProvider());
+      }
+      return new JcaX509CertificateConverter()
+              .setProvider(BouncyCastleProvider.PROVIDER_NAME)
+              .getCertificate(x509CertificateHolder);
+    } catch (IOException | CertificateException | ClassCastException e) {
+      logger.warn("Failed to read certificate. {}", e.getMessage());
+      throw new AuthException("Could not read certificate. " + e.getMessage());
     }
+  }
 
-    static RSAPrivateKey loadPrivateKey(Path filePath) throws AuthException {
-        logger.trace("Loading private key from [{}]", filePath);
-        try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
-            PEMParser pemParser = new PEMParser(bufferedReader);
-            PEMKeyPair pemKeyPair = (PEMKeyPair) pemParser.readObject();
-            KeyPair kp = new JcaPEMKeyConverter().getKeyPair(pemKeyPair);
-            return (RSAPrivateKey) kp.getPrivate();
-        } catch (IOException | ClassCastException e) {
-            logger.warn("Failed to read private key. {}", e.getMessage());
-            throw new AuthException("Could not read private key. " + e.getMessage());
-        }
+  static RSAPrivateKey loadPrivateKey(Path filePath) throws AuthException {
+    logger.trace("Loading private key from [{}]", filePath);
+    try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
+      PEMParser pemParser = new PEMParser(bufferedReader);
+      PEMKeyPair pemKeyPair = (PEMKeyPair) pemParser.readObject();
+      KeyPair kp = new JcaPEMKeyConverter().getKeyPair(pemKeyPair);
+      return (RSAPrivateKey) kp.getPrivate();
+    } catch (IOException | ClassCastException e) {
+      logger.warn("Failed to read private key. {}", e.getMessage());
+      throw new AuthException("Could not read private key. " + e.getMessage());
     }
+  }
 
-    static RSAPublicKey loadPublicKey(Path filePath) throws AuthException {
-        logger.trace("Loading public key from [{}]", filePath);
-        try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
-            PEMParser pemParser = new PEMParser(bufferedReader);
-            SubjectPublicKeyInfo subjectPublicKeyInfo = (SubjectPublicKeyInfo) pemParser.readObject();
-            RSAKeyParameters rsaKeyParameters = (RSAKeyParameters) PublicKeyFactory.createKey(subjectPublicKeyInfo);
-            return new RSAPublicKeyImpl(rsaKeyParameters.getModulus(), rsaKeyParameters.getExponent());
-        } catch (IOException | ClassCastException | InvalidKeyException e) {
-            logger.warn("Failed to read private key. {}", e.getMessage());
-            throw new AuthException("Could not read private key. " + e.getMessage());
-        }
+  static RSAPublicKey loadPublicKey(Path filePath) throws AuthException {
+    logger.trace("Loading public key from [{}]", filePath);
+    try (BufferedReader bufferedReader = Files.newBufferedReader(filePath)) {
+      PEMParser pemParser = new PEMParser(bufferedReader);
+      SubjectPublicKeyInfo subjectPublicKeyInfo = (SubjectPublicKeyInfo) pemParser.readObject();
+      RSAKeyParameters rsaKeyParameters = (RSAKeyParameters) PublicKeyFactory.createKey(subjectPublicKeyInfo);
+      return new RSAPublicKeyImpl(rsaKeyParameters.getModulus(), rsaKeyParameters.getExponent());
+    } catch (IOException | ClassCastException | InvalidKeyException e) {
+      logger.warn("Failed to read private key. {}", e.getMessage());
+      throw new AuthException("Could not read private key. " + e.getMessage());
     }
+  }
 }

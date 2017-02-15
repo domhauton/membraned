@@ -11,34 +11,34 @@ import java.util.List;
  */
 class CatalogueUtilsTest {
 
-    @Test
-    void byteStufferTestBasic() throws Exception {
-        String basic = "foobar";
-        String stuffed = CatalogueUtils.byteStuff(basic);
-        String recovered = CatalogueUtils.byteStuffReverser(stuffed);
+  @Test
+  void byteStufferTestBasic() throws Exception {
+    String basic = "foobar";
+    String stuffed = CatalogueUtils.byteStuff(basic);
+    String recovered = CatalogueUtils.byteStuffReverser(stuffed);
 
-        Assertions.assertEquals(basic, stuffed);
-        Assertions.assertEquals(recovered, stuffed);
-    }
+    Assertions.assertEquals(basic, stuffed);
+    Assertions.assertEquals(recovered, stuffed);
+  }
 
-    @Test
-    void byteStufferTestStuffed() throws Exception {
-        String basic = "foo, bar";
-        String stuffed = CatalogueUtils.byteStuff(basic);
-        String recovered = CatalogueUtils.byteStuffReverser(stuffed);
+  @Test
+  void byteStufferTestStuffed() throws Exception {
+    String basic = "foo, bar";
+    String stuffed = CatalogueUtils.byteStuff(basic);
+    String recovered = CatalogueUtils.byteStuffReverser(stuffed);
 
-        System.out.println(stuffed);
+    System.out.println(stuffed);
 
-        Assertions.assertEquals(basic, recovered);
-        Assertions.assertFalse(stuffed.contains("o, "));
-    }
+    Assertions.assertEquals(basic, recovered);
+    Assertions.assertFalse(stuffed.contains("o, "));
+  }
 
-    @Test
-    void listEncodeTest() throws Exception {
-        List<String> sample = Arrays.asList("foobar,", "hardTest\\,", "normal");
-        String encoded = CatalogueUtils.listToString(sample);
-        List<String> decoded = CatalogueUtils.stringToList(encoded);
+  @Test
+  void listEncodeTest() throws Exception {
+    List<String> sample = Arrays.asList("foobar,", "hardTest\\,", "normal");
+    String encoded = CatalogueUtils.listToString(sample);
+    List<String> decoded = CatalogueUtils.stringToList(encoded);
 
-        Assertions.assertEquals(sample, decoded);
-    }
+    Assertions.assertEquals(sample, decoded);
+  }
 }

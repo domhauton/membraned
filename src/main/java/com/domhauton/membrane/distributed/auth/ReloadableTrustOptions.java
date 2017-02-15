@@ -9,20 +9,20 @@ import javax.net.ssl.TrustManagerFactory;
 
 /**
  * Created by dominic on 14/02/17.
- *
+ * <p>
  * A custom trust option designed to load the ReadableX509TrustManager
  */
 public class ReloadableTrustOptions implements TrustOptions {
-    private final Logger logger = LogManager.getLogger();
+  private final Logger logger = LogManager.getLogger();
 
-    @Override
-    public TrustManagerFactory getTrustManagerFactory(Vertx vertx) throws Exception {
-        logger.debug("Creating custom Reloadable Trust Manager Factory.");
-        return new ReloadableTrustManagerFactory();
-    }
+  @Override
+  public TrustManagerFactory getTrustManagerFactory(Vertx vertx) throws Exception {
+    logger.debug("Creating custom Reloadable Trust Manager Factory.");
+    return new ReloadableTrustManagerFactory();
+  }
 
-    @Override
-    public TrustOptions clone() {
-        return new ReloadableTrustOptions();
-    }
+  @Override
+  public TrustOptions clone() {
+    return new ReloadableTrustOptions();
+  }
 }

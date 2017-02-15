@@ -150,7 +150,7 @@ class ConnectionManagerTest {
 
   private Consumer<Peer> getPeerConsumer(CompletableFuture<Peer> con1Callback_1, CompletableFuture<Peer> con1Callback_2, CompletableFuture<Peer> con1Callback_3) {
     return peer -> {
-      if(!con1Callback_1.isDone()) {
+      if (!con1Callback_1.isDone()) {
         con1Callback_1.complete(peer);
       } else if (!con1Callback_2.isDone()) {
         con1Callback_2.complete(peer);

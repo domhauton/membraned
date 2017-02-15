@@ -6,8 +6,8 @@ import com.domhauton.membrane.distributed.messaging.PeerMessage;
  * Created by dominic on 12/02/17.
  */
 public class PongMessage implements PeerMessage {
-    @Override
-    public byte[] getBytes() {
-        return "PONG".getBytes();
-    }
+  @Override
+  public byte[] getBytes() {
+    return "PONG".getBytes();
+  }
 }
