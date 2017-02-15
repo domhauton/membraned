@@ -5,7 +5,6 @@ import com.domhauton.membrane.distributed.auth.ReloadableTrustOptions;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
 import com.domhauton.membrane.distributed.messaging.PeerMessage;
-import com.sun.istack.internal.Nullable;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ClientAuth;
@@ -68,7 +67,7 @@ class PeerListener {
   /**
    * Start listening.
    */
-  void start(@Nullable CompletableFuture<Boolean> successCallback) {
+  void start(CompletableFuture<Boolean> successCallback) {
     logger.info("Starting TCP Server");
     server.connectHandler(this::connectionHandler);
     server.listen(res -> {

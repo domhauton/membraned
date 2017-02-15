@@ -9,6 +9,8 @@ import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
+import org.bouncycastle.crypto.encodings.PKCS1Encoding;
+import org.bouncycastle.crypto.engines.RSAEngine;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -16,7 +18,6 @@ import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
 import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
-import sun.security.rsa.RSAPublicKeyImpl;
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
@@ -24,13 +25,17 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.InvalidKeyException;
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
 import java.security.Security;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+import java.security.spec.RSAPublicKeySpec;
 
 public abstract class AuthFileUtils {
   private static final Logger logger = LogManager.getLogger();
@@ -99,8 +104,10 @@ public abstract class AuthFileUtils {
       PEMParser pemParser = new PEMParser(bufferedReader);
       SubjectPublicKeyInfo subjectPublicKeyInfo = (SubjectPublicKeyInfo) pemParser.readObject();
       RSAKeyParameters rsaKeyParameters = (RSAKeyParameters) PublicKeyFactory.createKey(subjectPublicKeyInfo);
-      return new RSAPublicKeyImpl(rsaKeyParameters.getModulus(), rsaKeyParameters.getExponent());
-    } catch (IOException | ClassCastException | InvalidKeyException e) {
+      PKCS1Encoding cipher = new PKCS1Encoding(new RSAEngine());
+      KeySpec ks = new RSAPublicKeySpec(rsaKeyParameters.getModulus(), rsaKeyParameters.getExponent());
+      return (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(ks);
+    } catch (IOException | ClassCastException | InvalidKeySpecException | NoSuchAlgorithmException e) {
       logger.warn("Failed to read private key. {}", e.getMessage());
       throw new AuthException("Could not read private key. " + e.getMessage());
     }

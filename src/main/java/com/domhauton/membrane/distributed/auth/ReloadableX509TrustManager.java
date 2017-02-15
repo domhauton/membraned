@@ -1,7 +1,6 @@
 package com.domhauton.membrane.distributed.auth;
 
 import com.google.common.collect.EvictingQueue;
-import com.sun.istack.internal.Nullable;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -34,7 +33,7 @@ public class ReloadableX509TrustManager implements X509TrustManager {
   private X509TrustManager trustManager;
   private EvictingQueue<Certificate> tempCertList;
 
-  ReloadableX509TrustManager(@Nullable Path keyStorePath) throws AuthException {
+  ReloadableX509TrustManager(Path keyStorePath) throws AuthException {
     this.keystorePath = keyStorePath;
     tempCertList = EvictingQueue.create(CERT_STORE_SIZE);
     tempCertList.add(AuthUtils.generateAuthenticationInfo().getX509Certificate());
