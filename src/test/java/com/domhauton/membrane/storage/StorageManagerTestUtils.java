@@ -30,11 +30,12 @@ public abstract class StorageManagerTestUtils {
     public static String createRandomFolder(String baseDir) throws Exception {
         String tmpDir = baseDir;
         Path tmpPath = Paths.get(baseDir);
+        Files.createDirectories(tmpPath);
         while(Files.exists(tmpPath, LinkOption.NOFOLLOW_LINKS)) {
             tmpDir = baseDir + File.separator + new BigInteger(16, new SecureRandom()).toString(32);
             tmpPath = Paths.get(tmpDir);
         }
-        Files.createDirectory(tmpPath);
+        Files.createDirectories(tmpPath);
         return tmpDir;
     }
 }
