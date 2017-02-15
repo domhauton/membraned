@@ -27,6 +27,9 @@ cache:
     - $HOME/.gradle/caches/
     - $HOME/.gradle/wrapper/
 
+before_install:
+ - chmod +x gradlew
+
 # Display Gradle version instead of letting Travis execute './gradlew assemble' by default
 install: ./gradlew -version
 
