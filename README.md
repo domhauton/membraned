@@ -1,5 +1,5 @@
 # Membrane Daemon
-[![Build Status](https://travis-ci.org/domhauton/membraned.svg?branch=master)](https://travis-ci.org/domhauton/membraned)
+[![Build Status](https://travis-ci.org/domhauton/membraned.svg?branch=master)](https://travis-ci.org/domhauton/membraned) [![Dependency Status](https://www.versioneye.com/user/projects/58a5efc6a782d10041e105d7/badge.svg?style=flat-square)](https://www.versioneye.com/user/projects/58a5efc6a782d10041e105d7)
 
 Membrane is a Distributed Backup System that can utilise peers to store your data.
 
