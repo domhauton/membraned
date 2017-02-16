@@ -1,14 +1,17 @@
 package com.domhauton.membrane.distributed.auth;
 
 import com.google.common.base.Objects;
+import io.vertx.core.net.TrustOptions;
 import org.bouncycastle.openssl.jcajce.JcaPEMWriter;
 import org.bouncycastle.util.io.pem.PemObject;
 
+import javax.net.ssl.TrustManager;
 import java.io.File;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -24,6 +27,8 @@ public class MembraneAuthInfo {
   private static final String RSA_PUBIC_FILE_NAME = "membrane_rsa.pub";
   private static final String RSA_PRIVATE_FILE_NAME = "membrane_rsa";
   private static final String CERT_FILE_NAME = "membrane.cert";
+  private final TrustManager trustManager;
+  private TrustOptions trustOptions;
 
   private final X509Certificate x509Certificate;
   private final RSAPublicKey publicKey;
@@ -35,7 +40,9 @@ public class MembraneAuthInfo {
     this.x509Certificate = x509Certificate;
     this.publicKey = publicKey;
     this.privateKey = privateKey;
+    trustManager = new ReloadableX509TrustManager(null, x509Certificate);
     try {
+      trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
       this.x509CertificateEncoded = getEncodedCertificate(x509Certificate);
       this.privateKeyEncoded = getEncodedPrivateKey(privateKey);
     } catch (Exception e) {
@@ -49,7 +56,7 @@ public class MembraneAuthInfo {
    * @param path base path containing auth folder
    * @throws AuthException If files cannot be found.
    */
-  public MembraneAuthInfo(Path path) throws AuthException {
+  MembraneAuthInfo(Path path) throws AuthException {
     Path fullPath = Paths.get(path.toString() + INNER_PATH);
     Path certPath = Paths.get(fullPath + File.separator + CERT_FILE_NAME);
     Path privPath = Paths.get(fullPath + File.separator + RSA_PRIVATE_FILE_NAME);
@@ -57,6 +64,12 @@ public class MembraneAuthInfo {
     this.x509Certificate = AuthFileUtils.loadCertificate(certPath);
     this.privateKey = AuthFileUtils.loadPrivateKey(privPath);
     this.publicKey = AuthFileUtils.loadPublicKey(pubPath);
+    trustManager = new ReloadableX509TrustManager(null, x509Certificate);
+    try {
+      trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
+    } catch (NoSuchAlgorithmException e) {
+      throw new AuthException(e.getMessage());
+    }
   }
 
   /**
@@ -123,6 +136,10 @@ public class MembraneAuthInfo {
     AuthFileUtils.writePrivateKey(privPath, privateKey);
     AuthFileUtils.writePublicKey(pubPath, publicKey);
     AuthFileUtils.writeCertificate(certPath, x509Certificate);
+  }
+
+  public TrustOptions getTrustOptions() {
+    return trustOptions;
   }
 
   @Override

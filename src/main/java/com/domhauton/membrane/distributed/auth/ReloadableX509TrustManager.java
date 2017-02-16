@@ -33,10 +33,10 @@ public class ReloadableX509TrustManager implements X509TrustManager {
   private X509TrustManager trustManager;
   private EvictingQueue<Certificate> tempCertList;
 
-  ReloadableX509TrustManager(Path keyStorePath) throws AuthException {
+  ReloadableX509TrustManager(Path keyStorePath, Certificate initialCert) throws AuthException {
     this.keystorePath = keyStorePath;
     tempCertList = EvictingQueue.create(CERT_STORE_SIZE);
-    tempCertList.add(AuthUtils.generateAuthenticationInfo().getX509Certificate());
+    tempCertList.add(initialCert);
     reloadTrustManager();
   }
 

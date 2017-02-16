@@ -9,8 +9,6 @@ import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.x509.SubjectPublicKeyInfo;
 import org.bouncycastle.cert.X509CertificateHolder;
 import org.bouncycastle.cert.jcajce.JcaX509CertificateConverter;
-import org.bouncycastle.crypto.encodings.PKCS1Encoding;
-import org.bouncycastle.crypto.engines.RSAEngine;
 import org.bouncycastle.crypto.params.RSAKeyParameters;
 import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
@@ -104,7 +102,6 @@ public abstract class AuthFileUtils {
       PEMParser pemParser = new PEMParser(bufferedReader);
       SubjectPublicKeyInfo subjectPublicKeyInfo = (SubjectPublicKeyInfo) pemParser.readObject();
       RSAKeyParameters rsaKeyParameters = (RSAKeyParameters) PublicKeyFactory.createKey(subjectPublicKeyInfo);
-      PKCS1Encoding cipher = new PKCS1Encoding(new RSAEngine());
       KeySpec ks = new RSAPublicKeySpec(rsaKeyParameters.getModulus(), rsaKeyParameters.getExponent());
       return (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(ks);
     } catch (IOException | ClassCastException | InvalidKeySpecException | NoSuchAlgorithmException e) {

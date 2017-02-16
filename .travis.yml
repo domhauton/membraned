@@ -9,6 +9,10 @@ jdk:
   - oraclejdk8
   - oraclejdk9
 
+os:
+  - linux
+  - osx
+
 addons:
   apt:
     packages:
@@ -17,6 +21,7 @@ addons:
 matrix:
   allow_failures:
     - jdk: oraclejdk9
+    - os: osx
 
 before_cache:
   - rm -f  $HOME/.gradle/caches/modules-2/modules-2.lock
