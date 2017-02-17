@@ -30,7 +30,7 @@ class ConnectionManagerTest {
   @BeforeEach
   void setUp() throws Exception {
     // System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
-    //System.setProperty("javax.net.debug", "ssl");
+    // System.setProperty("javax.net.debug", "ssl");
     membraneAuthInfo1 = AuthUtils.generateAuthenticationInfo();
     membraneAuthInfo2 = AuthUtils.generateAuthenticationInfo();
   }

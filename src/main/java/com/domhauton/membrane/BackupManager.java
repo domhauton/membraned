@@ -1,6 +1,8 @@
 package com.domhauton.membrane;
 
 import com.domhauton.membrane.config.Config;
+import com.domhauton.membrane.config.ConfigException;
+import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
@@ -124,6 +126,33 @@ public class BackupManager {
     currentFileMapping.entrySet()
             .forEach(x -> fileManager.addExistingFile(x.getKey(), x.getValue().getModificationDateTime(),
                     x.getValue().getMD5HashLengthPairs()));
+  }
+
+  /**
+   * Adds a watch folder to the file manager and persists to config
+   * @param watchFolder new watchfolder
+   * @throws IllegalArgumentException If folder already exists.
+   * @throws ConfigException If unable to persist config.
+   */
+  public void addWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
+    logger.info("Adding new watch folder");
+    if (config.getFolders().contains(watchFolder)) {
+      logger.warn("Attempted to add existing watch folder.");
+      throw new IllegalArgumentException("Already watching folder!");
+    }
+    fileManager.addWatchFolder(watchFolder);
+    config.getFolders().add(watchFolder);
+    ConfigManager.saveConfig(configPath, config);
+  }
+
+  public void removeWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
+    logger.warn("Removing existing watch folder");
+    if (!config.getFolders().remove(watchFolder)) {
+      throw new IllegalArgumentException("Watch Folder does not exist!");
+    }
+    fileManager.removeWatchFolder(watchFolder);
+    config.getFolders().add(watchFolder);
+    ConfigManager.saveConfig(configPath, config);
   }
 
   public Path getConfigPath() {

@@ -5,6 +5,7 @@ import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.restful.requests.WatchFolderChange;
 import com.domhauton.membrane.restful.responses.*;
 import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.restful.responses.config.StorageConfig;
@@ -72,6 +73,7 @@ public class RestfulAPI {
     router.get("/status/storage").handler(this::getStorageStatus);
 
     router.post("/configure/config").blockingHandler(this::putNewConfig);
+    router.post("/configure/watch_folder").blockingHandler(this::modifyWatchFolder);
 
     router.post("/request/cleanup").blockingHandler(this::putRequestCleanup);
 
@@ -197,6 +199,29 @@ public class RestfulAPI {
     } catch (ConfigException e) {
       logger.warn("Failed to write new config. {}", e.getMessage());
       routingContext.response().setStatusCode(500).end("Failed to write config to: " + configPath.toString() + "Error: " + e.getMessage());
+    }
+  }
+
+  private void modifyWatchFolder(RoutingContext routingContext) {
+    final WatchFolderChange watchFolderChange = Json.decodeValue(routingContext.getBodyAsString(), WatchFolderChange.class);
+    Path configPath = backupManager.getConfigPath();
+    try {
+      if (watchFolderChange.getType() == WatchFolderChange.Type.ADD) {
+        backupManager.addWatchFolder(watchFolderChange.getWatchFolder());
+        logger.info("Successfully added watch folder.");
+        routingContext.response().setStatusCode(200).end("Added and persisted successfully.");
+      } else if (watchFolderChange.getType() == WatchFolderChange.Type.REMOVE) {
+        backupManager.removeWatchFolder(watchFolderChange.getWatchFolder());
+        logger.info("Successfully removed watch folder.");
+        routingContext.response().setStatusCode(200).end("Removed and persisted successfully.");
+      } else {
+        logger.warn("Received invalid modify watch folder request: {}", routingContext.getBodyAsString());
+        routingContext.response().setStatusCode(400).end("Invalid request.");
+      }
+    } catch (ConfigException e) {
+      routingContext.response().setStatusCode(304).end("Chance complete but failed to persist to: " + configPath.toString() + "Error: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      routingContext.response().setStatusCode(400).end("Could not perform. Error: " + e.getMessage());
     }
   }
 

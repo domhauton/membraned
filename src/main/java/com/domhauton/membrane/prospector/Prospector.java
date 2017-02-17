@@ -20,7 +20,7 @@ import static java.nio.file.StandardWatchEventKinds.*;
 /**
  * Created by dominic on 23/01/17.
  */
-public class Prospector {
+class Prospector {
   private final static String SEP = java.nio.file.FileSystems.getDefault().getSeparator();
   private final static int MAX_UPDATES = 1000;
 
@@ -31,14 +31,14 @@ public class Prospector {
   private final Set<WatchFolder> watchFolders;
 
 
-  public Prospector() throws IOException {
+  Prospector() throws IOException {
     logger = LogManager.getLogger();
     watchService = FileSystems.getDefault().newWatchService();
     keys = HashBiMap.create();
     watchFolders = new HashSet<>();
   }
 
-  public Set<Path> rediscoverFolders() {
+  Set<Path> rediscoverFolders() {
     Set<Path> allFolders = getWatchedFolders();
     Collection<Path> newFolders = CollectionUtils.subtract(allFolders, keys.values());
     Collection<Path> removedFolders = CollectionUtils.subtract(keys.values(), allFolders);
@@ -106,12 +106,16 @@ public class Prospector {
     return pcs;
   }
 
-  public Set<Path> addWatchFolder(WatchFolder watchFolder) {
+  Set<Path> addWatchFolder(WatchFolder watchFolder) {
     logger.info("Adding watch folder: {}", watchFolder.getDirectory());
     watchFolders.add(watchFolder);
     Set<Path> matchingFolders = findMatchingFolders(watchFolder);
     matchingFolders.forEach(this::registerPath);
     return matchingFolders;
+  }
+
+  void removeWatchFolder(WatchFolder watchFolder) {
+    watchFolders.remove(watchFolder);
   }
 
   Optional<WatchKey> registerPath(Path path) {

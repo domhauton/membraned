@@ -102,6 +102,13 @@ public class FileManager {
   }
 
   /**
+   * Adds a folder that should be watched.
+   */
+  public void removeWatchFolder(WatchFolder watchFolder) {
+    prospector.removeWatchFolder(watchFolder);
+  }
+
+  /**
    * Scans folders for file changes.
    */
   private void checkFileChanges() {
