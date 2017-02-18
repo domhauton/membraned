@@ -87,9 +87,10 @@ class Main {
 
     try {
       Config config = configPath.toFile().exists() ? ConfigManager.loadConfig(configPath) : ConfigManager.loadDefaultConfig();
-      BackupManager backupManager = new BackupManager(config, configPath, demoMode);
-      backupManager.registerShutdownHook();
-      backupManager.start();
+      try (BackupManager backupManager = new BackupManager(config, configPath, demoMode)) {
+        backupManager.registerShutdownHook();
+        backupManager.start();
+      }
     } catch (ConfigException e) {
       logger.fatal("Unable to load config [{}]. Refusing to start up.", configPath);
     } catch (IllegalArgumentException e) {
@@ -97,6 +98,7 @@ class Main {
     } catch (Exception e) {
       logger.fatal("An unknown error occurred. {}", e);
     }
+
   }
 
   private static Path getDefaultConfigLocation() {

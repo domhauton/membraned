@@ -4,6 +4,9 @@ import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.distributed.DistributedException;
+import com.domhauton.membrane.distributed.DistributedManager;
+import com.domhauton.membrane.distributed.connection.ConnectionException;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.restful.RestfulApiException;
@@ -31,6 +34,8 @@ import java.util.stream.Collectors;
  * Created by dominic on 23/01/17.
  */
 public class BackupManager implements Closeable {
+  private final static int MB = 1024 * 1024;
+
   private final Config config;
   private final Path configPath;
   private final DateTime startTime;
@@ -39,7 +44,9 @@ public class BackupManager implements Closeable {
   private final FileManager fileManager;
   private final boolean monitorMode;
   private StorageManager localStorageManager;
+  private StorageManager distributedStorageManager;
   private RestfulApiManager restfulApiManager;
+  private DistributedManager distributedManager;
   private final Logger logger;
 
   private final ScheduledExecutorService trimExecutor;
@@ -56,17 +63,24 @@ public class BackupManager implements Closeable {
     this.startTime = DateTime.now();
     try {
       fileManager = new FileManager(config.getWatcher().getChunkSizeMB());
-      localStorageManager = new StorageManager(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * 1024 * 1024);
+      localStorageManager = new StorageManager(
+              Paths.get(config.getLocalStorage().getStorageFolder()),
+              config.getLocalStorage().getHardStorageLimit() * MB);
+      distributedStorageManager = new StorageManager(
+              Paths.get(config.getDistributedStorage().getStorageFolder()),
+              config.getDistributedStorage().getHardStorageLimit() * MB);
       if (!monitorMode) {
         fileManager.addStorageManager(localStorageManager);
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
+      distributedManager = new DistributedManager(configPath, config.getDistributedStorage().getTransportPort(), monitorMode);
       restfulApiManager.start();
-    } catch (FileManagerException | StorageManagerException | RestfulApiException e) {
+      distributedManager.setStorageManager(distributedStorageManager);
+    } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | DistributedException e) {
       logger.error("Failed to start membrane backup manager.");
       logger.error(e.getMessage());
-      throw new IllegalArgumentException("Could not start with given config.", e);
+      throw new IllegalArgumentException("Error starting up.", e);
     }
   }
 
@@ -79,7 +93,7 @@ public class BackupManager implements Closeable {
     fileManager.runScanners(
             config.getWatcher().getFileRescanInterval(),
             config.getWatcher().getFileRescanInterval());
-    if (monitorMode) {
+    if (!monitorMode) { // No need to trim storage in Monitor Mode
       trimExecutor.scheduleWithFixedDelay(this::trimStorage,
               1,
               config.getLocalStorage().getGcInterval(),
@@ -213,11 +227,22 @@ public class BackupManager implements Closeable {
       trimExecutor.shutdown();
     }
     try {
-      logger.info("Shutdown - Stopping Local Storage Manager.");
+      logger.info("Shutdown - Stopping Local Storage.");
       localStorageManager.close();
     } catch (StorageManagerException e) {
-      logger.error("Shutdown - Failed to shutdown Local Storage Manager.");
+      logger.error("Shutdown - Failed to shutdown Local Storage.");
     }
+
+    logger.info("Shutdown - Stopping Distributed Manager");
+    distributedManager.close();
+
+    try {
+      logger.info("Shutdown - Stopping Distributed Storage.");
+      distributedStorageManager.close();
+    } catch (StorageManagerException e) {
+      logger.error("Shutdown - Failed to stop Distributed Storage.");
+    }
+
     logger.info("Shutdown - Stopping Watcher.");
     fileManager.stopScanners();
     logger.info("Shutdown - Stopping Restful Interface.");
@@ -232,6 +257,4 @@ public class BackupManager implements Closeable {
     logger.info("Registering shutdown hook.");
     Runtime.getRuntime().addShutdownHook(new Thread(this::close));
   }
-
-
 }

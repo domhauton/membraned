@@ -17,7 +17,7 @@ import java.nio.file.Path;
 /**
  * Created by Dominic Hauton on 18/02/17.
  */
-class DistributedManager implements Closeable {
+public class DistributedManager implements Closeable {
   private final Logger logger = LogManager.getLogger();
 
   private final ConnectionManager connectionManager;

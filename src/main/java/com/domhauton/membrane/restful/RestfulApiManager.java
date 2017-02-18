@@ -212,7 +212,8 @@ public class RestfulApiManager implements Closeable {
             membraneRestConfig.getDistributedStorage().getDirectory(),
             membraneRestConfig.getDistributedStorage().getTrimFrequency(),
             membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
-            membraneRestConfig.getDistributedStorage().getHardStorageCap());
+            membraneRestConfig.getDistributedStorage().getHardStorageCap(),
+            new DistributedStorageConfig().getTransportPort()); //FIXME Getting the default TP
 
     RestConfig restConfig = new RestConfig();
 
