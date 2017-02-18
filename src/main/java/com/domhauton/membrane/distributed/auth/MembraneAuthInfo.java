@@ -33,8 +33,8 @@ public class MembraneAuthInfo {
   private final X509Certificate x509Certificate;
   private final RSAPublicKey publicKey;
   private final RSAPrivateKey privateKey;
-  private byte[] x509CertificateEncoded;
-  private byte[] privateKeyEncoded;
+  private final byte[] x509CertificateEncoded;
+  private final byte[] privateKeyEncoded;
 
   MembraneAuthInfo(X509Certificate x509Certificate, RSAPublicKey publicKey, RSAPrivateKey privateKey) throws AuthException {
     this.x509Certificate = x509Certificate;
@@ -45,7 +45,7 @@ public class MembraneAuthInfo {
       trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
       this.x509CertificateEncoded = getEncodedCertificate(x509Certificate);
       this.privateKeyEncoded = getEncodedPrivateKey(privateKey);
-    } catch (Exception e) {
+    } catch (NoSuchAlgorithmException | CertificateEncodingException | IOException e) {
       throw new AuthException("Could not encode cert to bytes. " + e.getMessage());
     }
   }
@@ -67,7 +67,9 @@ public class MembraneAuthInfo {
     trustManager = new ReloadableX509TrustManager(null, x509Certificate);
     try {
       trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
-    } catch (NoSuchAlgorithmException e) {
+      x509CertificateEncoded = getEncodedCertificate(x509Certificate);
+      privateKeyEncoded = getEncodedPrivateKey(privateKey);
+    } catch (NoSuchAlgorithmException | CertificateEncodingException | IOException e) {
       throw new AuthException(e.getMessage());
     }
   }

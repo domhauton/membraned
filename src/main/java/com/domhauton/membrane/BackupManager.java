@@ -51,8 +51,8 @@ public class BackupManager implements Closeable {
 
   private final ScheduledExecutorService trimExecutor;
 
-  BackupManager(Config config, Path configPath) {
-    this(config, configPath, false);
+  BackupManager(Config config, Path configFilePath) {
+    this(config, configFilePath, false);
   }
 
   BackupManager(Config config, Path configPath, boolean monitorMode) throws IllegalArgumentException {
@@ -74,7 +74,7 @@ public class BackupManager implements Closeable {
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      distributedManager = new DistributedManager(configPath, config.getDistributedStorage().getTransportPort(), monitorMode);
+      distributedManager = new DistributedManager(configPath.getParent(), config.getDistributedStorage().getTransportPort(), monitorMode);
       restfulApiManager.start();
       distributedManager.setStorageManager(distributedStorageManager);
     } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | DistributedException e) {

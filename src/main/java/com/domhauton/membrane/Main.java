@@ -87,23 +87,25 @@ class Main {
 
     try {
       Config config = configPath.toFile().exists() ? ConfigManager.loadConfig(configPath) : ConfigManager.loadDefaultConfig();
-      try (BackupManager backupManager = new BackupManager(config, configPath, demoMode)) {
-        backupManager.registerShutdownHook();
-        backupManager.start();
-      }
+      BackupManager backupManager = new BackupManager(config, configPath, demoMode);
+      backupManager.registerShutdownHook();
+      backupManager.start();
     } catch (ConfigException e) {
       logger.fatal("Unable to load config [{}]. Refusing to start up.", configPath);
     } catch (IllegalArgumentException e) {
       logger.fatal("Failed to startup with given config. {}", e.toString());
     } catch (Exception e) {
-      logger.fatal("An unknown error occurred. {}", e);
+      e.printStackTrace();
+      logger.fatal("An unknown error occurred. {}", e.getMessage());
     }
-
   }
 
   private static Path getDefaultConfigLocation() {
     LogManager.getLogger().info("Loading default config.");
-    return Paths.get(System.getProperty("user.home") + File.separator + ".config" + File.separator + "membrane.yaml");
+    return Paths.get(System.getProperty("user.home")
+            + File.separator + ".config"
+            + File.separator + "membrane"
+            + File.separator + "membrane.yaml");
   }
 
 }
