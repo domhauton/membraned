@@ -1,19 +1,21 @@
 package com.domhauton.membrane.restful.responses.config;
 
+import com.domhauton.membrane.config.items.StorageConfig;
+
 /**
  * Created by dominic on 04/02/17.
  */
-public class StorageConfig {
+public class StorageConfigREST {
   private int softStorageCap;
   private int hardStorageCap;
   private String directory;
   private int trimFrequency;
 
-  public StorageConfig(int softStorageCap, int hardStorageCap, String directory, int trimFrequency) {
-    this.softStorageCap = softStorageCap;
-    this.hardStorageCap = hardStorageCap;
-    this.directory = directory;
-    this.trimFrequency = trimFrequency;
+  public StorageConfigREST(StorageConfig config) {
+    softStorageCap = config.getSoftStorageLimit();
+    hardStorageCap = config.getHardStorageLimit();
+    directory = config.getStorageFolder();
+    trimFrequency = config.getGcInterval();
   }
 
   public int getSoftStorageCap() {

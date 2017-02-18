@@ -1,7 +1,7 @@
 package com.domhauton.membrane;
 
 import com.domhauton.membrane.config.Config;
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.*;
 import com.domhauton.membrane.storage.StorageManagerException;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
@@ -67,15 +67,20 @@ class BackupManagerTest {
     WatchFolder watchFolder2 = new WatchFolder(fileFolder2.getParent().toString(), true);
 
     config = new Config(
-            basePath.toString() + File.separator + "shardStorage",
-            1,
-            10,
-            1,
-            4,
-            16,
-            30,
-            Arrays.asList(watchFolder1, watchFolder2),
-            13200);
+            new DistributedStorageConfig(
+                    basePath.toString() + File.separator + "storage" + File.separator + "local",
+                    1,
+                    16,
+                    30),
+            new LocalStorageConfig(basePath.toString() + File.separator + "storage" + File.separator + "dist",
+                    1,
+                    16,
+                    30),
+            new WatcherConfig(4,
+                    Arrays.asList(watchFolder1, watchFolder2),
+                    1,
+                    10),
+            new RestConfig(13200));
 
     backupManager = new BackupManager(config, configPath);
     backupManager.start();

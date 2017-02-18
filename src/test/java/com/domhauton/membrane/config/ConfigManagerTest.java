@@ -42,12 +42,12 @@ class ConfigManagerTest {
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
     Config cfg = ConfigManager.loadDefaultConfig();
-    cfg.getFolders().add(new WatchFolder("foobar", false));
+    cfg.getWatcher().getFolders().add(new WatchFolder("foobar", false));
 
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
     Config config = ConfigManager.loadConfig(Paths.get(testCfgLocation));
-    Assertions.assertEquals(1, config.getFolders().size());
-    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getFolders().isEmpty());
+    Assertions.assertEquals(1, config.getWatcher().getFolders().size());
+    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getWatcher().getFolders().isEmpty());
   }
 
   @Test
@@ -57,13 +57,13 @@ class ConfigManagerTest {
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
     Config cfg = ConfigManager.loadDefaultConfig();
-    cfg.getFolders().add(new WatchFolder("foobar", false));
+    cfg.getWatcher().getFolders().add(new WatchFolder("foobar", false));
 
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
-    Assertions.assertFalse(ConfigManager.loadConfig(Paths.get(testCfgLocation)).getFolders().isEmpty());
-    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getFolders().isEmpty());
-    cfg.getFolders().add(new WatchFolder("foobar2", false));
+    Assertions.assertFalse(ConfigManager.loadConfig(Paths.get(testCfgLocation)).getWatcher().getFolders().isEmpty());
+    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getWatcher().getFolders().isEmpty());
+    cfg.getWatcher().getFolders().add(new WatchFolder("foobar2", false));
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
-    Assertions.assertEquals(2, ConfigManager.loadConfig(Paths.get(testCfgLocation)).getFolders().size());
+    Assertions.assertEquals(2, ConfigManager.loadConfig(Paths.get(testCfgLocation)).getWatcher().getFolders().size());
   }
 }

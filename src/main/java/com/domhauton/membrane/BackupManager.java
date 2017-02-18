@@ -53,13 +53,13 @@ public class BackupManager {
     this.monitorMode = monitorMode;
     this.startTime = DateTime.now();
     try {
-      fileManager = new FileManager(config.getChunkSizeMB());
-      storageManager = new StorageManager(Paths.get(config.getShardStorageFolder()), config.getMaxStorageSizeMB() * 1024 * 1024);
+      fileManager = new FileManager(config.getWatcher().getChunkSizeMB());
+      storageManager = new StorageManager(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * 1024 * 1024);
       if (!monitorMode) {
         fileManager.addStorageManager(storageManager);
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
-      restfulAPI = new RestfulAPI(config.getVerticlePort(), this);
+      restfulAPI = new RestfulAPI(config.getRest().getPort(), this);
       restfulAPI.start();
     } catch (FileManagerException | StorageManagerException e) {
       logger.error("Failed to start membrane backup manager.");
@@ -74,11 +74,13 @@ public class BackupManager {
   void start() {
     loadStorageMappingToProspector();
     loadWatchFoldersToProspector();
-    fileManager.runScanners(config.getFileRescanFrequencySec(), config.getFolderRescanFrequencySec());
+    fileManager.runScanners(
+            config.getWatcher().getFileRescanInterval(),
+            config.getWatcher().getFileRescanInterval());
     if (monitorMode) {
       trimExecutor.scheduleWithFixedDelay(this::trimStorage,
               1,
-              config.getStorageTrimFrequencyMin(),
+              config.getLocalStorage().getGcInterval(),
               TimeUnit.MINUTES);
     }
   }
@@ -104,7 +106,7 @@ public class BackupManager {
     if (monitorMode) {
       logger.warn("Attempted to trim storage in monitor mode!");
     } else {
-      long gcBytes = ((long) config.getGarbageCollectThresholdMB()) * 1024 * 1024;
+      long gcBytes = ((long) config.getLocalStorage().getSoftStorageLimit()) * 1024 * 1024;
       Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
       logger.info("Attempting to trim storage to {}MB.", (float) gcBytes / (1024 * 1024));
       logger.debug("Current watched folders: {}", watchedFolders);
@@ -114,7 +116,7 @@ public class BackupManager {
   }
 
   private void loadWatchFoldersToProspector() {
-    List<WatchFolder> watchFolders = config.getFolders();
+    List<WatchFolder> watchFolders = config.getWatcher().getFolders();
     logger.info("Adding {} watch folders from config to listener", watchFolders.size());
     watchFolders.forEach(fileManager::addWatchFolder);
     fileManager.fullFileScanSweep();
@@ -136,22 +138,22 @@ public class BackupManager {
    */
   public void addWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
     logger.info("Adding new watch folder");
-    if (config.getFolders().contains(watchFolder)) {
+    if (config.getWatcher().getFolders().contains(watchFolder)) {
       logger.warn("Attempted to add existing watch folder.");
       throw new IllegalArgumentException("Already watching folder!");
     }
     fileManager.addWatchFolder(watchFolder);
-    config.getFolders().add(watchFolder);
+    config.getWatcher().getFolders().add(watchFolder);
     ConfigManager.saveConfig(configPath, config);
   }
 
   public void removeWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
     logger.warn("Removing existing watch folder");
-    if (!config.getFolders().remove(watchFolder)) {
+    if (!config.getWatcher().getFolders().remove(watchFolder)) {
       throw new IllegalArgumentException("Watch Folder does not exist!");
     }
     fileManager.removeWatchFolder(watchFolder);
-    config.getFolders().add(watchFolder);
+    config.getWatcher().getFolders().add(watchFolder);
     ConfigManager.saveConfig(configPath, config);
   }
 
@@ -205,10 +207,10 @@ public class BackupManager {
   public void close() {
     logger.info("Shutdown - Start");
     if (monitorMode) {
-      logger.info("Shutdown - Stopping StorageConfig trimmer.");
+      logger.info("Shutdown - Stopping StorageConfigREST trimmer.");
       trimExecutor.shutdown();
     }
-    logger.info("Shutdown - Stopping StorageConfig Manager.");
+    logger.info("Shutdown - Stopping StorageConfigREST Manager.");
     try {
       storageManager.close();
     } catch (StorageManagerException e) {

@@ -4,13 +4,12 @@ import com.domhauton.membrane.BackupManager;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.*;
 import com.domhauton.membrane.restful.requests.WatchFolderChange;
 import com.domhauton.membrane.restful.responses.*;
 import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
-import com.domhauton.membrane.restful.responses.config.StorageConfig;
-import com.domhauton.membrane.restful.responses.config.WatchFoldersInfo;
-import com.domhauton.membrane.restful.responses.config.WatcherConfig;
+import com.domhauton.membrane.restful.responses.config.StorageConfigREST;
+import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
@@ -127,21 +126,11 @@ public class RestfulAPI {
 
   private void getMembraneConfig(RoutingContext routingContext) {
     Config config = backupManager.getConfig();
-    RestAPIConfig restAPIConfig = new RestAPIConfig(config.getVerticlePort());
-    StorageConfig storageConfig = new StorageConfig(
-            config.getGarbageCollectThresholdMB(),
-            config.getMaxStorageSizeMB(),
-            config.getShardStorageFolder(),
-            config.getStorageTrimFrequencyMin());
-    List<WatchFoldersInfo> watchFoldersInfoList = config.getFolders().stream()
-            .map(x -> new WatchFoldersInfo(x.getDirectory(), x.getRecursive()))
-            .collect(Collectors.toList());
-    WatcherConfig watcherConfig = new WatcherConfig(
-            config.getFileRescanFrequencySec(),
-            config.getFolderRescanFrequencySec(),
-            config.getChunkSizeMB(),
-            watchFoldersInfoList);
-    MembraneRestConfig membraneRestConfig = new MembraneRestConfig(watcherConfig, storageConfig, restAPIConfig);
+    RestAPIConfig restAPIConfig = new RestAPIConfig(config.getRest());
+    StorageConfigREST localStorageConfig = new StorageConfigREST(config.getLocalStorage());
+    StorageConfigREST distributedStorageConfig = new StorageConfigREST(config.getDistributedStorage());
+    WatcherConfigREST watcherConfigREST = new WatcherConfigREST(config.getWatcher());
+    MembraneRestConfig membraneRestConfig = new MembraneRestConfig(watcherConfigREST, localStorageConfig, distributedStorageConfig, restAPIConfig);
     logger.info("Sending config status to {}", routingContext.request().remoteAddress().host());
     sendObject(routingContext, membraneRestConfig);
   }
@@ -181,16 +170,36 @@ public class RestfulAPI {
 
   private void putNewConfig(RoutingContext routingContext) {
     final MembraneRestConfig membraneRestConfig = Json.decodeValue(routingContext.getBodyAsString(), MembraneRestConfig.class);
+
+    WatcherConfig watcherConfig = new WatcherConfig(
+            membraneRestConfig.getWatcher().getChunkSize(),
+            membraneRestConfig.getWatcher().getWatchFolders()
+                    .stream()
+                    .map(x -> new WatchFolder(x.getDirectory(), x.isRecursive()))
+                    .collect(Collectors.toList()),
+            membraneRestConfig.getWatcher().getFileRescan(),
+            membraneRestConfig.getWatcher().getFolderRescan());
+
+    LocalStorageConfig localStorageConfig = new LocalStorageConfig(
+            membraneRestConfig.getLocalStorage().getDirectory(),
+            membraneRestConfig.getLocalStorage().getTrimFrequency(),
+            membraneRestConfig.getLocalStorage().getSoftStorageCap(),
+            membraneRestConfig.getLocalStorage().getHardStorageCap());
+
+    DistributedStorageConfig distributedStorageConfig = new DistributedStorageConfig(
+            membraneRestConfig.getDistributedStorage().getDirectory(),
+            membraneRestConfig.getDistributedStorage().getTrimFrequency(),
+            membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
+            membraneRestConfig.getDistributedStorage().getHardStorageCap());
+
+    RestConfig restConfig = new RestConfig();
+
     Config config = new Config(
-            membraneRestConfig.getStorageConfig().getDirectory(),
-            membraneRestConfig.getWatcherConfig().getFileRescan(),
-            membraneRestConfig.getWatcherConfig().getFolderRescan(),
-            membraneRestConfig.getStorageConfig().getTrimFrequency(),
-            membraneRestConfig.getWatcherConfig().getChunkSize(),
-            membraneRestConfig.getStorageConfig().getSoftStorageCap(),
-            membraneRestConfig.getStorageConfig().getHardStorageCap(),
-            membraneRestConfig.getWatcherConfig().getWatchFolders().stream().map(x -> new WatchFolder(x.getDirectory(), x.isRecursive())).collect(Collectors.toList()),
-            membraneRestConfig.getRestAPIConfig().getPort());
+            distributedStorageConfig,
+            localStorageConfig,
+            watcherConfig,
+            restConfig);
+
     Path configPath = backupManager.getConfigPath();
     try {
       ConfigManager.saveConfig(configPath, config);

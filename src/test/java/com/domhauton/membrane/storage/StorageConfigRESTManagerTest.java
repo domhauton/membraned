@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 01/02/17.
  */
-class StorageConfigManagerTest {
+class StorageConfigRESTManagerTest {
 
   private String testDir;
   private Path srcFile;

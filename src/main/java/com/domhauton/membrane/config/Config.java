@@ -1,82 +1,46 @@
 package com.domhauton.membrane.config;
 
-import com.domhauton.membrane.config.items.WatchFolder;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
+import com.domhauton.membrane.config.items.DistributedStorageConfig;
+import com.domhauton.membrane.config.items.LocalStorageConfig;
+import com.domhauton.membrane.config.items.RestConfig;
+import com.domhauton.membrane.config.items.WatcherConfig;
 
 /**
  * Created by dominic on 23/01/17.
  */
 public class Config {
-  private String shardStorageFolder;
-  private int fileRescanFrequencySec;
-  private int folderRescanFrequencySec;
-  private int storageTrimFrequencyMin;
-  private int chunkSizeMB;
-  private int garbageCollectThresholdMB;
-  private int maxStorageSizeMB;
-  private List<WatchFolder> folders;
-  private int verticlePort;
+  private DistributedStorageConfig distributedStorage;
+  private LocalStorageConfig localStorage;
+  private WatcherConfig watcher;
+  private RestConfig rest;
 
   public Config() {
-    folders = new ArrayList<>();
-    shardStorageFolder = System.getProperty("user.home") + File.separator + ".membrane";
-    fileRescanFrequencySec = 10;
-    folderRescanFrequencySec = 120;
-    storageTrimFrequencyMin = 20;
-    chunkSizeMB = 64;
-    maxStorageSizeMB = 4096;
-    garbageCollectThresholdMB = 2048;
-    verticlePort = 13200;
+    localStorage = new LocalStorageConfig();
+    distributedStorage = new DistributedStorageConfig();
+    watcher = new WatcherConfig();
+    rest = new RestConfig();
   }
 
-  public Config(String shardStorageFolder, int fileRescanFrequencySec, int folderRescanFrequencySec, int storageTrimFrequencyMin, int chunkSizeMB, int garbageCollectThresholdMB, int maxStorageSizeMB, List<WatchFolder> folders, int verticlePort) {
-    this.shardStorageFolder = shardStorageFolder;
-    this.fileRescanFrequencySec = fileRescanFrequencySec;
-    this.folderRescanFrequencySec = folderRescanFrequencySec;
-    this.storageTrimFrequencyMin = storageTrimFrequencyMin;
-    this.chunkSizeMB = chunkSizeMB;
-    this.garbageCollectThresholdMB = garbageCollectThresholdMB;
-    this.maxStorageSizeMB = maxStorageSizeMB;
-    this.folders = folders;
-    this.verticlePort = verticlePort;
+  public Config(DistributedStorageConfig distributedStorage, LocalStorageConfig localStorage, WatcherConfig watcher, RestConfig rest) {
+    this.distributedStorage = distributedStorage;
+    this.localStorage = localStorage;
+    this.watcher = watcher;
+    this.rest = rest;
   }
 
-  public List<WatchFolder> getFolders() {
-    return folders;
+  public DistributedStorageConfig getDistributedStorage() {
+    return distributedStorage;
   }
 
-  public String getShardStorageFolder() {
-    return shardStorageFolder;
+  public LocalStorageConfig getLocalStorage() {
+    return localStorage;
   }
 
-  public int getFileRescanFrequencySec() {
-    return fileRescanFrequencySec;
+  public WatcherConfig getWatcher() {
+    return watcher;
   }
 
-  public int getFolderRescanFrequencySec() {
-    return folderRescanFrequencySec;
-  }
-
-  public int getChunkSizeMB() {
-    return chunkSizeMB;
-  }
-
-  public int getMaxStorageSizeMB() {
-    return maxStorageSizeMB;
-  }
-
-  public int getStorageTrimFrequencyMin() {
-    return storageTrimFrequencyMin;
-  }
-
-  public int getGarbageCollectThresholdMB() {
-    return garbageCollectThresholdMB;
-  }
-
-  public int getVerticlePort() {
-    return verticlePort;
+  public RestConfig getRest() {
+    return rest;
   }
 }

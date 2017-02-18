@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * Created by dominic on 01/02/17.
  */
-class ShardStorageConfigImplTest {
+class ShardStorageConfigRESTImplTest {
   private ShardStorageImpl shardStorage;
   private String testDir;
   private Random random;
