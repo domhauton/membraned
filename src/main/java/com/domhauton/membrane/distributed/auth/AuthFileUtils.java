@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.NoSuchAlgorithmException;
@@ -34,6 +35,7 @@ import java.security.interfaces.RSAPublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
+import java.util.Collections;
 
 abstract class AuthFileUtils {
   private static final Logger logger = LogManager.getLogger();
@@ -77,6 +79,9 @@ abstract class AuthFileUtils {
             JcaPEMWriter pemWriter = new JcaPEMWriter(outputStreamWriter)) {
       pemWriter.writeObject(pemObject);
     }
+
+    // Set the file to read-only by the owner.
+    Files.setPosixFilePermissions(filename, Collections.singleton(PosixFilePermission.OWNER_READ));
   }
 
   static X509Certificate loadCertificate(Path filePath) throws AuthException {

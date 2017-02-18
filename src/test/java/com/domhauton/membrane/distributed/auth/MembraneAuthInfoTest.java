@@ -9,9 +9,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.Collections;
 import java.util.stream.Stream;
 
 /**
@@ -48,7 +52,15 @@ class MembraneAuthInfoTest {
     Path authPath = Paths.get(innerPath.toString() + MembraneAuthInfo.INNER_PATH);
     File[] fileList = authPath.toFile().listFiles();
     if (fileList != null) {
-      Stream.of(fileList).filter(file -> !file.isDirectory()).forEach(File::delete);
+      Stream.of(fileList).filter(file -> !file.isDirectory()).forEach(file -> {
+        try {
+          Files.setPosixFilePermissions(file.toPath(), Collections.singleton(PosixFilePermission.OWNER_WRITE));
+          Files.delete(file.toPath());
+        } catch (IOException e) {
+          throw new UncheckedIOException(e);
+        }
+
+      });
     }
     Files.deleteIfExists(authPath);
     Files.deleteIfExists(innerPath);
