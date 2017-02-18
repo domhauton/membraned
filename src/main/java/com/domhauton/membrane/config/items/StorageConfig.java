@@ -10,7 +10,7 @@ public abstract class StorageConfig {
   private int hardStorageLimit;
 
   public StorageConfig(String storageFolder) {
-    this(storageFolder, 4096, 2048, 20);
+    this(storageFolder, 20, 2048, 4096);
   }
 
   public StorageConfig(String storageFolder, int gcInterval, int softStorageLimit, int hardStorageLimit) {

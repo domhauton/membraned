@@ -27,6 +27,7 @@ public class WatcherConfigREST {
     this.watchFolders = watcherConfig.getFolders().stream()
             .map(x -> new WatchFoldersInfo(x.getDirectory(), x.getRecursive()))
             .collect(Collectors.toList());
+    this.chunkSize = watcherConfig.getChunkSizeMB();
   }
 
   public int getFileRescan() {
