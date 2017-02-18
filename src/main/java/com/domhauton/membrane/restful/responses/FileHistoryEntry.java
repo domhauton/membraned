@@ -6,10 +6,10 @@ import java.util.List;
  * Created by dominic on 05/02/17.
  */
 public class FileHistoryEntry {
-  private long dateTimeMillis;
-  private List<String> hashes;
-  private long size;
-  private boolean isRemove;
+  private final long dateTimeMillis;
+  private final List<String> hashes;
+  private final long size;
+  private final boolean isRemove;
 
   public FileHistoryEntry(long dateTimeMillis, List<String> hashes, long size, boolean isRemove) {
     this.dateTimeMillis = dateTimeMillis;

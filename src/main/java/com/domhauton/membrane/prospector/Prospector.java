@@ -118,7 +118,7 @@ class Prospector {
     watchFolders.remove(watchFolder);
   }
 
-  Optional<WatchKey> registerPath(Path path) {
+  private Optional<WatchKey> registerPath(Path path) {
     try {
       WatchKey watchKey = path.register(watchService, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
       logger.info("Watching Path [{}]", path.toString());
@@ -130,7 +130,7 @@ class Prospector {
     }
   }
 
-  Set<Path> findMatchingFolders(final WatchFolder watchFolder) {
+  private Set<Path> findMatchingFolders(final WatchFolder watchFolder) {
     final Path searchRoot = Paths.get(findRoot(watchFolder.getDirectory()));
     String[] splitPattern = watchFolder.getDirectory().split(SEP);
     Set<Path> matchingFolders = findMatchingFolders(searchRoot, splitPattern, watchFolder.getRecursive());
@@ -138,7 +138,7 @@ class Prospector {
     return matchingFolders;
   }
 
-  Set<Path> findMatchingFolders(final Path searchRoot, final String[] pattern, final boolean recursive) {
+  private Set<Path> findMatchingFolders(final Path searchRoot, final String[] pattern, final boolean recursive) {
     final Set<Path> retSet = new HashSet<>();
     if (searchRoot.toFile().exists()) {
       try {

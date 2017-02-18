@@ -18,8 +18,8 @@ import java.util.stream.Collectors;
  * Created by dominic on 30/01/17.
  */
 public class StorageJournal {
-  private Logger logger;
-  private List<JournalEntry> journalEntries;
+  private final Logger logger;
+  private final List<JournalEntry> journalEntries;
 
   public StorageJournal(List<JournalEntry> journalEntries) {
     this.journalEntries = journalEntries;

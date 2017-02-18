@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
  * Created by dominic on 04/02/17.
  */
 public class StorageManagerStatus implements MembraneResponse {
-  private Set<Path> currentFiles;
-  private Set<Path> referencedFiles;
-  private Long storageSize;
+  private final Set<Path> currentFiles;
+  private final Set<Path> referencedFiles;
+  private final Long storageSize;
 
   public StorageManagerStatus(Set<Path> currentFiles, Set<Path> trackedFiles, Long storageSize) {
     this.currentFiles = currentFiles;

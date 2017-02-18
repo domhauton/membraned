@@ -19,7 +19,7 @@ import java.util.function.Consumer;
 /**
  * Created by dominic on 09/02/17.
  */
-public class PeerDialler {
+class PeerDialler {
 
   private final Logger logger = LogManager.getLogger();
   private final static int RECEIVE_BUFFER_MB = 256;

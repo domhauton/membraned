@@ -8,6 +8,7 @@ import com.domhauton.membrane.config.items.WatcherConfig;
 /**
  * Created by dominic on 23/01/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class Config {
   private DistributedStorageConfig distributedStorage;
   private LocalStorageConfig localStorage;

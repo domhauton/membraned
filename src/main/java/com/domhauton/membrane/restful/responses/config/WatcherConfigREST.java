@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 04/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class WatcherConfigREST {
   private int fileRescan;
   private int folderRescan;

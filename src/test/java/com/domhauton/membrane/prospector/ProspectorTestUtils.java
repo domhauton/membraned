@@ -21,7 +21,7 @@ abstract class ProspectorTestUtils {
   static final int CREATED_FILES_COUNT = 3;
   static final int EXPECTED_SHARD_COUNT = CREATED_FILES_COUNT * 2;
   static final int MODIFIED_FILES_COUNT = 2;
-  static final int FILE_SIZE_MB = 65;
+  private static final int FILE_SIZE_MB = 65;
 
   static String createRandomFolder(String baseDir) throws Exception {
     String tmpDir = baseDir;
@@ -62,7 +62,7 @@ abstract class ProspectorTestUtils {
   }
 
 
-  static void removeTestFiles(String baseDir) throws Exception {
+  static void removeTestFiles(String baseDir) {
     IntStream.range(0, CREATED_FILES_COUNT).boxed()
             .map(Object::toString)
             .map(num -> Paths.get(baseDir + File.separator + num))

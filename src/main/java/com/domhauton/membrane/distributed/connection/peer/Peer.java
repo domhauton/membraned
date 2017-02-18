@@ -5,14 +5,16 @@ import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Closeable;
+
 /**
  * Created by dominic on 08/02/17.
  */
-public class Peer {
-  private Logger logger = LogManager.getLogger();
+public class Peer implements Closeable {
+  private final Logger logger = LogManager.getLogger();
 
-  private String uid;
-  private PeerConnection peerConnection;
+  private final String uid;
+  private final PeerConnection peerConnection;
 
   public Peer(PeerConnection peerConnection) {
     this.peerConnection = peerConnection;

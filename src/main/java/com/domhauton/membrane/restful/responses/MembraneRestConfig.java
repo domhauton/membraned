@@ -7,6 +7,7 @@ import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
 /**
  * Created by dominic on 04/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class MembraneRestConfig implements MembraneResponse {
 
   private WatcherConfigREST watcherConfig;

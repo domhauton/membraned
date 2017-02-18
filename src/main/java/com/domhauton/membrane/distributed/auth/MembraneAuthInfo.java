@@ -36,7 +36,7 @@ public class MembraneAuthInfo {
   private byte[] x509CertificateEncoded;
   private byte[] privateKeyEncoded;
 
-  public MembraneAuthInfo(X509Certificate x509Certificate, RSAPublicKey publicKey, RSAPrivateKey privateKey) throws AuthException {
+  MembraneAuthInfo(X509Certificate x509Certificate, RSAPublicKey publicKey, RSAPrivateKey privateKey) throws AuthException {
     this.x509Certificate = x509Certificate;
     this.publicKey = publicKey;
     this.privateKey = privateKey;
@@ -56,7 +56,7 @@ public class MembraneAuthInfo {
    * @param path base path containing auth folder
    * @throws AuthException If files cannot be found.
    */
-  MembraneAuthInfo(Path path) throws AuthException {
+  public MembraneAuthInfo(Path path) throws AuthException {
     Path fullPath = Paths.get(path.toString() + INNER_PATH);
     Path certPath = Paths.get(fullPath + File.separator + CERT_FILE_NAME);
     Path privPath = Paths.get(fullPath + File.separator + RSA_PRIVATE_FILE_NAME);

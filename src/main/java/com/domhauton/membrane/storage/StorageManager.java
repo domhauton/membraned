@@ -32,13 +32,13 @@ public class StorageManager {
   static final String JOURNAL_NAME = "journal.csv";
   private static final String BASE_FILE_MAP_NAME = "file-map.csv";
 
-  private Logger logger;
-  private ShardStorage shardStorage;
+  private final Logger logger;
+  private final ShardStorage shardStorage;
   private FileCatalogue fileCatalogue;
-  private Set<String> tempProtectedShards;
+  private final Set<String> tempProtectedShards;
 
   private Path baseFileMapPath;
-  private Path journalPath;
+  private final Path journalPath;
 
   private OutputStreamWriter journalOutput;
 

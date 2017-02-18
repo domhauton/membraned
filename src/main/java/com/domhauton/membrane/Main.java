@@ -16,7 +16,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Optional;
 
-public class Main {
+class Main {
   public static void main(String[] args) {
     Logger logger = LogManager.getLogger();
     logger.info("Starting Membrane");

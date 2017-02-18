@@ -5,6 +5,7 @@ import com.domhauton.membrane.config.items.StorageConfig;
 /**
  * Created by dominic on 04/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class StorageConfigREST {
   private int softStorageCap;
   private int hardStorageCap;

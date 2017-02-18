@@ -29,7 +29,7 @@ public class PeerConnection {
   private final Consumer<PeerMessage> messageConsumer;
   private final DateTime connectionStartTime;
 
-  private CompletableFuture<Void> isClosed;
+  private final CompletableFuture<Void> isClosed;
 
   /**
    * Establishes a P2P connection from a TCP connection. Ensures client presented one certificate for identity.

@@ -17,7 +17,7 @@ import static com.domhauton.membrane.prospector.ProspectorTestUtils.*;
  */
 class ProspectorTest {
 
-  private Logger logger = LogManager.getLogger();
+  private final Logger logger = LogManager.getLogger();
 
   private Prospector prospector;
 

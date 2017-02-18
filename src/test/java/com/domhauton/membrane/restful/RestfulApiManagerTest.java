@@ -14,9 +14,9 @@ import java.util.HashSet;
 /**
  * Created by dominic on 03/02/17.
  */
-class RestfulAPITest {
+class RestfulApiManagerTest {
 
-  private RestfulAPI viewVerticle;
+  private RestfulApiManager viewVerticle;
   private BackupManager backupManager;
 
   @BeforeEach
@@ -44,7 +44,7 @@ class RestfulAPITest {
             .thenReturn(new HashSet<>(Arrays.asList("/tmp/membrane/watchfolder1", "/tmp/membrane/watchfolder2")));
     Mockito.when(backupManager.getStorageSize())
             .thenReturn(1024L);
-    viewVerticle = new RestfulAPI(13300, backupManager);
+    viewVerticle = new RestfulApiManager(13300, backupManager);
   }
 
   @Test

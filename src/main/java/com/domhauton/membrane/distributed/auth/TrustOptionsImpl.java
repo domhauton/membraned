@@ -15,7 +15,7 @@ import java.util.function.Supplier;
  *
  * Implementation of Trust Options that returns the given Trust Managers
  */
-public class TrustOptionsImpl implements TrustOptions {
+class TrustOptionsImpl implements TrustOptions {
 
   private final TrustManagerFactory trustManagerFactory;
 
@@ -37,6 +37,7 @@ public class TrustOptionsImpl implements TrustOptions {
     this.trustManagerFactory = trustManagerFactory;
   }
 
+  @SuppressWarnings("MethodDoesntCallSuperMethod")
   @Override
   public TrustOptions clone() {
     return new TrustOptionsImpl(trustManagerFactory);

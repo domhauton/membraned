@@ -6,6 +6,7 @@ import com.domhauton.membrane.distributed.messaging.PeerMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.Closeable;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.*;
@@ -16,7 +17,7 @@ import java.util.function.Consumer;
  * <p>
  * Manages PeerConnection Lifecycle. Dialling, Communication and Closing.
  */
-public class ConnectionManager {
+public class ConnectionManager implements Closeable {
   private final static Logger logger = LogManager.getLogger();
 
   private final PeerListener peerListener;
@@ -27,7 +28,7 @@ public class ConnectionManager {
   private final Collection<Consumer<Peer>> newPeerJoinedCallbacks;
   private final Collection<Consumer<PeerMessage>> newPeerMessageCallbacks;
 
-  ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) throws ConnectionException {
+  public ConnectionManager(MembraneAuthInfo membraneAuthInfo, int listenPort) throws ConnectionException {
     peerConnections = new ConcurrentHashMap<>();
     newPeerJoinedCallbacks = new LinkedList<>();
     newPeerMessageCallbacks = new LinkedList<>();

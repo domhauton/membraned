@@ -3,6 +3,7 @@ package com.domhauton.membrane.restful.responses.config;
 /**
  * Created by dominic on 04/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class WatchFoldersInfo {
   private String directory;
   private boolean recursive;

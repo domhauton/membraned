@@ -8,8 +8,8 @@ import java.util.Set;
  * Created by dominic on 31/01/17.
  */
 public class ProspectorChangeSet {
-  private Set<Path> changedFiles;
-  private Set<Path> removedFiles;
+  private final Set<Path> changedFiles;
+  private final Set<Path> removedFiles;
   private boolean overflow;
 
   public ProspectorChangeSet() {

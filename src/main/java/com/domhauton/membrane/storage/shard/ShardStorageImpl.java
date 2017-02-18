@@ -20,8 +20,8 @@ public class ShardStorageImpl implements ShardStorage {
   private static final String FILE_EXTENSION = ".mem";
   private static final int FOLDER_SPLIT_LEN = 5;
 
-  private Logger logger;
-  private Path basePath;
+  private final Logger logger;
+  private final Path basePath;
   private long currentStorageSize;
   private final long maxStorageSize;
 
@@ -40,7 +40,6 @@ public class ShardStorageImpl implements ShardStorage {
    *
    * @param md5Hash The md5Hash of the data given
    * @param data    The data to store.
-   * @throws ShardStorageException
    */
   public void storeShard(String md5Hash, byte[] data) throws ShardStorageException {
     Path filePath = getPath(basePath.toString(), md5Hash);
@@ -115,7 +114,7 @@ public class ShardStorageImpl implements ShardStorage {
       return retLong;
     } catch (IOException e) {
       logger.error("Failed to remove shard {}. {}", md5Hash, e.getMessage());
-      throw new ShardStorageException("Cound not remove shard: " + md5Hash + ". " + e.getMessage());
+      throw new ShardStorageException("Could not remove shard: " + md5Hash + ". " + e.getMessage());
     }
   }
 

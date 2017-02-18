@@ -52,7 +52,7 @@ public class TrustOptionsImplTest {
             new DummyTestTrustManager("foobar3"),
     };
 
-    TrustManager[] shuffedManagers = new TrustManager[]{
+    TrustManager[] shuffledManagers = new TrustManager[]{
             new DummyTestTrustManager("foobar2"),
             new DummyTestTrustManager("foobar1"),
             new DummyTestTrustManager("foobar3"),
@@ -60,7 +60,7 @@ public class TrustOptionsImplTest {
 
     TrustOptions trustOptions = new TrustOptionsImpl(trustManSupplier, "RSA").clone();
 
-    Assertions.assertFalse(Arrays.equals(shuffedManagers, trustOptions.getTrustManagerFactory(null).getTrustManagers()));
+    Assertions.assertFalse(Arrays.equals(shuffledManagers, trustOptions.getTrustManagerFactory(null).getTrustManagers()));
   }
 
   @Test

@@ -1,7 +1,7 @@
 package com.domhauton.membrane.distributed.auth;
 
-/**
- * Created by dominic on 11/02/17.
+/*
+  Created by dominic on 11/02/17.
  */
 
 import org.apache.logging.log4j.LogManager;
@@ -35,21 +35,34 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
 import java.security.spec.RSAPublicKeySpec;
 
-public abstract class AuthFileUtils {
+abstract class AuthFileUtils {
   private static final Logger logger = LogManager.getLogger();
 
   static void writePublicKey(Path filename, RSAPublicKey key) throws IOException {
     logger.info("Writing public key to [{}]", filename);
+    if(filename.toFile().exists()) {
+      logger.error("Public Key already exists at [{}]", filename);
+      throw new IOException("Public Key already exists at " + filename);
+    }
     write(filename, key);
   }
 
   static void writePrivateKey(Path filename, RSAPrivateKey key) throws IOException {
     logger.info("Writing private key to [{}]", filename);
+    if(filename.toFile().exists()) {
+      logger.error("Private Key already exists at [{}]", filename);
+
+      throw new IOException("Private Key already exists at " + filename);
+    }
     write(filename, key);
   }
 
   static void writeCertificate(Path filename, X509Certificate certificate) throws IOException {
     logger.info("Writing certificate to [{}]", filename);
+    if(filename.toFile().exists()) {
+      logger.error("Certificate already exists at [{}]", filename);
+      throw new IOException("Certificate already exists at " + filename);
+    }
     write(filename, certificate);
   }
 

@@ -19,7 +19,7 @@ import java.util.stream.Stream;
  */
 class MembraneAuthInfoTest {
   private static final Logger logger = LogManager.getLogger();
-  private Path basePath = Paths.get(StorageManagerTestUtils.BASE_DIR);
+  private final Path basePath = Paths.get(StorageManagerTestUtils.BASE_DIR);
   private Path innerPath;
 
   @BeforeEach

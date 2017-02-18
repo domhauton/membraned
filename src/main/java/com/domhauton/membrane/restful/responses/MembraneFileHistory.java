@@ -6,8 +6,8 @@ import java.util.List;
  * Created by dominic on 05/02/17.
  */
 public class MembraneFileHistory implements MembraneResponse {
-  private String filePath;
-  private List<FileHistoryEntry> fileHistoryEntryList;
+  private final String filePath;
+  private final List<FileHistoryEntry> fileHistoryEntryList;
 
   public MembraneFileHistory(List<FileHistoryEntry> fileHistoryEntryList, String filePath) {
     this.fileHistoryEntryList = fileHistoryEntryList;

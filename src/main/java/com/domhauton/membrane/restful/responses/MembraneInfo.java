@@ -11,11 +11,11 @@ import java.net.UnknownHostException;
  */
 public class MembraneInfo implements MembraneResponse {
   private String hostname;
-  private String startTime;
-  private int port;
-  private String version;
-  private MembraneStatus status;
-  private String tagline;
+  private final String startTime;
+  private final int port;
+  private final String version;
+  private final MembraneStatus status;
+  private final String tagline;
 
   public MembraneInfo(int port, DateTime startTime, String version, MembraneStatus status, String tagline) {
     try {

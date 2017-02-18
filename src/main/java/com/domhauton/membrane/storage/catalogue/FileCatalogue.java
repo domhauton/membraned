@@ -18,10 +18,10 @@ import java.util.stream.Collectors;
  * Created by dominic on 30/01/17.
  */
 public class FileCatalogue {
-  private Logger logger;
-  private Map<Path, FileVersion> baseFileInfoMap;
-  private Map<Path, FileVersion> fileInfoMap;
-  private StorageJournal storageJournal;
+  private final Logger logger;
+  private final Map<Path, FileVersion> baseFileInfoMap;
+  private final Map<Path, FileVersion> fileInfoMap;
+  private final StorageJournal storageJournal;
 
   FileCatalogue() {
     this(new HashMap<>(), new LinkedList<>());
@@ -73,7 +73,6 @@ public class FileCatalogue {
   /**
    * Add an add operation for the path to the catalogue
    *
-   * @param MD5HashLengthPairs
    * @param modificationDateTime add/modification time
    * @param storedPath           file that was add
    */

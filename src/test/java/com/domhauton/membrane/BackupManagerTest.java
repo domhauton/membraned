@@ -245,7 +245,7 @@ class BackupManagerTest {
     Files.deleteIfExists(fileFolder2.getParent());
   }
 
-  static Path getBaseFolder() throws Exception {
+  private static Path getBaseFolder() throws Exception {
     String baseDir = System.getProperty("java.io.tmpdir") + File.separator + "membrane" + File.separator + "full~,~test";
     Files.createDirectories(Paths.get(baseDir));
     String tmpDir = baseDir;

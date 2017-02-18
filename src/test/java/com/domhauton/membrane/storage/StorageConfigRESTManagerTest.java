@@ -28,7 +28,7 @@ class StorageConfigRESTManagerTest {
   private Path tgtFile;
   private Random random;
 
-  private int storageMangerSize = 1024 * 1024 * 1024; //1GB
+  private final int storageMangerSize = 1024 * 1024 * 1024; //1GB
 
   private StorageManager storageManager;
 

@@ -6,6 +6,7 @@ import java.util.List;
 /**
  * Created by Dominic Hauton on 18/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class WatcherConfig {
   private int chunkSizeMB;
   private List<WatchFolder> folders;

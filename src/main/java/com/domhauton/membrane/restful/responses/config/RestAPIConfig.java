@@ -5,6 +5,7 @@ import com.domhauton.membrane.config.items.RestConfig;
 /**
  * Created by dominic on 04/02/17.
  */
+@SuppressWarnings("CanBeFinal")
 public class RestAPIConfig {
   private int port;
 

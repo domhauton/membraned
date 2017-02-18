@@ -19,7 +19,7 @@ import java.util.Collections;
  */
 class FileManagerTest {
 
-  private Logger logger = LogManager.getLogger();
+  private final Logger logger = LogManager.getLogger();
 
   private static final String BASE_DIR = "/tmp";
   private FileManager fileManager;

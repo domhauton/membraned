@@ -13,7 +13,7 @@ import java.util.List;
 public class FileMetadataBuilder {
   private final String fullPath;
   private DateTime modifiedTime;
-  private List<MD5HashLengthPair> md5HashLengthPairs;
+  private final List<MD5HashLengthPair> md5HashLengthPairs;
 
   public FileMetadataBuilder(String fullPath, DateTime modifiedTime) {
     this.fullPath = fullPath;

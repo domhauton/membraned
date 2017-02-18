@@ -28,6 +28,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import java.io.Closeable;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.file.Path;
@@ -35,14 +36,18 @@ import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.stream.Collectors;
 
 /**
  * Created by dominic on 03/02/17.
  */
-public class RestfulAPI {
+public class RestfulApiManager implements Closeable {
   private static final long BODY_LIMIT = 1024 * 1024 * 64;
-  private static String ALLOWED_HOST = "127.0.0.1";
+  private static final String ALLOWED_HOST = "127.0.0.1";
 
   private final Logger logger;
   private final int port;
@@ -53,7 +58,7 @@ public class RestfulAPI {
 
   private final BackupManager backupManager;
 
-  public RestfulAPI(int port, BackupManager backupManager) {
+  public RestfulApiManager(int port, BackupManager backupManager) {
     logger = LogManager.getLogger();
     this.port = port;
     this.backupManager = backupManager;
@@ -64,7 +69,7 @@ public class RestfulAPI {
     objectMapper = new ObjectMapper().setVisibility(PropertyAccessor.FIELD, JsonAutoDetect.Visibility.PUBLIC_ONLY);
   }
 
-  public void start() {
+  public void start() throws RestfulApiException {
     router.route().handler(this::hostFilter);
     router.get("/").handler(this::rootHandler);
     router.get("/status/config").handler(this::getMembraneConfig);
@@ -79,8 +84,25 @@ public class RestfulAPI {
     router.get("/request/history").blockingHandler(this::getFileHistory);
     router.post("/request/reconstruct").blockingHandler(this::reconstructFile);
 
-    httpServer.requestHandler(router::accept).listen(port);
-    logger.info("Listening at localhost:{}", port);
+    CompletableFuture<Boolean> startUpListener = new CompletableFuture<>();
+
+    httpServer.requestHandler(router::accept).listen(port, handler -> {
+      startUpListener.complete(handler.succeeded());
+      if(!handler.succeeded()) {
+        logger.error("REST Listener failed to start. {}", handler.cause().getMessage());
+      }
+    });
+
+    try {
+      if(startUpListener.get(5, TimeUnit.SECONDS)) {
+        logger.info("Listening at localhost:{}", port);
+      } else {
+        throw new RestfulApiException("Failed to start listener. Check if port is busy");
+      }
+    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+      logger.fatal("Could not start Restful Api listener after 5 seconds.");
+      throw new RestfulApiException("Failed to start listener. Check if port is busy");
+    }
   }
 
   public void close() {
