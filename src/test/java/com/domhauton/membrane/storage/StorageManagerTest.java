@@ -18,10 +18,12 @@ import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 /**
  * Created by dominic on 01/02/17.
  */
-class StorageConfigRESTManagerTest {
+class StorageManagerTest {
 
   private String testDir;
   private Path srcFile;
@@ -238,6 +240,42 @@ class StorageConfigRESTManagerTest {
 
     storageManager.removeFile(srcFile, new DateTime(200L).plusDays(1));
     storageManager.cleanStorage(new DateTime(250L).plusDays(1));
+    storageManager.clearProtectedShards();
+    storageManager.collectGarbage();
+  }
+
+  @Test
+  void ensureNoOverwriteOnRebuildTest() throws Exception {
+    int len = 256;
+    byte[] data = new byte[len];
+    random.nextBytes(data);
+
+    String hash = Hashing.md5().hashBytes(data).toString();
+
+    storageManager.storeShard(hash, data);
+
+    storageManager.addFile(Collections.singletonList(new MD5HashLengthPair(hash, len)), new DateTime(100L), srcFile);
+
+    byte[] data2 = new byte[len];
+    random.nextBytes(data2);
+
+    Files.write(tgtFile, data2);
+
+    assertThrows(StorageManagerException.class, () -> storageManager.rebuildFile(srcFile, tgtFile));
+
+    Files.delete(tgtFile);
+
+    storageManager.rebuildFile(srcFile, tgtFile);
+
+    byte[] reconstructed = Files.readAllBytes(tgtFile);
+
+    Assertions.assertEquals(data.length, reconstructed.length);
+    Assertions.assertArrayEquals(data, reconstructed);
+
+    Files.delete(tgtFile);
+
+    storageManager.removeFile(srcFile, new DateTime(200L));
+    storageManager.cleanStorage(new DateTime(250L));
     storageManager.clearProtectedShards();
     storageManager.collectGarbage();
   }

@@ -151,6 +151,10 @@ public class StorageManager {
    */
   private void rebuildFile(Path originalPath, Path destPath, FileVersion fileVersion) throws StorageManagerException {
     logger.info("Rebuilding file [{}] - Destination [{}]", originalPath, destPath);
+    if(destPath.toFile().exists()) {
+      logger.warn("Asked to reconstruct onto existing file [{}]. Stopping.", destPath);
+      throw new StorageManagerException("Asked to reconstruct onto existing file. Please delete first.");
+    }
     try (
             FileOutputStream fos = new FileOutputStream(destPath.toFile());
             BufferedOutputStream bus = new BufferedOutputStream(fos)
