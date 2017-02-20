@@ -130,6 +130,8 @@ class BackupManagerTest {
     byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data1, recoveredFile1);
 
+    Files.delete(recoveryDest);
+
     backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
     byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data2, recoveredFile2);
@@ -158,6 +160,8 @@ class BackupManagerTest {
     backupManager.recoverFile(testFile1, recoveryDest, dateTime1);
     byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data1, recoveredFile1);
+
+    Files.delete(recoveryDest);
 
     backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
     byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
@@ -206,6 +210,9 @@ class BackupManagerTest {
     byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data1, recoveredFile1);
 
+    Files.delete(recoveryDest);
+
+
     backupManager.trimStorage();
 
     assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
@@ -215,15 +222,17 @@ class BackupManagerTest {
     byte[] recoveredFile3 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data3, recoveredFile3);
 
+    Files.delete(recoveryDest);
+
     backupManager.recoverFile(testFile3, recoveryDest, dateTime4);
     byte[] recoveredFile4 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data4, recoveredFile4);
 
+    Files.delete(recoveryDest);
+
     backupManager.recoverFile(testFile2, recoveryDest, dateTime5);
     byte[] recoveredFile5 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data5, recoveredFile5);
-
-    Thread.sleep(1500);
   }
 
   @AfterEach
