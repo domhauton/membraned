@@ -38,16 +38,15 @@ public class WanGateway implements Closeable {
               portForwardingInfo.getLocalPort(),
               gatewayDevice.getLocalAddress().getHostAddress(),
               portForwardingInfo.getPortType().toString(),
-              "Membrane Transport Mapping",
               portForwardingInfo.getTimeout().toStandardSeconds().getSeconds());
 
       // If successful save for refresh and ping the callback.
 
       if(success) {
         mappedPorts.add(portForwardingInfo);
-        logger.info("Successfully added port mapping {}:{}->{} on {}",
-                portForwardingInfo.getPortType(), portForwardingInfo.getExternalPort(),
-                portForwardingInfo.getLocalPort(), gatewayDevice.getFriendlyName());
+        logger.info("Successfully added/refreshed port mapping {}:L{}->R{} on {}",
+                portForwardingInfo.getPortType(), portForwardingInfo.getLocalPort(),
+                portForwardingInfo.getExternalPort(), gatewayDevice.getFriendlyName());
 
         // The external address call can error. This could be dealt with more sensibly.
 
@@ -79,9 +78,9 @@ public class WanGateway implements Closeable {
               portForwardingInfo.getPortType().toString());
       if(success) {
         mappedPorts.remove(portForwardingInfo);
-        logger.info("Successfully removed port mapping {}:{}->{} on {}",
-                portForwardingInfo.getPortType(), portForwardingInfo.getExternalPort(),
-                portForwardingInfo.getLocalPort(), gatewayDevice.getFriendlyName());
+        logger.info("Successfully removed port mapping {}:L{}->R{} on {}",
+                portForwardingInfo.getPortType(), portForwardingInfo.getLocalPort(),
+                portForwardingInfo.getExternalPort(), gatewayDevice.getFriendlyName());
       } else {
         throw new IOException("Failed to unmap port");
       }
@@ -99,6 +98,7 @@ public class WanGateway implements Closeable {
   }
 
   public void close() {
+    logger.info("Removing port mappings for {}", gatewayDevice.getFriendlyName());
     mappedPorts.forEach(this::removePortMapping);
   }
 
@@ -109,12 +109,12 @@ public class WanGateway implements Closeable {
 
     WanGateway that = (WanGateway) o;
 
-    return gatewayDevice != null ? gatewayDevice.equals(that.gatewayDevice) : that.gatewayDevice == null;
+    return gatewayDevice != null ? gatewayDevice.getLocalAddress().equals(that.gatewayDevice.getLocalAddress()) : that.gatewayDevice == null;
   }
 
   @Override
   public int hashCode() {
-    return gatewayDevice != null ? gatewayDevice.hashCode() : 0;
+    return gatewayDevice != null ? gatewayDevice.getLocalAddress().hashCode() : 0;
   }
 
   /**
@@ -125,14 +125,10 @@ public class WanGateway implements Closeable {
    * @param internalPort   the internal port associated with the new mapping
    * @param internalClient the internal client associated with the new mapping
    * @param protocol       the protocol associated with the new mapping
-   * @param description    the mapping description
    * @return true if the mapping was successfully added, false otherwise
-   * @throws IOException
-   * @throws SAXException
    */
-  private boolean addPortMapping(int externalPort, int internalPort,
-                                String internalClient, String protocol,
-                                String description, int leaseDuration)
+  private boolean addPortMapping(int externalPort, int internalPort, String internalClient,
+                                 String protocol, int leaseDuration)
           throws IOException, SAXException {
     Map<String, String> args = new LinkedHashMap<>();
     args.put("NewRemoteHost", "");    // wildcard, any remote host matches
@@ -141,7 +137,7 @@ public class WanGateway implements Closeable {
     args.put("NewInternalPort", Integer.toString(internalPort));
     args.put("NewInternalClient", internalClient);
     args.put("NewEnabled", Integer.toString(1));
-    args.put("NewPortMappingDescription", description);
+    args.put("NewPortMappingDescription", "Membrane Transport Mapping");
     args.put("NewLeaseDuration", Integer.toString(leaseDuration));
 
     Map<String, String> nameValue = GatewayDevice.simpleUPnPcommand(

@@ -248,6 +248,7 @@ public class BackupManager implements Closeable {
     logger.info("Shutdown - Stopping Restful Interface.");
     restfulApiManager.close();
     logger.info("Shutdown - Complete");
+    LogManager.shutdown();
   }
 
   /**

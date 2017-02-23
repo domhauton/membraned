@@ -44,7 +44,7 @@ public class PortForwardingController {
   }
 
   void discoverDevices() {
-      logger.info("Scanning for new gateways.");
+    logger.debug("Scanning for new gateways.");
     try {
       Set<WanGateway> detectedGateways = discover.discover().values()
               .stream()
@@ -52,7 +52,7 @@ public class PortForwardingController {
               .peek(this::addDevice)
               .collect(Collectors.toSet());
 
-      logger.info("Detected {} gateways during scan.", detectedGateways.size());
+      logger.trace("Detected {} gateways during scan.", detectedGateways.size());
 
       Set<WanGateway> removedGateways = gateways.stream()
               .filter(gateway -> !detectedGateways.contains(gateway))
@@ -60,7 +60,7 @@ public class PortForwardingController {
               .collect(Collectors.toSet());
 
       gateways.removeAll(removedGateways);
-    } catch (IOException |SAXException | ParserConfigurationException e) {
+    } catch (IOException | SAXException | ParserConfigurationException e) {
       logger.error("Failed to scan for new gateways. Error: {}", e.getMessage());
     }
   }
@@ -75,7 +75,7 @@ public class PortForwardingController {
   }
 
   private void addDevice(WanGateway newGateway) {
-    if(!gateways.contains(newGateway)) {
+    if (!gateways.contains(newGateway)) {
       logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
       mappings.forEach(mappings -> newGateway.addPortMapping(mappings, 20));

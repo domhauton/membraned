@@ -72,12 +72,12 @@ public class DistributedManager implements Closeable {
   }
 
   public void close() {
+    portForwardingServiceOptional.ifPresent(PortForwardingService::close);
     try {
-      this.storageManager.close();
+      storageManager.close();
     } catch (StorageManagerException e) {
       logger.fatal("Could not close storage manager correctly. Unrecoverable. {}", e.getMessage());
     }
-    portForwardingServiceOptional.ifPresent(PortForwardingService::close);
     connectionManager.close();
   }
 }
