@@ -22,8 +22,6 @@
     <orderEntry type="library" name="Gradle: io.vertx:vertx-web:3.4.0.Beta1" level="project" />
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcprov-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcpkix-jdk15on:1.56" level="project" />
-    <orderEntry type="library" name="Gradle: com.offbynull.portmapper:portmapper:2.0.5" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-slf4j-impl:2.7" level="project" />
     <orderEntry type="library" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.jupiter:junit-jupiter-api:5.0.0-M3" level="project" />
     <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.0" level="project" />
@@ -45,9 +43,6 @@
     <orderEntry type="library" name="Gradle: io.netty:netty-resolver:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-resolver-dns:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: io.vertx:vertx-auth-common:3.4.0.Beta1" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.commons:commons-lang3:3.4" level="project" />
-    <orderEntry type="library" name="Gradle: commons-io:commons-io:2.5" level="project" />
-    <orderEntry type="library" name="Gradle: org.slf4j:slf4j-api:1.7.21" level="project" />
     <orderEntry type="library" name="Gradle: org.opentest4j:opentest4j:1.0.0-M1" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-commons:1.0.0-M3" level="project" />
     <orderEntry type="library" name="Gradle: net.bytebuddy:byte-buddy:1.6.5" level="project" />
@@ -56,8 +51,8 @@
     <orderEntry type="library" name="Gradle: com.github.jnr:jffi:1.2.10" level="project" />
     <orderEntry type="library" name="Gradle: com.github.jnr:jffi:native:1.2.10" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm:5.0.3" level="project" />
-    <orderEntry type="library" name="Gradle: org.ow2.asm:asm-commons:5.0.3" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.platform:junit-platform-engine:1.0.0-M3" level="project" />
+    <orderEntry type="library" name="Gradle: org.ow2.asm:asm-commons:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-analysis:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-tree:5.0.3" level="project" />
     <orderEntry type="library" name="Gradle: org.ow2.asm:asm-util:5.0.3" level="project" />

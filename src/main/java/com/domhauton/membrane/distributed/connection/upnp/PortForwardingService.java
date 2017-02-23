@@ -1,25 +1,30 @@
 package com.domhauton.membrane.distributed.connection.upnp;
 
 import org.joda.time.Period;
-import org.joda.time.PeriodType;
 
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Created by Dominic Hauton on 23/02/17.
  */
 public class PortForwardingService implements Runnable {
-  private static final Period LEASE_DURATION = new Period(5, PeriodType.minutes());
-  private static final Period GATEWAY_SCAN_FREQUENCY = new Period(1, PeriodType.minutes());
+  private static final Period LEASE_DURATION = Period.minutes(5);
+  private static final Period GATEWAY_SCAN_FREQUENCY = Period.minutes(1);
 
   private final ScheduledExecutorService scheduledExecutorService;
   private final PortForwardingController portForwardingController;
 
-  public PortForwardingService() {
+  public PortForwardingService(Consumer<ExternalAddress> externalAddressConsumer) {
     this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    portForwardingController = new PortForwardingController(LEASE_DURATION);
+    portForwardingController = new PortForwardingController(LEASE_DURATION, externalAddressConsumer);
+  }
+
+  public Set<ExternalAddress> getExternallyMappedAddresses() {
+    return portForwardingController.getExternalAddresses();
   }
 
   @Override
@@ -36,6 +41,7 @@ public class PortForwardingService implements Runnable {
   }
 
   public void close() {
+    portForwardingController.close();
     scheduledExecutorService.shutdown();
   }
 }

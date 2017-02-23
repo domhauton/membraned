@@ -77,10 +77,6 @@ dependencies{
     compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.56'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on
     compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.56'
-    // https://mvnrepository.com/artifact/com.offbynull.portmapper/portmapper
-    compile group: 'com.offbynull.portmapper', name: 'portmapper', version: '2.0.5'
-    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-slf4j-impl
-    compile group: 'org.apache.logging.log4j', name: 'log4j-slf4j-impl', version: '2.7'
 
     compile 'org.bitlet:weupnp:0.1.4'
 }

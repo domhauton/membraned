@@ -1,6 +1,5 @@
 package com.domhauton.membrane.distributed.connection.upnp;
 
-import com.offbynull.portmapper.mapper.PortType;
 import org.joda.time.Period;
 
 /**
@@ -12,7 +11,7 @@ public class PortForwardingInfo {
   private final int externalPort;
   private final Period timeout;
 
-  public PortForwardingInfo(PortType portType, int localPort, int externalPort, Period timeout) {
+  PortForwardingInfo(PortType portType, int localPort, int externalPort, Period timeout) {
     this.portType = portType;
     this.localPort = localPort;
     this.externalPort = externalPort;
@@ -43,5 +42,9 @@ public class PortForwardingInfo {
             ", externalPort=" + externalPort +
             ", timeout=" + timeout +
             '}';
+  }
+
+  enum PortType {
+    TCP, UDP
   }
 }

@@ -1,20 +1,19 @@
 package com.domhauton.membrane.distributed.connection.upnp;
 
-import com.offbynull.portmapper.PortMapperFactory;
-import com.offbynull.portmapper.gateway.Gateway;
-import com.offbynull.portmapper.gateways.network.NetworkGateway;
-import com.offbynull.portmapper.gateways.network.internalmessages.KillNetworkRequest;
-import com.offbynull.portmapper.gateways.process.ProcessGateway;
-import com.offbynull.portmapper.gateways.process.internalmessages.KillProcessRequest;
-import com.offbynull.portmapper.mapper.PortType;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bitlet.weupnp.GatewayDiscover;
 import org.joda.time.Period;
+import org.xml.sax.SAXException;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -24,75 +23,77 @@ public class PortForwardingController {
 
   private static final Logger logger = LogManager.getLogger();
 
-  private final Gateway networkGateway;
-  private final Gateway processGateway;
+  private final GatewayDiscover discover;
 
   private final LinkedList<PortForwardingInfo> mappings;
-  private final Set<GatewayService> gateways;
+  private final Set<WanGateway> gateways;
+
+  private final Set<ExternalAddress> externalAddresses;
+  private final Consumer<ExternalAddress> externalAddressConsumer;
 
   private final Period leaseTime;
 
-  PortForwardingController(Period leaseTime) {
+  PortForwardingController(Period leaseTime, Consumer<ExternalAddress> externalAddressConsumer) {
     logger.info("Creating port forwarding controller.");
     mappings = new LinkedList<>();
     gateways = new HashSet<>();
+    externalAddresses = new HashSet<>();
     this.leaseTime = leaseTime;
+    this.externalAddressConsumer = externalAddressConsumer;
 
-    networkGateway = NetworkGateway.create();
-    processGateway = ProcessGateway.create();
-    logger.trace("Successfully created forwarding controller.");
+    discover = new GatewayDiscover();
   }
 
   void discoverDevices() {
-    try{
       logger.info("Scanning for new gateways.");
-      Set<GatewayService> detectedGateways = PortMapperFactory.discover(networkGateway.getBus(), processGateway.getBus())
+    try {
+      Set<WanGateway> detectedGateways = discover.discover().values()
               .stream()
-              .map(GatewayService::new)
+              .map(gatewayDevice -> new WanGateway(gatewayDevice, this::addNewExternalAddress))
               .peek(this::addDevice)
               .collect(Collectors.toSet());
 
       logger.info("Detected {} gateways during scan.", detectedGateways.size());
 
-//      List<UpnpIgdPortMapper> upnpIgdMappers = UpnpIgdPortMapper.identify(networkGateway.getBus());
-//
-//      logger.info("Detected {} igd mappers during scan.", upnpIgdMappers.size());
-
-
-      Set<GatewayService> removedGateways = gateways.stream()
+      Set<WanGateway> removedGateways = gateways.stream()
               .filter(gateway -> !detectedGateways.contains(gateway))
-              .peek(gatewayService -> logger.info("Lost contact to gateway: {}", gatewayService.getAddress()))
+              .peek(wanGateway -> logger.info("Lost contact to gateway: {}", wanGateway.getFriendlyName()))
               .collect(Collectors.toSet());
 
       gateways.removeAll(removedGateways);
-    } catch (InterruptedException e) {
-      logger.error("Failed to detect new gateway devices: {}", e.getMessage());
+    } catch (IOException |SAXException | ParserConfigurationException e) {
+      logger.error("Failed to scan for new gateways. Error: {}", e.getMessage());
     }
   }
 
   void refreshLeases() {
-    gateways.forEach(gatewayService -> gatewayService.refreshAll(leaseTime));
+    gateways.forEach(WanGateway::refreshAll);
   }
 
-  private void addDevice(GatewayService newGateway) {
-    logger.info("Found potential new gateway: {}", newGateway.getAddress());
+  private void addNewExternalAddress(ExternalAddress externalAddress) {
+    externalAddresses.add(externalAddress);
+    externalAddressConsumer.accept(externalAddress);
+  }
 
+  private void addDevice(WanGateway newGateway) {
     if(!gateways.contains(newGateway)) {
-      logger.info("Found new gateway: {}", newGateway.getAddress());
+      logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
       mappings.forEach(newGateway::addPortMapping);
     }
   }
 
+  public Set<ExternalAddress> getExternalAddresses() {
+    return ImmutableSet.copyOf(externalAddresses);
+  }
+
   public void close() {
-    gateways.forEach(GatewayService::close);
-    networkGateway.getBus().send(new KillNetworkRequest());
-    processGateway.getBus().send(new KillProcessRequest());
+    gateways.forEach(WanGateway::close);
   }
 
   public void addNATForwardingEntry(int localListeningPort, int externalListeningPort) throws UnknownHostException {
-    PortForwardingInfo portMapping = new PortForwardingInfo(PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
+    PortForwardingInfo portMapping = new PortForwardingInfo(PortForwardingInfo.PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
     mappings.add(portMapping);
-    gateways.forEach(gatewayService -> gatewayService.addPortMapping(portMapping));
+    gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping));
   }
 }
