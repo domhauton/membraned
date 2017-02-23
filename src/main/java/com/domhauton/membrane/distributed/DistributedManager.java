@@ -1,10 +1,12 @@
 package com.domhauton.membrane.distributed;
 
+import com.domhauton.membrane.config.items.DistributedStorageConfig;
 import com.domhauton.membrane.distributed.auth.AuthException;
 import com.domhauton.membrane.distributed.auth.AuthUtils;
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
 import com.domhauton.membrane.distributed.connection.ConnectionException;
 import com.domhauton.membrane.distributed.connection.ConnectionManager;
+import com.domhauton.membrane.distributed.connection.upnp.PortForwardingService;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
@@ -13,6 +15,7 @@ import org.apache.logging.log4j.Logger;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * Created by Dominic Hauton on 18/02/17.
@@ -20,15 +23,23 @@ import java.nio.file.Path;
 public class DistributedManager implements Closeable {
   private final Logger logger = LogManager.getLogger();
 
+  private final Optional<PortForwardingService> portForwardingServiceOptional;
   private final ConnectionManager connectionManager;
-  private final MembraneAuthInfo membraneAuthInfo;
   private final boolean monitorMode;
+
 
   private StorageManager storageManager;
 
-  public DistributedManager(Path authInfoPath, int port, boolean monitorMode) throws DistributedException, ConnectionException {
-    membraneAuthInfo = loadAuthInfo(authInfoPath);
-    connectionManager = new ConnectionManager(membraneAuthInfo, port);
+
+  public DistributedManager(Path authInfoPath, boolean monitorMode, DistributedStorageConfig config) throws DistributedException, ConnectionException {
+    MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
+    connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
+
+    portForwardingServiceOptional =  config.isNatForwardingEnabled() ?
+            Optional.of(new PortForwardingService(x -> {})) : Optional.empty();
+    portForwardingServiceOptional.ifPresent(
+            service -> service.addNewMapping(config.getTransportPort(), config.getExternalTransportPort()));
+    portForwardingServiceOptional.ifPresent(PortForwardingService::run);
     this.monitorMode = monitorMode;
   }
 
@@ -66,6 +77,7 @@ public class DistributedManager implements Closeable {
     } catch (StorageManagerException e) {
       logger.fatal("Could not close storage manager correctly. Unrecoverable. {}", e.getMessage());
     }
+    portForwardingServiceOptional.ifPresent(PortForwardingService::close);
     connectionManager.close();
   }
 }

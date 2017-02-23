@@ -74,7 +74,7 @@ public class BackupManager implements Closeable {
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      distributedManager = new DistributedManager(configPath.getParent(), config.getDistributedStorage().getTransportPort(), monitorMode);
+      distributedManager = new DistributedManager(configPath.getParent(), monitorMode, config.getDistributedStorage());
       restfulApiManager.start();
       distributedManager.setStorageManager(distributedStorageManager);
     } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | DistributedException e) {
