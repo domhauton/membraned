@@ -27,6 +27,10 @@ public class PortForwardingService implements Runnable {
     return portForwardingController.getExternalAddresses();
   }
 
+  public void addNewMapping(int internalPort, int externalPort) {
+    portForwardingController.addNATForwardingEntry(internalPort, externalPort);
+  }
+
   @Override
   public void run() {
     scheduledExecutorService.scheduleWithFixedDelay(portForwardingController::refreshLeases,

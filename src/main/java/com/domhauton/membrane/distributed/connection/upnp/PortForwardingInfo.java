@@ -34,6 +34,10 @@ public class PortForwardingInfo {
     return timeout;
   }
 
+  PortForwardingInfo getNextExternalPort() {
+    return new PortForwardingInfo(portType, localPort, externalPort+1, timeout);
+  }
+
   @Override
   public String toString() {
     return "PortForwardingInfo{" +

@@ -9,7 +9,6 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -79,11 +78,11 @@ public class PortForwardingController {
     if(!gateways.contains(newGateway)) {
       logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
-      mappings.forEach(newGateway::addPortMapping);
+      mappings.forEach(mappings -> newGateway.addPortMapping(mappings, 20));
     }
   }
 
-  public Set<ExternalAddress> getExternalAddresses() {
+  Set<ExternalAddress> getExternalAddresses() {
     return ImmutableSet.copyOf(externalAddresses);
   }
 
@@ -91,7 +90,7 @@ public class PortForwardingController {
     gateways.forEach(WanGateway::close);
   }
 
-  public void addNATForwardingEntry(int localListeningPort, int externalListeningPort) throws UnknownHostException {
+  void addNATForwardingEntry(int localListeningPort, int externalListeningPort) {
     PortForwardingInfo portMapping = new PortForwardingInfo(PortForwardingInfo.PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
     mappings.add(portMapping);
     gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping));

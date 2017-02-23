@@ -1,5 +1,6 @@
 package com.domhauton.membrane.restful.responses;
 
+import com.domhauton.membrane.restful.responses.config.DistributedConfigREST;
 import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.restful.responses.config.StorageConfigREST;
 import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
@@ -12,10 +13,10 @@ public class MembraneRestConfig implements MembraneResponse {
 
   private WatcherConfigREST watcherConfig;
   private StorageConfigREST localStorageConfig;
-  private StorageConfigREST distributedStorageConfig;
+  private DistributedConfigREST distributedStorageConfig;
   private RestAPIConfig restAPIConfig;
 
-  public MembraneRestConfig(WatcherConfigREST watcherConfigREST, StorageConfigREST localStorageConfig, StorageConfigREST distributedStorageConfig, RestAPIConfig restAPIConfig) {
+  public MembraneRestConfig(WatcherConfigREST watcherConfigREST, StorageConfigREST localStorageConfig, DistributedConfigREST distributedStorageConfig, RestAPIConfig restAPIConfig) {
     this.watcherConfig = watcherConfigREST;
     this.localStorageConfig = localStorageConfig;
     this.distributedStorageConfig = distributedStorageConfig;
@@ -30,7 +31,7 @@ public class MembraneRestConfig implements MembraneResponse {
     return localStorageConfig;
   }
 
-  public StorageConfigREST getDistributedStorage() {
+  public DistributedConfigREST getDistributedStorage() {
     return distributedStorageConfig;
   }
 

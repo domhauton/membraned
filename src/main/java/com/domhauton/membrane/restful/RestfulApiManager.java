@@ -7,6 +7,7 @@ import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.*;
 import com.domhauton.membrane.restful.requests.WatchFolderChange;
 import com.domhauton.membrane.restful.responses.*;
+import com.domhauton.membrane.restful.responses.config.DistributedConfigREST;
 import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.restful.responses.config.StorageConfigREST;
 import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
@@ -150,7 +151,7 @@ public class RestfulApiManager implements Closeable {
     Config config = backupManager.getConfig();
     RestAPIConfig restAPIConfig = new RestAPIConfig(config.getRest());
     StorageConfigREST localStorageConfig = new StorageConfigREST(config.getLocalStorage());
-    StorageConfigREST distributedStorageConfig = new StorageConfigREST(config.getDistributedStorage());
+    DistributedConfigREST distributedStorageConfig = new DistributedConfigREST(config.getDistributedStorage());
     WatcherConfigREST watcherConfigREST = new WatcherConfigREST(config.getWatcher());
     MembraneRestConfig membraneRestConfig = new MembraneRestConfig(watcherConfigREST, localStorageConfig, distributedStorageConfig, restAPIConfig);
     logger.info("Sending config status to {}", routingContext.request().remoteAddress().host());
@@ -213,7 +214,9 @@ public class RestfulApiManager implements Closeable {
             membraneRestConfig.getDistributedStorage().getTrimFrequency(),
             membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
             membraneRestConfig.getDistributedStorage().getHardStorageCap(),
-            new DistributedStorageConfig().getTransportPort()); //FIXME Getting the default TP
+            membraneRestConfig.getDistributedStorage().getTransportPort(),
+            membraneRestConfig.getDistributedStorage().getExternalTransportPort(),
+            membraneRestConfig.getDistributedStorage().isNatForwardingEnabled());
 
     RestConfig restConfig = new RestConfig();
 

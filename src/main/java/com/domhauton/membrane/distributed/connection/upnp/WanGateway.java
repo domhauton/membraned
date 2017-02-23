@@ -29,7 +29,7 @@ public class WanGateway implements Closeable {
     this.externalAddressConsumer = externalAddressConsumer;
   }
 
-  void addPortMapping(PortForwardingInfo portForwardingInfo) {
+  boolean addPortMapping(PortForwardingInfo portForwardingInfo) {
     try {
       // Try to add the mapping to the gateway device
 
@@ -54,12 +54,23 @@ public class WanGateway implements Closeable {
         ExternalAddress externalAddress =
                 new ExternalAddress(gatewayDevice.getExternalIPAddress(), portForwardingInfo.getExternalPort());
         externalAddressConsumer.accept(externalAddress);
+        return true;
       } else {
         throw new IOException("Failed to map port");
       }
     } catch (SAXException | IOException e) {
       logger.error("Port mapping on {} failed. {}. Error: {}", gatewayDevice.getFriendlyName(), portForwardingInfo, e.getMessage());
+      return false;
     }
+  }
+
+  boolean addPortMapping(PortForwardingInfo portForwardingInfo, int attempts) {
+    boolean successful = false;
+    for(int i = 0; i < attempts && !successful; i++) {
+      successful = addPortMapping(portForwardingInfo);
+      portForwardingInfo = portForwardingInfo.getNextExternalPort();
+    }
+    return successful;
   }
 
   private void removePortMapping(PortForwardingInfo portForwardingInfo) {
