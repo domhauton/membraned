@@ -1,117 +1,98 @@
 package com.domhauton.membrane.distributed.connection.upnp;
 
+import com.offbynull.portmapper.PortMapperFactory;
+import com.offbynull.portmapper.gateway.Gateway;
+import com.offbynull.portmapper.gateways.network.NetworkGateway;
+import com.offbynull.portmapper.gateways.network.internalmessages.KillNetworkRequest;
+import com.offbynull.portmapper.gateways.process.ProcessGateway;
+import com.offbynull.portmapper.gateways.process.internalmessages.KillProcessRequest;
+import com.offbynull.portmapper.mapper.PortType;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.fourthline.cling.model.meta.Device;
-import org.fourthline.cling.model.meta.Service;
-import org.fourthline.cling.model.types.*;
-import org.fourthline.cling.registry.DefaultRegistryListener;
-import org.fourthline.cling.registry.Registry;
-import org.fourthline.cling.support.model.PortMapping;
 import org.joda.time.Period;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
  * Created by Dominic Hauton on 22/02/17.
  */
-public class PortForwardingController extends DefaultRegistryListener {
+public class PortForwardingController {
 
   private static final Logger logger = LogManager.getLogger();
 
-  private static final DeviceType IGD_DEVICE_TYPE = new UDADeviceType("InternetGatewayDevice", 1);
-  private static final DeviceType CONNECTION_DEVICE_TYPE = new UDADeviceType("WANConnectionDevice", 1);
+  private final Gateway networkGateway;
+  private final Gateway processGateway;
 
-  private static final ServiceType IP_SERVICE_TYPE = new UDAServiceType("WANIPConnection", 1);
-  private static final ServiceType PPP_SERVICE_TYPE = new UDAServiceType("WANPPPConnection", 1);
-
-  private final LinkedList<PortMapping> mappings;
-  private final LinkedList<GatewayService> gatewayServices;
+  private final LinkedList<PortForwardingInfo> mappings;
+  private final Set<GatewayService> gateways;
 
   private final Period leaseTime;
 
   PortForwardingController(Period leaseTime) {
-    super();
+    logger.info("Creating port forwarding controller.");
     mappings = new LinkedList<>();
-    gatewayServices = new LinkedList<>();
+    gateways = new HashSet<>();
     this.leaseTime = leaseTime;
+
+    networkGateway = NetworkGateway.create();
+    processGateway = ProcessGateway.create();
+    logger.trace("Successfully created forwarding controller.");
   }
 
-  @Override
-  synchronized public void deviceAdded(Registry registry, Device device) {
+  void discoverDevices() {
+    try{
+      logger.info("Scanning for new gateways.");
+      Set<GatewayService> detectedGateways = PortMapperFactory.discover(networkGateway.getBus(), processGateway.getBus())
+              .stream()
+              .map(GatewayService::new)
+              .peek(this::addDevice)
+              .collect(Collectors.toSet());
 
-    logger.info("Discovered new gateway device: {}", device.getDisplayString());
+      logger.info("Detected {} gateways during scan.", detectedGateways.size());
 
-    Optional<Service> connectionServiceOptional = discoverConnectionService(device);
-    if (connectionServiceOptional.isPresent()) {
-      Service connectionService = connectionServiceOptional.get();
-      logger.trace("Activating port mappings on: {}", connectionService.getDevice().getDisplayString());
-      GatewayService gatewayService = new GatewayService(registry, connectionService);
-      gatewayServices.add(gatewayService);
+//      List<UpnpIgdPortMapper> upnpIgdMappers = UpnpIgdPortMapper.identify(networkGateway.getBus());
+//
+//      logger.info("Detected {} igd mappers during scan.", upnpIgdMappers.size());
 
-      mappings.forEach(gatewayService::addPortMapping);
+
+      Set<GatewayService> removedGateways = gateways.stream()
+              .filter(gateway -> !detectedGateways.contains(gateway))
+              .peek(gatewayService -> logger.info("Lost contact to gateway: {}", gatewayService.getAddress()))
+              .collect(Collectors.toSet());
+
+      gateways.removeAll(removedGateways);
+    } catch (InterruptedException e) {
+      logger.error("Failed to detect new gateway devices: {}", e.getMessage());
     }
-  }
-
-  @Override
-  synchronized public void deviceRemoved(Registry registry, Device device) {
-    Set<Service> gatewayServiceSet = gatewayServices.stream()
-            .map(GatewayService::getService)
-            .collect(Collectors.toSet());
-
-
-    Arrays.stream(device.findServices())
-            .filter(gatewayServiceSet::contains)
-            .forEach(service ->
-                    logger.warn("Device disappeared, couldn't delete active port mappings on: {}",
-                            service.getDevice().getDisplayString()));
-  }
-
-  @Override
-  synchronized public void beforeShutdown(Registry registry) {
-    gatewayServices.forEach(GatewayService::close);
-  }
-
-  private Optional<Service> discoverConnectionService(Device device) {
-
-    Device[] connectionDevices = device.findDevices(CONNECTION_DEVICE_TYPE);
-
-    boolean isIGDevice = device.getType().equals(IGD_DEVICE_TYPE);
-    boolean hasConnectionDevice = connectionDevices.length >= 1;
-
-    if (isIGDevice && hasConnectionDevice) {
-      Device connectionDevice = connectionDevices[0];
-      logger.trace("Using first discovered WAN connection device: " + connectionDevice);
-
-      Service connectionService = connectionDevice.findService(IP_SERVICE_TYPE);
-      connectionService = connectionService != null ?
-              connectionService : connectionDevice.findService(PPP_SERVICE_TYPE);
-      return Optional.ofNullable(connectionService);
-    } else {
-      return Optional.empty();
-    }
-  }
-
-  public void addNATForwardingEntry(int localListeningPort, int externalListeningPort) throws UnknownHostException {
-    PortMapping portMapping = new PortMapping(true,
-            new UnsignedIntegerFourBytes(leaseTime.toStandardSeconds().getSeconds()),
-            null,
-            new UnsignedIntegerTwoBytes(externalListeningPort),
-            new UnsignedIntegerTwoBytes(localListeningPort),
-            InetAddress.getLocalHost().toString(),
-            PortMapping.Protocol.TCP,
-            "Membrane Transport Port");
-    mappings.add(portMapping);
-    gatewayServices.forEach(gatewayService -> gatewayService.addPortMapping(portMapping));
   }
 
   void refreshLeases() {
-    gatewayServices.forEach(GatewayService::refreshAll);
+    gateways.forEach(gatewayService -> gatewayService.refreshAll(leaseTime));
+  }
+
+  private void addDevice(GatewayService newGateway) {
+    logger.info("Found potential new gateway: {}", newGateway.getAddress());
+
+    if(!gateways.contains(newGateway)) {
+      logger.info("Found new gateway: {}", newGateway.getAddress());
+      gateways.add(newGateway);
+      mappings.forEach(newGateway::addPortMapping);
+    }
+  }
+
+  public void close() {
+    gateways.forEach(GatewayService::close);
+    networkGateway.getBus().send(new KillNetworkRequest());
+    processGateway.getBus().send(new KillProcessRequest());
+  }
+
+  public void addNATForwardingEntry(int localListeningPort, int externalListeningPort) throws UnknownHostException {
+    PortForwardingInfo portMapping = new PortForwardingInfo(PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
+    mappings.add(portMapping);
+    gateways.forEach(gatewayService -> gatewayService.addPortMapping(portMapping));
   }
 }
