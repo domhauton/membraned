@@ -89,9 +89,9 @@ dependencies{
 
 dependencies {
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-    testcompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M3'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M3'
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
-    testcompile group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
     // https://mvnrepository.com/artifact/org.mockito/mockito-core
-    testcompile group: 'org.mockito', name: 'mockito-core', version: '2.7.11'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.11'
 }
