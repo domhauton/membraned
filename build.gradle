@@ -10,9 +10,6 @@ buildscript {
 repositories {
     mavenCentral()
     jcenter()
-    maven {
-        url 'http://4thline.org/m2'
-    }
 }
 
 ext.junit4Version        = '4.12'
@@ -57,13 +54,12 @@ junitPlatform {
 }
 
 dependencies{
+    // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.7'
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.dataformat/jackson-dataformat-yaml
     compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.8.6'
-    compile group: 'com.fasterxml.jackson.core', name: "jackson-databind", version: '2.8.6'
-
-    compile 'com.google.jimfs:jimfs:1.1'
-    compile 'com.github.serceman:jnr-fuse:0.3.1'
-
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.8.6'
     // https://mvnrepository.com/artifact/com.google.guava/guava
     compile group: 'com.google.guava', name: 'guava', version: '21.0'
     // https://mvnrepository.com/artifact/joda-time/joda-time
@@ -72,13 +68,23 @@ dependencies{
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
     // https://mvnrepository.com/artifact/io.vertx/vertx-core
     compile group: 'io.vertx', name: 'vertx-core', version: '3.4.0.Beta1'
+    // https://mvnrepository.com/artifact/io.vertx/vertx-web
     compile group: 'io.vertx', name: 'vertx-web', version: '3.4.0.Beta1'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.56'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on
     compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.56'
+    // https://mvnrepository.com/artifact/org.bitlet/weupnp
+    compile group: 'org.bitlet', name: 'weupnp', version: '0.1.4'
 
-    compile 'org.bitlet:weupnp:0.1.4'
+    // https://mvnrepository.com/artifact/javax.jmdns/jmdns
+    // compile group: 'javax.jmdns', name: 'jmdns', version: '3.4.1'
+
+    // https://mvnrepository.com/artifact/com.google.jimfs/jimfs
+    // compile group: 'com.google.jimfs', name: 'jimfs', version: '1.1'
+
+    // https://bintray.com/serce/maven/jnr-fuse
+    // compile 'com.github.serceman:jnr-fuse:0.3.1'
 }
 
 dependencies {
