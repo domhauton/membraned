@@ -36,8 +36,7 @@ script:
   - java -version
   - ./gradlew -version
   - ./gradlew --refresh-dependencies clean check -Dscan
-  - ./gradlew check
-  - ./gradlew jacocoTestReport
 
 after_success:
-  - bash <(curl -s https://codecov.io/bash)
+  - ./gradlew --stacktrace junitPlatformJacocoReport && cp build/jacoco/xml/jacoco.xml jacoco.xml || echo "Code coverage failed"
+  - bash <(curl -s https://codecov.io/bash) || echo "Codecov did not collect coverage reports"

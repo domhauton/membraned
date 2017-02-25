@@ -12,8 +12,6 @@ repositories {
     jcenter()
 }
 
-ext.junit4Version        = '4.12'
-ext.junitVintageVersion  = '4.12.0-M3'
 ext.junitPlatformVersion = '1.0.0-M3'
 ext.junitJupiterVersion  = '5.0.0-M3'
 ext.log4jVersion         = '2.7'
@@ -36,29 +34,49 @@ compileTestJava {
 }
 
 junitPlatform {
-    // platformVersion '1.0.0-M3'
+    platformVersion '1.0.0-M3'
     filters {
         engines {
-            // include 'junit-jupiter', 'junit-vintage'
-            // exclude 'custom-engine'
+            include 'junit-jupiter'
         }
         tags {
             // include 'fast'
             exclude 'slow'
         }
-        // includeClassNamePattern '.*Test'
     }
-    // enableStandardTestTask true
-    // reportsDir file('build/test-results/junit-platform') // this is the default
+    reportsDir file('build/test-results')
 
-    // logManager 'org.apache.logging.log4j.jul.LogManager'
+    enableStandardTestTask false
 }
 
-jacocoTestReport {
-    reports {
-        xml.enabled true
-        html.enabled false
+project.afterEvaluate {
+    def junitPlatformTestTask = project.tasks.getByName('junitPlatformTest')
+
+    // configure jacoco to analyze the junitPlatformTest task
+    jacoco {
+        // this tool version is compatible with
+        toolVersion = "0.7.6.201602180812"
+        applyTo junitPlatformTestTask
     }
+
+    // create junit platform jacoco task
+    project.task(type: JacocoReport, "junitPlatformJacocoReport",
+            {
+                sourceDirectories = files("./src/main")
+                classDirectories = files("$buildDir/classes/main")
+                executionData junitPlatformTestTask
+
+                reports {
+                    xml.enabled true
+                    xml.destination "${buildDir}/jacoco/report.xml"
+                    html.enabled true
+                    html.destination "${buildDir}/jacoco/html"
+                }
+
+                doLast {
+                    println "Jacoco report for client created: file://${reports.xml.destination.toURI().path}"
+                }
+            })
 }
 
 dependencies{
