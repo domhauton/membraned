@@ -8,6 +8,10 @@ import com.domhauton.membrane.restful.requests.FileID;
 import com.domhauton.membrane.restful.requests.WatchFolderChange;
 import com.domhauton.membrane.restful.responses.MembraneRestConfig;
 import com.domhauton.membrane.storage.StorageManagerException;
+import com.domhauton.membrane.storage.catalogue.JournalEntry;
+import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
+import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.impl.RoutingContextImpl;
@@ -362,6 +366,25 @@ class RestfulApiManagerTest {
     String requestBody = objectMapper.writeValueAsString(fileID);
 
     when(routingContext.getBodyAsString()).thenReturn(requestBody);
+
+    when(backupManager.getFileHistory(Paths.get(fileID.getFilepath())))
+            .thenReturn(Arrays.asList(
+                    new JournalEntry(DateTime.now(),
+                            new FileVersion(
+                                    Arrays.asList(
+                                            new MD5HashLengthPair("statarstarst", 20),
+                                            new MD5HashLengthPair("asrtdatsrdqa", 20)),
+                                    DateTime.now()
+                            ), FileOperation.ADD,
+                            Paths.get(fileID.getFilepath())),
+                    new JournalEntry(DateTime.now(),
+                            new FileVersion(
+                                    Arrays.asList(
+                                            new MD5HashLengthPair("statarstarst", 20),
+                                            new MD5HashLengthPair("arstasrdttsa", 22)),
+                                    DateTime.now()
+                            ), FileOperation.ADD,
+                            Paths.get(fileID.getFilepath()))));
 
     restfulApiManager.getFileHistory(routingContext);
 
