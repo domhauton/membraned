@@ -1,5 +1,6 @@
 package com.domhauton.membrane.restful.responses;
 
+import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.restful.responses.config.DistributedConfigREST;
 import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
 import com.domhauton.membrane.restful.responses.config.StorageConfigREST;
@@ -11,31 +12,33 @@ import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
 @SuppressWarnings("CanBeFinal")
 public class MembraneRestConfig implements MembraneResponse {
 
-  private WatcherConfigREST watcherConfig;
-  private StorageConfigREST localStorageConfig;
-  private DistributedConfigREST distributedStorageConfig;
-  private RestAPIConfig restAPIConfig;
+  private WatcherConfigREST watcher;
+  private StorageConfigREST localStorage;
+  private DistributedConfigREST distributedStorage;
+  private RestAPIConfig restAPI;
 
-  public MembraneRestConfig(WatcherConfigREST watcherConfigREST, StorageConfigREST localStorageConfig, DistributedConfigREST distributedStorageConfig, RestAPIConfig restAPIConfig) {
-    this.watcherConfig = watcherConfigREST;
-    this.localStorageConfig = localStorageConfig;
-    this.distributedStorageConfig = distributedStorageConfig;
-    this.restAPIConfig = restAPIConfig;
+  private MembraneRestConfig() {} // Jackson ONLY
+
+  public MembraneRestConfig(Config config) {
+    this.restAPI = new RestAPIConfig(config.getRest());
+    this.localStorage = new StorageConfigREST(config.getLocalStorage());
+    this.distributedStorage = new DistributedConfigREST(config.getDistributedStorage());
+    this.watcher = new WatcherConfigREST(config.getWatcher());
   }
 
   public WatcherConfigREST getWatcher() {
-    return watcherConfig;
+    return watcher;
   }
 
   public StorageConfigREST getLocalStorage() {
-    return localStorageConfig;
+    return localStorage;
   }
 
   public DistributedConfigREST getDistributedStorage() {
-    return distributedStorageConfig;
+    return distributedStorage;
   }
 
   public RestAPIConfig getRestAPI() {
-    return restAPIConfig;
+    return restAPI;
   }
 }

@@ -5,12 +5,9 @@ import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.*;
+import com.domhauton.membrane.restful.requests.FileID;
 import com.domhauton.membrane.restful.requests.WatchFolderChange;
 import com.domhauton.membrane.restful.responses.*;
-import com.domhauton.membrane.restful.responses.config.DistributedConfigREST;
-import com.domhauton.membrane.restful.responses.config.RestAPIConfig;
-import com.domhauton.membrane.restful.responses.config.StorageConfigREST;
-import com.domhauton.membrane.restful.responses.config.WatcherConfigREST;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
@@ -18,9 +15,9 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServer;
+import io.vertx.core.json.DecodeException;
 import io.vertx.core.json.Json;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
@@ -30,12 +27,9 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.Closeable;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -89,13 +83,13 @@ public class RestfulApiManager implements Closeable {
 
     httpServer.requestHandler(router::accept).listen(port, handler -> {
       startUpListener.complete(handler.succeeded());
-      if(!handler.succeeded()) {
+      if (!handler.succeeded()) {
         logger.error("REST Listener failed to start. {}", handler.cause().getMessage());
       }
     });
 
     try {
-      if(startUpListener.get(5, TimeUnit.SECONDS)) {
+      if (startUpListener.get(5, TimeUnit.SECONDS)) {
         logger.info("Listening at localhost:{}", port);
       } else {
         throw new RestfulApiException("Failed to start listener. Check if port is busy");
@@ -111,7 +105,7 @@ public class RestfulApiManager implements Closeable {
     httpServer.close();
   }
 
-  private void hostFilter(RoutingContext routingContext) {
+  void hostFilter(RoutingContext routingContext) {
     String hostIP = routingContext.request().remoteAddress().host();
     if (hostIP.equals(ALLOWED_HOST)) {
       routingContext.next();
@@ -124,41 +118,24 @@ public class RestfulApiManager implements Closeable {
     }
   }
 
-  private void rootHandler(RoutingContext routingContext) {
+  void rootHandler(RoutingContext routingContext) {
     MembraneStatus membraneStatus = backupManager.isMonitorMode() ?
             MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL;
     String version = backupManager.getVersion();
     DateTime startTime = backupManager.getStartTime();
 
     MembraneInfo runtimeInfo = new MembraneInfo(port, startTime, version, membraneStatus, "Welcome to Membrane!");
-    try {
-      String response = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(runtimeInfo);
-      logger.info("Sending response to {}", routingContext.request().remoteAddress().host());
-      routingContext.response()
-              .putHeader("content-type", "application/json")
-              .setStatusCode(200)
-              .end(response);
-    } catch (JsonProcessingException e) {
-      logger.error("Could not generate JSON ping-pong response. {}", e.getMessage());
-      routingContext.response()
-              .putHeader("content-type", "application/json")
-              .setStatusCode(500)
-              .end("Unable to generate response. Please check the logs.\n" + e.getMessage());
-    }
+    sendObject(routingContext, runtimeInfo);
   }
 
-  private void getMembraneConfig(RoutingContext routingContext) {
+  void getMembraneConfig(RoutingContext routingContext) {
     Config config = backupManager.getConfig();
-    RestAPIConfig restAPIConfig = new RestAPIConfig(config.getRest());
-    StorageConfigREST localStorageConfig = new StorageConfigREST(config.getLocalStorage());
-    DistributedConfigREST distributedStorageConfig = new DistributedConfigREST(config.getDistributedStorage());
-    WatcherConfigREST watcherConfigREST = new WatcherConfigREST(config.getWatcher());
-    MembraneRestConfig membraneRestConfig = new MembraneRestConfig(watcherConfigREST, localStorageConfig, distributedStorageConfig, restAPIConfig);
+    MembraneRestConfig membraneRestConfig = new MembraneRestConfig(config);
     logger.info("Sending config status to {}", routingContext.request().remoteAddress().host());
     sendObject(routingContext, membraneRestConfig);
   }
 
-  private void getFileWatcherStatus(RoutingContext routingContext) {
+  void getFileWatcherStatus(RoutingContext routingContext) {
     Set<String> watchedFolders = backupManager.getWatchedFolders();
     Set<String> watchedFiles = backupManager.getWatchedFiles();
     FileManagerStatus fileManagerStatus = new FileManagerStatus(watchedFolders, watchedFiles);
@@ -166,7 +143,7 @@ public class RestfulApiManager implements Closeable {
     sendObject(routingContext, fileManagerStatus);
   }
 
-  private void getStorageStatus(RoutingContext routingContext) {
+  void getStorageStatus(RoutingContext routingContext) {
     Set<Path> currentFiles = backupManager.getCurrentFiles();
     Set<Path> referencedFiles = backupManager.getReferencedFiles();
     long currentStorageSize = backupManager.getStorageSize();
@@ -191,56 +168,59 @@ public class RestfulApiManager implements Closeable {
     }
   }
 
-  private void putNewConfig(RoutingContext routingContext) {
-    final MembraneRestConfig membraneRestConfig = Json.decodeValue(routingContext.getBodyAsString(), MembraneRestConfig.class);
-
-    WatcherConfig watcherConfig = new WatcherConfig(
-            membraneRestConfig.getWatcher().getChunkSize(),
-            membraneRestConfig.getWatcher().getWatchFolders()
-                    .stream()
-                    .map(x -> new WatchFolder(x.getDirectory(), x.isRecursive()))
-                    .collect(Collectors.toList()),
-            membraneRestConfig.getWatcher().getFileRescan(),
-            membraneRestConfig.getWatcher().getFolderRescan());
-
-    LocalStorageConfig localStorageConfig = new LocalStorageConfig(
-            membraneRestConfig.getLocalStorage().getDirectory(),
-            membraneRestConfig.getLocalStorage().getTrimFrequency(),
-            membraneRestConfig.getLocalStorage().getSoftStorageCap(),
-            membraneRestConfig.getLocalStorage().getHardStorageCap());
-
-    DistributedStorageConfig distributedStorageConfig = new DistributedStorageConfig(
-            membraneRestConfig.getDistributedStorage().getDirectory(),
-            membraneRestConfig.getDistributedStorage().getTrimFrequency(),
-            membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
-            membraneRestConfig.getDistributedStorage().getHardStorageCap(),
-            membraneRestConfig.getDistributedStorage().getTransportPort(),
-            membraneRestConfig.getDistributedStorage().getExternalTransportPort(),
-            membraneRestConfig.getDistributedStorage().isNatForwardingEnabled());
-
-    RestConfig restConfig = new RestConfig();
-
-    Config config = new Config(
-            distributedStorageConfig,
-            localStorageConfig,
-            watcherConfig,
-            restConfig);
-
+  void putNewConfig(RoutingContext routingContext) {
     Path configPath = backupManager.getConfigPath();
     try {
+      MembraneRestConfig membraneRestConfig = Json.decodeValue(routingContext.getBodyAsString(), MembraneRestConfig.class);
+      WatcherConfig watcherConfig = new WatcherConfig(
+              membraneRestConfig.getWatcher().getChunkSize(),
+              membraneRestConfig.getWatcher().getWatchFolders()
+                      .stream()
+                      .map(x -> new WatchFolder(x.getDirectory(), x.isRecursive()))
+                      .collect(Collectors.toList()),
+              membraneRestConfig.getWatcher().getFileRescan(),
+              membraneRestConfig.getWatcher().getFolderRescan());
+
+      LocalStorageConfig localStorageConfig = new LocalStorageConfig(
+              membraneRestConfig.getLocalStorage().getDirectory(),
+              membraneRestConfig.getLocalStorage().getTrimFrequency(),
+              membraneRestConfig.getLocalStorage().getSoftStorageCap(),
+              membraneRestConfig.getLocalStorage().getHardStorageCap());
+
+      DistributedStorageConfig distributedStorageConfig = new DistributedStorageConfig(
+              membraneRestConfig.getDistributedStorage().getDirectory(),
+              membraneRestConfig.getDistributedStorage().getTrimFrequency(),
+              membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
+              membraneRestConfig.getDistributedStorage().getHardStorageCap(),
+              membraneRestConfig.getDistributedStorage().getTransportPort(),
+              membraneRestConfig.getDistributedStorage().getExternalTransportPort(),
+              membraneRestConfig.getDistributedStorage().isNatForwardingEnabled());
+
+      RestConfig restConfig = new RestConfig(membraneRestConfig.getRestAPI().getPort());
+
+      Config config = new Config(
+              distributedStorageConfig,
+              localStorageConfig,
+              watcherConfig,
+              restConfig);
+
       ConfigManager.saveConfig(configPath, config);
       logger.info("Successfully wrote new config.");
       routingContext.response().setStatusCode(200).end("Successfully wrote config to: " + configPath.toString());
+
+    } catch (DecodeException e) {
+      logger.warn("Failed to decode body. {}", e.getMessage());
+      routingContext.response().setStatusCode(400).end("Failed to decode request. Error: " + e.getMessage());
     } catch (ConfigException e) {
       logger.warn("Failed to write new config. {}", e.getMessage());
       routingContext.response().setStatusCode(500).end("Failed to write config to: " + configPath.toString() + "Error: " + e.getMessage());
     }
   }
 
-  private void modifyWatchFolder(RoutingContext routingContext) {
-    final WatchFolderChange watchFolderChange = Json.decodeValue(routingContext.getBodyAsString(), WatchFolderChange.class);
+  void modifyWatchFolder(RoutingContext routingContext) {
     Path configPath = backupManager.getConfigPath();
     try {
+      final WatchFolderChange watchFolderChange = Json.decodeValue(routingContext.getBodyAsString(), WatchFolderChange.class);
       if (watchFolderChange.getType() == WatchFolderChange.Type.ADD) {
         backupManager.addWatchFolder(watchFolderChange.getWatchFolder());
         logger.info("Successfully added watch folder.");
@@ -257,10 +237,13 @@ public class RestfulApiManager implements Closeable {
       routingContext.response().setStatusCode(304).end("Chance complete but failed to persist to: " + configPath.toString() + "Error: " + e.getMessage());
     } catch (IllegalArgumentException e) {
       routingContext.response().setStatusCode(400).end("Could not perform. Error: " + e.getMessage());
+    } catch (DecodeException e) {
+      logger.warn("Failed to decode body. {}", e.getMessage());
+      routingContext.response().setStatusCode(400).end("Failed to decode request. Error: " + e.getMessage());
     }
   }
 
-  private void putRequestCleanup(RoutingContext routingContext) {
+  void putRequestCleanup(RoutingContext routingContext) {
     try {
       backupManager.trimStorageAttempt();
       routingContext.response().setStatusCode(200).end("Successfully trimmed storage");
@@ -270,54 +253,39 @@ public class RestfulApiManager implements Closeable {
     }
   }
 
-  private void getFileHistory(RoutingContext routingContext) {
-    String encodedFile = routingContext.request().getParam("file");
-    if (encodedFile.isEmpty()) {
-      routingContext.response().setStatusCode(400).end("Must include file parameter.");
-    } else {
-      try {
-        String file = URLDecoder.decode(encodedFile, "UTF-8");
-        List<JournalEntry> fileHistory = backupManager.getFileHistory(Paths.get(file));
-        List<FileHistoryEntry> fileHistoryEntries = fileHistory.stream()
-                .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime().getMillis(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
-                .collect(Collectors.toList());
-        MembraneFileHistory membraneFileHistory = new MembraneFileHistory(fileHistoryEntries, file);
-        sendObject(routingContext, membraneFileHistory);
-      } catch (UnsupportedEncodingException e) {
-        logger.warn("Could not decode due to unsupported encoding UTF-8");
-        routingContext.response().setStatusCode(500).end("Could not decode argument. Error: " + e.getMessage());
-      }
+  void getFileHistory(RoutingContext routingContext) {
+    try {
+      final FileID fileID = Json.decodeValue(routingContext.getBodyAsString(), FileID.class);
+      List<JournalEntry> fileHistory = backupManager.getFileHistory(Paths.get(fileID.getFilepath()));
+      List<FileHistoryEntry> fileHistoryEntries = fileHistory.stream()
+              .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime().getMillis(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
+              .collect(Collectors.toList());
+      MembraneFileHistory membraneFileHistory = new MembraneFileHistory(fileHistoryEntries, fileID.getFilepath());
+      sendObject(routingContext, membraneFileHistory);
+    } catch (DecodeException e) {
+      logger.warn("Invalid file history request");
+      routingContext.response().setStatusCode(400).end("Could not decode argument. Error: " + e.getMessage());
     }
   }
 
-  private void reconstructFile(RoutingContext routingContext) {
-    MultiMap params = routingContext.request().params();
-    if (!params.contains("file") || !params.contains("target")) {
-      String encodedFile = params.get("file");
-      String encodedTarget = params.get("target");
-      Optional<String> dateTimeMillisOptional = params.contains("dateTime") ? Optional.of(params.get("dateTime")) : Optional.empty();
-      try {
-        Path file = Paths.get(URLDecoder.decode(encodedFile, "UTF-8"));
-        Path target = Paths.get(URLDecoder.decode(encodedTarget, "UTF-8"));
-        if (dateTimeMillisOptional.isPresent()) {
-          DateTime dateTime = new DateTime(Long.parseLong(dateTimeMillisOptional.get()));
-          backupManager.recoverFile(file, target, dateTime);
-        } else {
-          backupManager.recoverFile(file, target);
-        }
-      } catch (UnsupportedEncodingException e) {
-        logger.warn("Could not decode due to unsupported encoding UTF-8");
-        routingContext.response().setStatusCode(500).end("Could not decode argument. Error: " + e.getMessage());
-      } catch (NumberFormatException e) {
-        logger.warn("Invalid Number Format given");
-        routingContext.response().setStatusCode(400).end("Invalid dateTime received. Error: " + e.getMessage());
-      } catch (StorageManagerException e) {
-        logger.warn("Could not reconstruct file: {}. {}", encodedFile, e.getMessage());
-        routingContext.response().setStatusCode(400).end("File given. Error: " + e.getMessage());
+  void reconstructFile(RoutingContext routingContext) {
+    try {
+      final FileID fileID = Json.decodeValue(routingContext.getBodyAsString(), FileID.class);
+      Path file = Paths.get(fileID.getFilepath());
+      Path target = Paths.get(fileID.getTargetFilePath());
+      if (fileID.getDateTimeMillis() >= 0) {
+        DateTime dateTime = new DateTime(fileID.getDateTimeMillis());
+        backupManager.recoverFile(file, target, dateTime);
+      } else {
+        backupManager.recoverFile(file, target);
       }
-    } else {
-      logger.warn("Invalid file reconstruct request received. No file and target field.");
-      routingContext.response().setStatusCode(400).end("Invalid request. Must contain file and target fields.");
+      routingContext.response().setStatusCode(200).end("Successfully reconstructed file.");
+    } catch (StorageManagerException e) {
+      logger.warn("Could not reconstruct file. {}", e.getMessage());
+      routingContext.response().setStatusCode(500).end("File given. Error: " + e.getMessage());
+    } catch (DecodeException e) {
+      logger.warn("Invalid file history request");
+      routingContext.response().setStatusCode(400).end("Could not decode argument. Error: " + e.getMessage());
     }
   }
 }

@@ -9,7 +9,7 @@ public class WatchFolderChange {
   private Type type;
   private WatchFolder watchFolder;
 
-  public WatchFolderChange() {} // For Jackson
+  private WatchFolderChange() {} // For Jackson
 
   public WatchFolderChange(Type type, WatchFolder watchFolder) {
     this.type = type;

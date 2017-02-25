@@ -15,6 +15,8 @@ public class WatcherConfigREST {
   private int chunkSize;
   private List<WatchFoldersInfo> watchFolders;
 
+  private WatcherConfigREST() {} // Jackson ONLY
+
   public WatcherConfigREST(int fileRescan, int folderRescan, int chunkSize, List<WatchFoldersInfo> watchFolders) {
     this.fileRescan = fileRescan;
     this.folderRescan = folderRescan;

@@ -12,6 +12,8 @@ public class StorageConfigREST {
   private String directory;
   private int trimFrequency;
 
+  protected StorageConfigREST() {} // Jackson ONLY
+
   public StorageConfigREST(StorageConfig config) {
     softStorageCap = config.getSoftStorageLimit();
     hardStorageCap = config.getHardStorageLimit();

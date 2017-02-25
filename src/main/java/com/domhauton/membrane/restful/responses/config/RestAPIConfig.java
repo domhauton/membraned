@@ -9,6 +9,8 @@ import com.domhauton.membrane.config.items.RestConfig;
 public class RestAPIConfig {
   private int port;
 
+  private RestAPIConfig() {} // Jackson ONLY
+
   public RestAPIConfig(RestConfig restConfig) {
     port = restConfig.getPort();
   }

@@ -8,6 +8,8 @@ public class WatchFoldersInfo {
   private String directory;
   private boolean recursive;
 
+  private WatchFoldersInfo() {} // Jackson ONLY
+
   public WatchFoldersInfo(String directory, boolean recursive) {
     this.directory = directory;
     this.recursive = recursive;

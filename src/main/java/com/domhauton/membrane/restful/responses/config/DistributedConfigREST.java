@@ -10,6 +10,9 @@ public class DistributedConfigREST extends StorageConfigREST {
   private int externalTransportPort;
   private boolean natForwardingEnabled;
 
+  private DistributedConfigREST() { // Jackson ONLY
+    super();
+  }
 
   public DistributedConfigREST(DistributedStorageConfig config) {
     super(config);
