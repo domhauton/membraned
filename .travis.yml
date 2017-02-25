@@ -37,7 +37,7 @@ script:
   - ./gradlew -version
   - ./gradlew --refresh-dependencies clean check -Dscan
   - ./gradlew check
-  - ./gradlew codeCoverageReport
+  - ./gradlew jacocoTestReport
 
 after_success:
   - bash <(curl -s https://codecov.io/bash)
