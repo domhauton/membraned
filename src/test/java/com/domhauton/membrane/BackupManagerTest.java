@@ -61,8 +61,6 @@ class BackupManagerTest {
 
     recoveryDest = Paths.get(basePath + File.separator + "recoveredFile");
 
-    createTestFolders();
-
     WatchFolder watchFolder1 = new WatchFolder(fileFolder1.toString(), false);
     WatchFolder watchFolder2 = new WatchFolder(fileFolder2.getParent().toString(), true);
 
@@ -101,6 +99,7 @@ class BackupManagerTest {
 
   @Test
   void addAndRecoverFile() throws Exception {
+    createTestFolders();
     byte[] data = new byte[5 * 1024 * 1024];
     random.nextBytes(data);
     Files.write(testFile1, data);
@@ -114,6 +113,7 @@ class BackupManagerTest {
 
   @Test
   void addAndRecoverFileVersion() throws Exception {
+    createTestFolders();
     byte[] data1 = new byte[5 * 1024 * 1024];
     random.nextBytes(data1);
     Files.write(testFile1, data1);
@@ -141,6 +141,7 @@ class BackupManagerTest {
 
   @Test
   void addAndRecoverFileVersionReboot() throws Exception {
+    createTestFolders();
     byte[] data1 = new byte[5 * 1024 * 1024];
     random.nextBytes(data1);
     Files.write(testFile1, data1);
@@ -171,7 +172,53 @@ class BackupManagerTest {
   }
 
   @Test
+  void reactionToNoFolder() throws Exception {
+    Thread.sleep(1500);
+
+    createTestFolders();
+
+    Thread.sleep(1500);
+
+    byte[] data1 = new byte[5 * 1024 * 1024];
+    random.nextBytes(data1);
+    Files.write(testFile1, data1);
+    DateTime dateTime1 = DateTime.now();
+
+    Thread.sleep(1500);
+
+    deleteAllTestFilesAndFolders();
+
+    Thread.sleep(1500);
+
+    createTestFolders();
+
+    Thread.sleep(1500);
+
+    byte[] data2 = new byte[5 * 1024 * 1024];
+    random.nextBytes(data2);
+    Files.write(testFile1, data2);
+    DateTime dateTime2 = DateTime.now();
+
+    Thread.sleep(1500);
+
+    backupManager.close();
+
+    backupManager = new BackupManager(config, configPath);
+
+    backupManager.recoverFile(testFile1, recoveryDest, dateTime1);
+    byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
+    Assertions.assertArrayEquals(data1, recoveredFile1);
+
+    Files.delete(recoveryDest);
+
+    backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
+    byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
+    Assertions.assertArrayEquals(data2, recoveredFile2);
+  }
+
+  @Test
   void addAndRecoverFileVersionOverflowTest() throws Exception {
+    createTestFolders();
     byte[] data5 = new byte[5 * 1024 * 1024];
     random.nextBytes(data5);
     Files.write(testFile2, data5);
