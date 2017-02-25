@@ -56,12 +56,11 @@ public class ShardStorageImpl implements ShardStorage {
         }
       }
       try {
-        boolean success = filePath.toFile().getParentFile().mkdirs();
-        logger.debug("Created directories for [{}]: {}", filePath, success);
+        Files.createDirectories(filePath.getParent());
         Files.write(filePath, data);
         currentStorageSize += data.length;
       } catch (IOException e) {
-        logger.error("Could not store shard [{}]. {}", md5Hash, e.getMessage());
+        logger.error("Could not store shard [{}] at {}", md5Hash, e.getMessage());
         throw new ShardStorageException("Could not store shard [" + md5Hash + "]. " + e.getMessage());
       }
     }
@@ -82,7 +81,7 @@ public class ShardStorageImpl implements ShardStorage {
         return bytes;
       } else {
         logger.error("Shard corrupted. Removing [{}]", md5Hash);
-        Files.delete(filePath);
+        removeShard(md5Hash);
         throw new ShardStorageException("Shard corrupted.");
       }
     } catch (IOException e) {
@@ -154,7 +153,7 @@ public class ShardStorageImpl implements ShardStorage {
    * @param id       The id to use as a folder chain.
    * @return The path the shard should be stored under.
    */
-  private Path getPath(String rootPath, String id) {
+  Path getPath(String rootPath, String id) {
     StringBuilder currentDir = new StringBuilder().append(rootPath);
     while (id.length() > FOLDER_SPLIT_LEN) {
       currentDir.append(File.separator).append(id.substring(0, FOLDER_SPLIT_LEN));
