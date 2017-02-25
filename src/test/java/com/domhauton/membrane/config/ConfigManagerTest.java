@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 
 /**
  * Created by dominic on 23/01/17.
@@ -31,6 +32,53 @@ class ConfigManagerTest {
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
     ConfigManager.saveConfig(Paths.get(testCfgLocation), ConfigManager.loadDefaultConfig());
+    Assertions.assertTrue(Files.deleteIfExists(Paths.get(testCfgLocation)));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+  }
+
+  @Test
+  @DisplayName("Saving IO Exception works")
+  void saveConfigFails() throws Exception {
+    Files.deleteIfExists(Paths.get(testCfgLocation));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+
+    ConfigManager.saveConfig(Paths.get(testCfgLocation), ConfigManager.loadDefaultConfig());
+    Assertions.assertTrue(Paths.get(testCfgLocation).toFile().setWritable(false));
+    Assertions.assertThrows(ConfigException.class, () -> ConfigManager.saveConfig(Paths.get(testCfgLocation), ConfigManager.loadDefaultConfig()));
+    Assertions.assertTrue(Paths.get(testCfgLocation).toFile().setWritable(true));
+    Assertions.assertTrue(Files.deleteIfExists(Paths.get(testCfgLocation)));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+  }
+
+  @Test
+  @DisplayName("Loading IO Exception works")
+  void loadConfigFails() throws Exception {
+    Files.deleteIfExists(Paths.get(testCfgLocation));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+
+    ConfigManager.saveConfig(Paths.get(testCfgLocation), ConfigManager.loadDefaultConfig());
+    Assertions.assertTrue(Paths.get(testCfgLocation).toFile().setReadable(false));
+    Assertions.assertThrows(ConfigException.class, () -> ConfigManager.loadConfig(Paths.get(testCfgLocation)));
+    Assertions.assertTrue(Paths.get(testCfgLocation).toFile().setReadable(true));
+
+    Assertions.assertEquals(ConfigManager.loadDefaultConfig(), ConfigManager.loadConfig(Paths.get(testCfgLocation)));
+
+    Assertions.assertTrue(Files.deleteIfExists(Paths.get(testCfgLocation)));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+  }
+
+  @Test
+  @DisplayName("Loading invalid YAML works")
+  void loadConfigFailsYAML() throws Exception {
+    Files.deleteIfExists(Paths.get(testCfgLocation));
+    Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
+
+    ConfigManager.saveConfig(Paths.get(testCfgLocation), ConfigManager.loadDefaultConfig());
+
+    Files.write(Paths.get(testCfgLocation), "tsdatdra".getBytes(), StandardOpenOption.APPEND);
+
+    Assertions.assertThrows(ConfigException.class, () -> ConfigManager.loadConfig(Paths.get(testCfgLocation)));
+
     Assertions.assertTrue(Files.deleteIfExists(Paths.get(testCfgLocation)));
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
   }

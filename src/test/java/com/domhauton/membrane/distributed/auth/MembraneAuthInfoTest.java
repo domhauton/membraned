@@ -3,6 +3,7 @@ package com.domhauton.membrane.distributed.auth;
 import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.attribute.PosixFilePermission;
+import java.security.Security;
 import java.util.Collections;
 import java.util.stream.Stream;
 
@@ -30,6 +32,7 @@ class MembraneAuthInfoTest {
   void setUp() throws Exception {
     innerPath = Paths.get(StorageManagerTestUtils.createRandomFolder(basePath.toString()));
     logger.info("Testing in dir {}", innerPath);
+    AuthUtils.addProvider();
   }
 
   @Test
@@ -59,6 +62,14 @@ class MembraneAuthInfoTest {
     Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadCertificate(Paths.get(innerPath + File.separator + "cert")));
     Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadPrivateKey(Paths.get(innerPath + File.separator + "cert")));
     Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadPublicKey(Paths.get(innerPath + File.separator + "private")));
+  }
+
+  @Test
+  void removeSecurityProvider() throws Exception {
+    Security.removeProvider(BouncyCastleProvider.PROVIDER_NAME);
+    Assertions.assertThrows(AuthException.class, AuthUtils::generateAuthenticationInfo);
+    AuthUtils.addProvider();
+    AuthUtils.generateAuthenticationInfo();
   }
 
   @AfterEach

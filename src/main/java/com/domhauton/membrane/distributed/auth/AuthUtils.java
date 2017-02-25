@@ -40,12 +40,9 @@ public abstract class AuthUtils {
       X509Certificate x509Cert = generate(keyPair);
       logger.info("Auth info successfully generated.");
       return new MembraneAuthInfo(x509Cert, publicKey, privateKey);
-    } catch (NoSuchProviderException e) {
-      logger.error("Bouncy Castle Encryption provider not found. {}", e.getMessage());
-      throw new AuthException("Bouncy Castle Encryption provider not found.");
-    } catch (NoSuchAlgorithmException e) {
-      logger.error("Could not generate key as algo not found. {}", e.getMessage());
-      throw new AuthException("Could not write RSA key to file." + e.getMessage());
+    } catch (NoSuchProviderException | NoSuchAlgorithmException e) {
+      logger.error("Bouncy Castle Encryption provider or algo not found. {}", e.getMessage());
+      throw new AuthException("Bouncy Castle Encryption provider or RSA algo not found.");
     }
   }
 
@@ -79,24 +76,24 @@ public abstract class AuthUtils {
       X509Certificate x509Certificate = converter.getCertificate(x509Builder.build(signer));
       logger.info("Successfully generated certificate.");
       return x509Certificate;
-    } catch (OperatorCreationException e) {
-      logger.error("Could not sign certificate {}", e.getMessage());
-      throw new AuthException("Could not sign certificate. " + e.getMessage());
-    } catch (CertificateException e) {
-      logger.error("Could not create certificate. {}", e.getMessage());
-      throw new AuthException("Could not create certificate. " + e.getMessage());
+    } catch (OperatorCreationException | CertificateException e) {
+      logger.error("Could not sign/create certificate {}", e.getMessage());
+      throw new AuthException("Could not sign/create certificate. " + e.getMessage());
     }
   }
 
   private static KeyPair generateRSAKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
     logger.trace("Generating RSA pair");
+    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
+    generator.initialize(KEY_SIZE);
+    return generator.generateKeyPair();
+  }
+
+  public static void addProvider() {
     if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
       logger.trace("Adding Bouncy Castle Provider.");
       Security.addProvider(new BouncyCastleProvider());
     }
-    KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA", BouncyCastleProvider.PROVIDER_NAME);
-    generator.initialize(KEY_SIZE);
-    return generator.generateKeyPair();
   }
 
 

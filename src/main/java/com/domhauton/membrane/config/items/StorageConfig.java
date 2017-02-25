@@ -36,4 +36,26 @@ public abstract class StorageConfig {
   public int getHardStorageLimit() {
     return hardStorageLimit;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    StorageConfig that = (StorageConfig) o;
+
+    if (gcInterval != that.gcInterval) return false;
+    if (softStorageLimit != that.softStorageLimit) return false;
+    if (hardStorageLimit != that.hardStorageLimit) return false;
+    return storageFolder != null ? storageFolder.equals(that.storageFolder) : that.storageFolder == null;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = storageFolder != null ? storageFolder.hashCode() : 0;
+    result = 31 * result + gcInterval;
+    result = 31 * result + softStorageLimit;
+    result = 31 * result + hardStorageLimit;
+    return result;
+  }
 }

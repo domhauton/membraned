@@ -35,4 +35,26 @@ public class DistributedStorageConfig extends StorageConfig {
   public boolean isNatForwardingEnabled() {
     return natForwardingEnabled;
   }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    if (!super.equals(o)) return false;
+
+    DistributedStorageConfig that = (DistributedStorageConfig) o;
+
+    if (transportPort != that.transportPort) return false;
+    if (externalTransportPort != that.externalTransportPort) return false;
+    return natForwardingEnabled == that.natForwardingEnabled;
+  }
+
+  @Override
+  public int hashCode() {
+    int result = super.hashCode();
+    result = 31 * result + transportPort;
+    result = 31 * result + externalTransportPort;
+    result = 31 * result + (natForwardingEnabled ? 1 : 0);
+    return result;
+  }
 }

@@ -50,6 +50,7 @@ public class DistributedManager implements Closeable {
     } catch (AuthException e) {
       logger.warn("Could not load auth info from [{}]. Generating new auth info.", authInfoPath);
       try {
+        AuthUtils.addProvider();
         MembraneAuthInfo tmpAuthInfo = AuthUtils.generateAuthenticationInfo();
         logger.info("Storing new auth info at [{}]", authInfoPath);
         tmpAuthInfo.write(authInfoPath);

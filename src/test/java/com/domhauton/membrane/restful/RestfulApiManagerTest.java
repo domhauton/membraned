@@ -1,6 +1,7 @@
 package com.domhauton.membrane.restful;
 
 import com.domhauton.membrane.BackupManager;
+import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
@@ -43,7 +44,9 @@ class RestfulApiManagerTest {
     objectMapper = new ObjectMapper();
     backupManager = mock(BackupManager.class);
     when(backupManager.getConfigPath()).thenReturn(Paths.get("/tmp/membrane/membrane.yaml"));
-    when(backupManager.getConfig()).thenReturn(ConfigManager.loadDefaultConfig());
+    Config config =ConfigManager.loadDefaultConfig();
+    config.getWatcher().getFolders().add(new WatchFolder("/tmp/foobar", true));
+    when(backupManager.getConfig()).thenReturn(config);
     when(backupManager.getWatchedFiles())
             .thenReturn(new HashSet<>(
                     Arrays.asList("/tmp/membrane/watchfolder1/file1.txt",
