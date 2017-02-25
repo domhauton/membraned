@@ -169,7 +169,7 @@ public class BackupManager implements Closeable {
       throw new IllegalArgumentException("Watch Folder does not exist!");
     }
     fileManager.removeWatchFolder(watchFolder);
-    config.getWatcher().getFolders().add(watchFolder);
+    config.getWatcher().getFolders().remove(watchFolder);
     ConfigManager.saveConfig(configPath, config);
   }
 

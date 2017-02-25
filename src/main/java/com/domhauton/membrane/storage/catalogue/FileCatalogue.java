@@ -183,7 +183,7 @@ public class FileCatalogue {
    * @return referenced file path set
    */
   public Set<Path> getReferencedFiles() {
-    Set<Path> baseReferencedFiles = baseFileInfoMap.keySet();
+    Set<Path> baseReferencedFiles = new HashSet<>(baseFileInfoMap.keySet());
     baseReferencedFiles.addAll(storageJournal.getReferencedPaths());
     return baseReferencedFiles;
   }

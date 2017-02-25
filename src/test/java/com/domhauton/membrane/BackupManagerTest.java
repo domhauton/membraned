@@ -1,9 +1,11 @@
 package com.domhauton.membrane;
 
 import com.domhauton.membrane.config.Config;
+import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.items.*;
 import com.domhauton.membrane.storage.StorageManagerException;
 import org.joda.time.DateTime;
+import org.joda.time.Duration;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +20,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.SecureRandom;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.Random;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,6 +44,9 @@ class BackupManagerTest {
 
   private Path recoveryDest;
 
+  private WatchFolder watchFolder1;
+  private WatchFolder watchFolder2;
+
   private Random random;
 
   private BackupManager backupManager;
@@ -61,8 +67,8 @@ class BackupManagerTest {
 
     recoveryDest = Paths.get(basePath + File.separator + "recoveredFile");
 
-    WatchFolder watchFolder1 = new WatchFolder(fileFolder1.toString(), false);
-    WatchFolder watchFolder2 = new WatchFolder(fileFolder2.getParent().toString(), true);
+    watchFolder1 = new WatchFolder(fileFolder1.toString(), false);
+    watchFolder2 = new WatchFolder(fileFolder2.getParent().toString(), true);
 
     config = new Config(
             new DistributedStorageConfig(
@@ -78,9 +84,9 @@ class BackupManagerTest {
                     16,
                     30),
             new WatcherConfig(4,
-                    Arrays.asList(watchFolder1, watchFolder2),
+                    new LinkedList<>(Arrays.asList(watchFolder1, watchFolder2)),
                     1,
-                    10),
+                    1),
             new RestConfig(13200));
 
     backupManager = new BackupManager(config, configPath);
@@ -95,6 +101,11 @@ class BackupManagerTest {
   @Test
   void startAndClose() throws Exception {
     Thread.sleep(1000);
+  }
+
+  @Test
+  void forceFalseStartByLaunchingTwice() throws Exception {
+    Assertions.assertThrows(IllegalArgumentException.class, () -> new BackupManager(config, configPath));
   }
 
   @Test
@@ -190,6 +201,8 @@ class BackupManagerTest {
 
     Thread.sleep(1500);
 
+    Assertions.assertNotEquals(backupManager.getCurrentFiles(), backupManager.getReferencedFiles());
+
     createTestFolders();
 
     Thread.sleep(1500);
@@ -250,10 +263,14 @@ class BackupManagerTest {
 
     Thread.sleep(1500);
 
+    Assertions.assertEquals(3, backupManager.getFileHistory(testFile1).size());
+
     backupManager.close();
 
     backupManager = new BackupManager(config, configPath);
     backupManager.start();
+
+    Assertions.assertEquals(backupManager.getCurrentFiles().size(), backupManager.getReferencedFiles().size());
 
     backupManager.recoverFile(testFile1, recoveryDest, dateTime1);
     byte[] recoveredFile1 = Files.readAllBytes(recoveryDest);
@@ -261,8 +278,9 @@ class BackupManagerTest {
 
     Files.delete(recoveryDest);
 
-
+    Assertions.assertEquals(5 * 5 * 1024 * 1024, backupManager.getStorageSize());
     backupManager.trimStorage();
+    Assertions.assertEquals(3 * 5 * 1024 * 1024, backupManager.getStorageSize());
 
     assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
     assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime2));
@@ -282,6 +300,52 @@ class BackupManagerTest {
     backupManager.recoverFile(testFile2, recoveryDest, dateTime5);
     byte[] recoveredFile5 = Files.readAllBytes(recoveryDest);
     Assertions.assertArrayEquals(data5, recoveredFile5);
+  }
+
+  @Test
+  void watchFolderConfigurationTest() throws Exception {
+    createTestFolders();
+    Thread.sleep(1200);
+
+    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    System.out.println(backupManager.getWatchedFolders().toString());
+    Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
+    Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
+
+    backupManager.removeWatchFolder(watchFolder1);
+
+    Thread.sleep(1200);
+
+    Assertions.assertFalse(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    Assertions.assertFalse(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
+    Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
+
+    Assertions.assertThrows(IllegalArgumentException.class, () -> backupManager.removeWatchFolder(watchFolder1));
+    backupManager.addWatchFolder(watchFolder1);
+
+    Thread.sleep(1200);
+
+    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
+    Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
+
+    Assertions.assertThrows(IllegalArgumentException.class, () -> backupManager.addWatchFolder(watchFolder1));
+
+    Assertions.assertTrue(backupManager.getConfigPath().toFile().setWritable(false));
+    Assertions.assertThrows(ConfigException.class, () -> backupManager.removeWatchFolder(watchFolder1));
+    Assertions.assertThrows(ConfigException.class, () -> backupManager.addWatchFolder(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfigPath().toFile().setWritable(true));
+    Files.delete(backupManager.getConfigPath());
+  }
+
+  @Test
+  void backupManagerInfoTest() throws Exception {
+    Assertions.assertEquals("1.0.0-alpha.1", backupManager.getVersion());
+    Assertions.assertFalse(backupManager.isMonitorMode());
+    Assertions.assertTrue(new Duration(backupManager.getStartTime(), DateTime.now()).toStandardSeconds().getSeconds() < 10);
   }
 
   @AfterEach
