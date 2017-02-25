@@ -2,7 +2,7 @@ package com.domhauton.membrane.distributed.connection;
 
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
-import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.messaging.messages.PeerMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

@@ -1,13 +1,19 @@
 package com.domhauton.membrane.distributed.messaging.messages;
 
-import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.DistributedManager;
 
 /**
  * Created by dominic on 12/02/17.
  */
-public class PingMessage implements PeerMessage {
+public class PingMessage extends PeerMessage {
+  private PingMessage() {} // For Jackson only!
+
+  public PingMessage(String sender, String recipient, String version) {
+    super(sender, recipient, version);
+  }
+
   @Override
-  public byte[] getBytes() {
-    return "PING".getBytes();
+  void executeAction(DistributedManager distributedManager) {
+
   }
 }

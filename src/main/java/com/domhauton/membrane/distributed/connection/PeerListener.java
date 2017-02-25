@@ -3,7 +3,7 @@ package com.domhauton.membrane.distributed.connection;
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
-import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.messaging.messages.PeerMessage;
 import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ClientAuth;

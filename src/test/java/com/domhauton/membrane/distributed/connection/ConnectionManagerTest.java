@@ -4,10 +4,8 @@ import com.domhauton.membrane.distributed.auth.AuthUtils;
 import com.domhauton.membrane.distributed.auth.MembraneAuthInfo;
 import com.domhauton.membrane.distributed.connection.peer.Peer;
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
-import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.messaging.messages.PeerMessage;
 import com.domhauton.membrane.distributed.messaging.messages.PingMessage;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +18,10 @@ import java.util.function.Consumer;
  * Created by dominic on 13/02/17.
  */
 class ConnectionManagerTest {
-  private Logger logger = LogManager.getLogger();
+  private static final String TEST_SENDER = "user1";
+  private static final String TEST_RECIPIENT = "user2";
+  private static final String TEST_VERSION = "T1.0.0-nonprod.1";
+
 
   private MembraneAuthInfo membraneAuthInfo1;
   private MembraneAuthInfo membraneAuthInfo2;
@@ -72,7 +73,7 @@ class ConnectionManagerTest {
     CompletableFuture<Peer> con1PeerCallback = new CompletableFuture<>();
     con1PeerCallback.thenAccept(x -> {
       try {
-        x.sendPeerMessage(new PingMessage());
+        x.sendPeerMessage(new PingMessage(TEST_SENDER, TEST_RECIPIENT, TEST_VERSION));
       } catch (PeerException e) {
         throw new Error(e);
       }
@@ -81,7 +82,7 @@ class ConnectionManagerTest {
     CompletableFuture<Peer> con2PeerCallback = new CompletableFuture<>();
     con2PeerCallback.thenAccept(x -> {
       try {
-        x.sendPeerMessage(new PingMessage());
+        x.sendPeerMessage(new PingMessage(TEST_SENDER, TEST_RECIPIENT, TEST_VERSION));
       } catch (PeerException e) {
         throw new Error(e);
       }

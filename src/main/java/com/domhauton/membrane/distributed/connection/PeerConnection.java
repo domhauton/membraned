@@ -1,8 +1,9 @@
 package com.domhauton.membrane.distributed.connection;
 
 import com.domhauton.membrane.distributed.connection.peer.PeerException;
-import com.domhauton.membrane.distributed.messaging.PeerMessage;
+import com.domhauton.membrane.distributed.messaging.PeerMessageException;
 import com.domhauton.membrane.distributed.messaging.PeerMessageUtils;
+import com.domhauton.membrane.distributed.messaging.messages.PeerMessage;
 import com.google.common.hash.Hashing;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.net.NetSocket;
@@ -73,18 +74,29 @@ public class PeerConnection {
    * @throws PeerException If message buffer was full.
    */
   public void sendMessage(PeerMessage peerMessage) throws PeerException {
-    Buffer writeBuffer = Buffer.buffer(peerMessage.getBytes());
-    if (!netSocket.writeQueueFull()) {
-      logger.trace("Sending data from client [{}]: ", clientID, peerMessage);
-      netSocket.write(writeBuffer);
-    } else {
-      throw new PeerException("Write queue was full.");
+    try {
+      Buffer writeBuffer = Buffer.buffer(PeerMessageUtils.message2Bytes(peerMessage));
+      if (!netSocket.writeQueueFull()) {
+        logger.trace("Sending data from client [{}]: ", clientID, peerMessage);
+        netSocket.write(writeBuffer);
+      } else {
+        throw new PeerException("Write queue was full.");
+      }
+    } catch (PeerMessageException e) {
+      logger.error("Could not send message. Problem converting to JSON. {}", e.getMessage());
+      throw new PeerException("Could not send message. Problem converting to JSON. " + e.getMessage());
     }
+
   }
 
   private void messageHandler(Buffer buffer) {
-    PeerMessage peerMessage = PeerMessageUtils.parseMessage(buffer.getBytes());
-    messageConsumer.accept(peerMessage);
+    try{
+      PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());
+      //FIXME Check ID is correct
+      messageConsumer.accept(peerMessage);
+    } catch (PeerMessageException e) {
+      logger.error("Could not receive message. Problem converting from JSON. IGNORING. {}", e.getMessage());
+    }
   }
 
   public String getIP() {
