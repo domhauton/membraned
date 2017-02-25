@@ -17,10 +17,18 @@ import java.nio.file.Paths;
 import java.util.Optional;
 
 class Main {
-  public static void main(String[] args) {
-    Logger logger = LogManager.getLogger();
-    logger.info("Starting Membrane");
+  private static Logger logger = LogManager.getLogger();
 
+  public static void main(String[] args) {
+    logger.info("Starting Membrane");
+    try {
+      start(args);
+    } catch (Exception e) {
+      System.exit(1);
+    }
+  }
+
+  static BackupManager start(String[] args) throws IllegalArgumentException, ConfigException {
     String arg;
     char flag;
     int verboseLogging = 0;
@@ -31,16 +39,17 @@ class Main {
       arg = args[i];
 
       switch (arg) {
-        case "-verbose":
+        case "--verbose":
           verboseLogging++;
           break;
-        case "-config":
+        case "--config":
         case "-c":
           i++;
-          if (i < args.length)
+          if (i < args.length) {
             configFile = Optional.of(args[i++]);
-          else
+          } else {
             logger.error("-config requires a filename");
+          }
           break;
         default:
           for (int j = 1; j < arg.length(); j++) {
@@ -55,12 +64,10 @@ class Main {
                 break;
               case 'c':
                 logger.error("-c requires a filename");
-                System.exit(0);
-                break;
+                throw new IllegalArgumentException("-c requires a filename");
               default:
                 logger.error("Illegal commandline option " + flag);
-                System.exit(0);
-                break;
+                throw new IllegalArgumentException("Illegal commandline option " + flag);
             }
           }
           break;
@@ -83,20 +90,24 @@ class Main {
     Path configPath = configFile.isPresent() ? Paths.get(configFile.get()) : getDefaultConfigLocation();
     logger.info("Using config [{}]", configPath);
     logger.debug("Verbose logging enabled.");
-    logger.debug("Trace logging enabled.");
+    logger.trace("Trace logging enabled.");
 
     try {
       Config config = configPath.toFile().exists() ? ConfigManager.loadConfig(configPath) : ConfigManager.loadDefaultConfig();
       BackupManager backupManager = new BackupManager(config, configPath, demoMode);
       backupManager.registerShutdownHook();
       backupManager.start();
+      return backupManager;
     } catch (ConfigException e) {
       logger.fatal("Unable to load config [{}]. Refusing to start up.", configPath);
+      throw e;
     } catch (IllegalArgumentException e) {
       logger.fatal("Failed to startup with given config. {}", e.toString());
+      throw e;
     } catch (Exception e) {
       e.printStackTrace();
       logger.fatal("An unknown error occurred. {}", e.getMessage());
+      throw e;
     }
   }
 

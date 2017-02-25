@@ -332,7 +332,7 @@ class RestfulApiManagerTest {
   @Test
   void testSuccessfulCleanupRequest() throws Exception {
     RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
-    HttpServerResponse httpServerResponse = routingContext.response();;
+    HttpServerResponse httpServerResponse = routingContext.response();
 
     restfulApiManager.putRequestCleanup(routingContext);
 
