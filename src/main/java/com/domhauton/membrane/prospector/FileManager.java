@@ -88,7 +88,7 @@ public class FileManager {
    */
   public void addExistingFile(Path path, DateTime dateTime, List<MD5HashLengthPair> md5HashLengthPairs) {
     logger.debug("Adding existing file to file manager: [{}]", path);
-    FileMetadata fileMetadata = new FileMetadataBuilder(path.toString(), dateTime)
+    FileMetadata fileMetadata = new FileMetadataBuilder(dateTime)
             .addShardData(md5HashLengthPairs)
             .build();
     managedFiles.put(path.toString(), fileMetadata);
@@ -201,7 +201,7 @@ public class FileManager {
     try (
             FileInputStream inputStream = new FileInputStream(file)
     ) {
-      FileMetadataBuilder fileMetadataBuilder = new FileMetadataBuilder(path.toString(), fileLastModified);
+      FileMetadataBuilder fileMetadataBuilder = new FileMetadataBuilder(fileLastModified);
       for (int chunkSize = inputStream.read(buffer); chunkSize != -1; chunkSize = inputStream.read(buffer)) {
         byte[] tailoredArray;
         if (buffer.length != chunkSize) {

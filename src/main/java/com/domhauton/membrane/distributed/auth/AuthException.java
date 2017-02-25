@@ -4,7 +4,11 @@ package com.domhauton.membrane.distributed.auth;
  * Created by dominic on 11/02/17.
  */
 public class AuthException extends Exception {
-  public AuthException(String s) {
+  AuthException(String s) {
     super(s);
+  }
+
+  AuthException(String s, Throwable throwable) {
+    super(s, throwable);
   }
 }

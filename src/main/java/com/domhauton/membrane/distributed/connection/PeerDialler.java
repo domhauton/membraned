@@ -46,7 +46,6 @@ class PeerDialler {
     NetClientOptions options = new NetClientOptions()
             .setLogActivity(true)
             .setPemKeyCertOptions(pemKeyCertOptions)
-            .setTrustAll(true)
             .setTrustOptions(membraneAuthInfo.getTrustOptions())
             .setSsl(true)
             .setConnectTimeout(10000)

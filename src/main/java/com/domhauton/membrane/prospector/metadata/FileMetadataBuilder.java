@@ -11,12 +11,10 @@ import java.util.List;
  * Created by dominic on 30/01/17.
  */
 public class FileMetadataBuilder {
-  private final String fullPath;
   private DateTime modifiedTime;
   private final List<MD5HashLengthPair> md5HashLengthPairs;
 
-  public FileMetadataBuilder(String fullPath, DateTime modifiedTime) {
-    this.fullPath = fullPath;
+  public FileMetadataBuilder(DateTime modifiedTime) {
     this.modifiedTime = modifiedTime;
     md5HashLengthPairs = new LinkedList<>();
   }
@@ -34,8 +32,7 @@ public class FileMetadataBuilder {
   }
 
   public FileMetadata build() {
-    DateTime accessTime = DateTime.now();
-    modifiedTime = modifiedTime == null ? accessTime : modifiedTime;
-    return new FileMetadata(fullPath, modifiedTime, accessTime, md5HashLengthPairs);
+    modifiedTime = modifiedTime == null ? DateTime.now() : modifiedTime;
+    return new FileMetadata(modifiedTime, md5HashLengthPairs);
   }
 }

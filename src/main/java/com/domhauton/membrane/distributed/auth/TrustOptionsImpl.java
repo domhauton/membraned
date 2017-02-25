@@ -29,7 +29,7 @@ class TrustOptionsImpl implements TrustOptions {
    * @throws NoSuchAlgorithmException
    *                  If no Provider supports a KeyPairGeneratorSpi implementation for the specified algorithm.
    */
-  public TrustOptionsImpl(Supplier<TrustManager[]> trustManagerSupplier, String algorithm) throws NoSuchAlgorithmException {
+  TrustOptionsImpl(Supplier<TrustManager[]> trustManagerSupplier, String algorithm) throws NoSuchAlgorithmException {
     trustManagerFactory = new DummyTrustManagerFactory(trustManagerSupplier, algorithm);
   }
 

@@ -47,6 +47,20 @@ class MembraneAuthInfoTest {
     Assertions.assertEquals(membraneAuthInfo, membraneAuthInfoLoaded);
   }
 
+  @Test
+  void genSaveFail() throws Exception {
+    MembraneAuthInfo membraneAuthInfo = AuthUtils.generateAuthenticationInfo();
+    membraneAuthInfo.write(innerPath);
+    Assertions.assertThrows(IOException.class, () -> membraneAuthInfo.write(innerPath));
+  }
+
+  @Test
+  void readFail() throws Exception {
+    Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadCertificate(Paths.get(innerPath + File.separator + "cert")));
+    Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadPrivateKey(Paths.get(innerPath + File.separator + "cert")));
+    Assertions.assertThrows(AuthException.class, () -> AuthFileUtils.loadPublicKey(Paths.get(innerPath + File.separator + "private")));
+  }
+
   @AfterEach
   void tearDown() throws Exception {
     Path authPath = Paths.get(innerPath.toString() + MembraneAuthInfo.INNER_PATH);

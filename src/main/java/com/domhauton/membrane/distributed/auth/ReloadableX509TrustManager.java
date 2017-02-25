@@ -7,9 +7,7 @@ import org.apache.logging.log4j.Logger;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
@@ -73,10 +71,9 @@ class ReloadableX509TrustManager implements X509TrustManager {
 
   private void reloadTrustManager() throws AuthException {
     logger.debug("Reloading cert trust store with {} temp certs", tempCertList.size());
-    // load keystore from specified cert store (or default)
-    try (InputStream is = keystorePath != null ? new FileInputStream(keystorePath.toString()) : null) {
+    try {
       KeyStore ts = KeyStore.getInstance(KeyStore.getDefaultType());
-      ts.load(is, null);
+      ts.load(null, null);
       for (Certificate cert : tempCertList) {
         ts.setCertificateEntry(UUID.randomUUID().toString(), cert);
       }
@@ -87,18 +84,9 @@ class ReloadableX509TrustManager implements X509TrustManager {
               .map((TrustManager trustManager) -> (X509TrustManager) trustManager)
               .findAny()
               .orElseThrow(() -> new NoSuchAlgorithmException("No X509TrustManager in TrustManagerFactory"));
-    } catch (IOException e) {
-      logger.error("Could not find trust store. {}", e.getMessage());
-      throw new AuthException("Could not find trust store. " + e.getMessage());
-    } catch (CertificateException e) {
-      logger.error("Failed to parse certificate. {}", e.getMessage());
-      throw new AuthException("Failed to parse certificate. " + e.getMessage());
-    } catch (NoSuchAlgorithmException e) {
-      logger.error("Failed to find new certificate manager. {}", e.getMessage());
-      throw new AuthException("Failed to find new certificate manager. " + e.getMessage());
-    } catch (KeyStoreException e) {
-      logger.error("Could not load keystore. {}", e.getMessage());
-      throw new AuthException("Could not load keystore. " + e.getMessage());
+    } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException e) {
+      logger.error("Failed to reload trust store {}", e.getMessage());
+      throw new AuthException("Could not reload trust store. " + e.getMessage(), e);
     }
   }
 
