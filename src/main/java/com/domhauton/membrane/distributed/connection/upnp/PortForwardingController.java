@@ -44,7 +44,7 @@ public class PortForwardingController {
   }
 
   void discoverDevices() {
-    logger.debug("Scanning for new gateways.");
+    logger.debug("Scanning for new gateways. Currently {} tracked", gateways.size());
     try {
       Set<WanGateway> detectedGateways = discover.discover().values()
               .stream()
@@ -69,12 +69,12 @@ public class PortForwardingController {
     gateways.forEach(WanGateway::refreshAll);
   }
 
-  private void addNewExternalAddress(ExternalAddress externalAddress) {
+  void addNewExternalAddress(ExternalAddress externalAddress) {
     externalAddresses.add(externalAddress);
     externalAddressConsumer.accept(externalAddress);
   }
 
-  private void addDevice(WanGateway newGateway) {
+  void addDevice(WanGateway newGateway) {
     if (!gateways.contains(newGateway)) {
       logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
