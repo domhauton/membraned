@@ -1,6 +1,7 @@
 package com.domhauton.membrane.restful;
 
 import com.domhauton.membrane.BackupManager;
+import com.domhauton.membrane.MembraneBuild;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
@@ -121,10 +122,9 @@ public class RestfulApiManager implements Closeable {
   void rootHandler(RoutingContext routingContext) {
     MembraneStatus membraneStatus = backupManager.isMonitorMode() ?
             MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL;
-    String version = backupManager.getVersion();
     DateTime startTime = backupManager.getStartTime();
 
-    MembraneInfo runtimeInfo = new MembraneInfo(port, startTime, version, membraneStatus, "Welcome to Membrane!");
+    MembraneInfo runtimeInfo = new MembraneInfo(port, startTime, MembraneBuild.VERSION, membraneStatus, "Welcome to Membrane!");
     sendObject(routingContext, runtimeInfo);
   }
 

@@ -39,7 +39,6 @@ public class BackupManager implements Closeable {
   private final Config config;
   private final Path configPath;
   private final DateTime startTime;
-  private final static String VERSION = "1.0.0-alpha.1";
 
   private final FileManager fileManager;
   private final boolean monitorMode;
@@ -210,10 +209,6 @@ public class BackupManager implements Closeable {
 
   public DateTime getStartTime() {
     return startTime;
-  }
-
-  public String getVersion() {
-    return VERSION;
   }
 
   public boolean isMonitorMode() {

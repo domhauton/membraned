@@ -80,8 +80,13 @@ public class ConnectionManager implements Closeable {
     peerDialler.dialClient(ip, port);
   }
 
-  public int getListeningPort() {
-    return peerListener.getPort();
+  public Peer getPeerConnection(String peerId) throws ConnectionException {
+    Peer peer = peerConnections.getOrDefault(peerId, null);
+    if (peer != null) {
+      return peer;
+    } else {
+      throw new ConnectionException("Unable to find peer " + peerId);
+    }
   }
 
   public synchronized void registerNewPeerCallback(Consumer<Peer> consumer) {

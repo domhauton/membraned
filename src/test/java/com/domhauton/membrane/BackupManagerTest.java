@@ -343,7 +343,6 @@ class BackupManagerTest {
 
   @Test
   void backupManagerInfoTest() throws Exception {
-    Assertions.assertEquals("1.0.0-alpha.1", backupManager.getVersion());
     Assertions.assertFalse(backupManager.isMonitorMode());
     Assertions.assertTrue(new Duration(backupManager.getStartTime(), DateTime.now()).toStandardSeconds().getSeconds() < 10);
   }

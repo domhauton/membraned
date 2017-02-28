@@ -7,6 +7,10 @@ buildscript {
     }
 }
 
+plugins {
+    id 'de.fuerstenau.buildconfig' version '1.1.8'
+}
+
 repositories {
     mavenCentral()
     jcenter()
@@ -22,9 +26,12 @@ apply plugin: 'idea'
 apply plugin: 'jacoco'
 apply plugin: 'org.junit.platform.gradle.plugin'
 
+project.version = '1.0.0-alpha.1'
+project.group = 'com.domhauton.membrane'
+
 jar {
-    baseName = 'membraned'
-    version = '1.0.0-alpha.1'
+    baseName = 'membrane-daemon'
+    version = project.version
 }
 
 compileTestJava {
@@ -122,4 +129,11 @@ dependencies {
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.11'
     // https://mvnrepository.com/artifact/io.vertx/vertx-codegen
     testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.0.Beta1'
+}
+
+buildConfig {
+    appName = project.name          // sets value of NAME field
+    version = project.version       // sets value of VERSION field
+    packageName = project.group
+    clsName = 'MembraneBuild'       // sets the name of the BuildConfig class
 }

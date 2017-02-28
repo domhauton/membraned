@@ -1,6 +1,6 @@
 package com.domhauton.membrane.distributed.messaging.messages;
 
-import com.domhauton.membrane.distributed.DistributedManager;
+import com.domhauton.membrane.distributed.messaging.PeerMessageActions;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
@@ -32,7 +32,7 @@ public abstract class PeerMessage {
     return version;
   }
 
-  abstract void executeAction(DistributedManager distributedManager);
+  abstract void executeAction(PeerMessageActions peerMessageActions);
 
   @Override
   public boolean equals(Object o) {

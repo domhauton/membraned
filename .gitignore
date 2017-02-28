@@ -30,3 +30,4 @@ out/
 ## Plugin-specific files:
 # Sensitive or high-churn files:
 # User-specific stuff:
+/.classpath

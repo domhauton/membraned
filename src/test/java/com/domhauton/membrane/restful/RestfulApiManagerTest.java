@@ -116,7 +116,6 @@ class RestfulApiManagerTest {
     when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
 
     when(backupManager.isMonitorMode()).thenReturn(true);
-    when(backupManager.getVersion()).thenReturn("UNIT-TEST");
     when(backupManager.getStartTime()).thenReturn(DateTime.now());
 
     restfulApiManager.rootHandler(routingContext);
