@@ -1,5 +1,6 @@
 package com.domhauton.membrane.distributed.auth;
 
+import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bouncycastle.asn1.x500.X500Name;
@@ -13,9 +14,12 @@ import org.bouncycastle.operator.OperatorCreationException;
 import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder;
 import org.joda.time.DateTime;
 
+import javax.security.cert.CertificateEncodingException;
+import java.io.ByteArrayInputStream;
 import java.math.BigInteger;
 import java.security.*;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -94,6 +98,16 @@ public abstract class AuthUtils {
       logger.trace("Adding Bouncy Castle Provider.");
       Security.addProvider(new BouncyCastleProvider());
     }
+  }
+
+  public synchronized static X509Certificate convertToX509Cert(javax.security.cert.Certificate certificate) throws CertificateEncodingException, CertificateException {
+    CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+    ByteArrayInputStream bais = new ByteArrayInputStream(certificate.getEncoded());
+    return (X509Certificate) certificateFactory.generateCertificate(bais);
+  }
+
+  public static String certToPeerId(X509Certificate x509Certificate) {
+    return Hashing.sha256().hashBytes(x509Certificate.getPublicKey().getEncoded()).toString();
   }
 
 

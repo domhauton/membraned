@@ -118,6 +118,10 @@ public class MembraneAuthInfo {
     return x509CertificateEncoded;
   }
 
+  public String getClientId() {
+    return AuthUtils.certToPeerId(x509Certificate);
+  }
+
   X509Certificate getX509Certificate() {
     return x509Certificate;
   }

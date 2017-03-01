@@ -10,6 +10,9 @@ import java.io.Closeable;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.concurrent.*;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 /**
@@ -24,6 +27,8 @@ public class ConnectionManager implements Closeable {
   private final PeerDialler peerDialler;
 
   private final ConcurrentHashMap<String, Peer> peerConnections;
+  private final Lock peerConnectionLock = new ReentrantLock();
+  private final Condition peerConnectionChangeOccurred = peerConnectionLock.newCondition();
 
   private final Collection<Consumer<Peer>> newPeerJoinedCallbacks;
   private final Collection<Consumer<PeerMessage>> newPeerMessageCallbacks;
@@ -57,6 +62,7 @@ public class ConnectionManager implements Closeable {
    * Add a new peer when connected. Ensures any previous connection is terminated.
    */
   private synchronized void addPeer(Peer peer) {
+    peerConnectionLock.lock();
     Peer oldConnection = peerConnections.get(peer.getUid());
     if (oldConnection != null) {
       logger.info("Peer Connection - Removing connection to peer [{}]", peer.getUid());
@@ -64,6 +70,8 @@ public class ConnectionManager implements Closeable {
     }
     logger.info("Peer Connection - New Peer Connection Established [{}]", peer.getUid());
     peerConnections.put(peer.getUid(), peer);
+    peerConnectionChangeOccurred.signalAll();
+    peerConnectionLock.unlock();
     newPeerJoinedCallbacks.forEach(x -> x.accept(peer));
   }
 
@@ -80,24 +88,80 @@ public class ConnectionManager implements Closeable {
     peerDialler.dialClient(ip, port);
   }
 
-  public Peer getPeerConnection(String peerId) throws ConnectionException {
-    Peer peer = peerConnections.getOrDefault(peerId, null);
-    if (peer != null) {
-      return peer;
-    } else {
-      throw new ConnectionException("Unable to find peer " + peerId);
+  /**
+   * Return peer within timeout or error.
+   *
+   * @param peerId   The id of the peer to retrieve
+   * @param timeout  Time to wait in @timeUnit
+   * @param timeUnit Unit of time to wait
+   * @return A peer. Best effort actually connected peer.
+   * @throws TimeoutException If the peer could not be found in the given time.
+   */
+  public Peer getPeerConnection(String peerId, long timeout, TimeUnit timeUnit) throws TimeoutException {
+    logger.trace("Retrieving peer connection {}. Timeout: {} {}", peerId, timeout, timeUnit);
+    try {
+      Peer peer = CompletableFuture.supplyAsync(() -> getPeerConnection(peerId)).get(timeout, timeUnit);
+      if (peer != null) {
+        return peer;
+      } else {
+        throw new InterruptedException("Interrupted before correct peer retrieved");
+      }
+    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+      logger.warn("Could not find peer {} in {} {}. Cancelling.", peerId, timeout, timeUnit);
+      throw new TimeoutException("Unable to find peer " + peerId);
     }
+
   }
 
-  public synchronized void registerNewPeerCallback(Consumer<Peer> consumer) {
+  /**
+   * Return peer or block for new connections if not already
+   *
+   * @return returns peer unless interrupted. Returns null otherwise
+   */
+  private Peer getPeerConnection(String peerId) {
+    peerConnectionLock.lock();
+    Peer peer = peerConnections.getOrDefault(peerId, null);
+
+    // Clear up a closed connection.
+
+    if (peer != null && peer.isClosed()) {
+      peerConnections.remove(peerId);
+      peer = null;
+    }
+
+    // Wait until a peer turns up. Check if it's the peer we are waiting for.
+
+    try {
+      while (peer == null) {
+        // Unlock and wait for a change in peers.
+
+        peerConnectionChangeOccurred.await();
+        peer = peerConnections.getOrDefault(peerId, null);
+
+        // Clear up a closed connection.
+
+        if (peer != null && peer.isClosed()) {
+          peerConnections.remove(peerId);
+          peer = null;
+        }
+      }
+    } catch (InterruptedException e) {
+      logger.warn("Interrupted while waiting for peer [{}]", peerId);
+    } finally {
+      peerConnectionLock.unlock();
+    }
+    return peer;
+  }
+
+  synchronized void registerNewPeerCallback(Consumer<Peer> consumer) {
     newPeerJoinedCallbacks.add(consumer);
   }
 
-  public synchronized void registerMessageCallback(Consumer<PeerMessage> peerMessageConsumer) {
+  synchronized void registerMessageCallback(Consumer<PeerMessage> peerMessageConsumer) {
     newPeerMessageCallbacks.add(peerMessageConsumer);
   }
 
-  public Collection<Peer> getAllConnectedPeers() {
+  Collection<Peer> getAllConnectedPeers() {
     return peerConnections.values();
   }
 
@@ -107,6 +171,11 @@ public class ConnectionManager implements Closeable {
   public void close() {
     logger.info("Closing Connection Manager.");
     peerListener.close();
+    peerConnectionLock.lock();
     peerConnections.values().forEach(Peer::close);
+    peerConnectionChangeOccurred.signalAll();
+    peerConnectionLock.unlock();
   }
+
+
 }
