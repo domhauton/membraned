@@ -29,50 +29,62 @@ public class WanGateway implements Closeable {
     this.externalAddressConsumer = externalAddressConsumer;
   }
 
-  boolean addPortMapping(PortForwardingInfo portForwardingInfo) {
+  /**
+   * Sends request to gateway to add mapping.
+   *
+   * @param portForwardingInfo Port forwarding info to add.
+   * @param force              Add mapping to object regardless of reported success
+   * @return True if successful
+   */
+  boolean addPortMapping(PortForwardingInfo portForwardingInfo, boolean force) {
+    boolean success = false;
     try {
       // Try to add the mapping to the gateway device
 
-      boolean success = addPortMapping(
+      success = addPortMapping(
               portForwardingInfo.getExternalPort(),
               portForwardingInfo.getLocalPort(),
               gatewayDevice.getLocalAddress().getHostAddress(),
               portForwardingInfo.getPortType().toString(),
               portForwardingInfo.getTimeout().toStandardSeconds().getSeconds());
 
-      // If successful save for refresh and ping the callback.
-
-      if(success) {
+      // If successful or forced save for refresh and ping the callback.
+      if (!success) {
+        throw new IOException("Failed to map port");
+      }
+    } catch (SAXException | IOException e) {
+      logger.error("Port mapping on {} failed. {}. Error: {}", gatewayDevice.getFriendlyName(), portForwardingInfo, e.getMessage());
+    } finally {
+      if (success || force) {
         mappedPorts.add(portForwardingInfo);
         logger.info("Successfully added/refreshed port mapping {}:L{}->R{} on {}",
                 portForwardingInfo.getPortType(), portForwardingInfo.getLocalPort(),
                 portForwardingInfo.getExternalPort(), gatewayDevice.getFriendlyName());
 
-        // The external address call can error. This could be dealt with more sensibly.
-
-        ExternalAddress externalAddress =
-                new ExternalAddress(gatewayDevice.getExternalIPAddress(), portForwardingInfo.getExternalPort());
-        externalAddressConsumer.accept(externalAddress);
-        return true;
-      } else {
-        throw new IOException("Failed to map port");
+        try {
+          ExternalAddress externalAddress =
+                  new ExternalAddress(gatewayDevice.getExternalIPAddress(), portForwardingInfo.getExternalPort());
+          externalAddressConsumer.accept(externalAddress);
+          success = true;
+        } catch (SAXException | IOException e) {
+          logger.info("Failed to discover gateway external IP.");
+          success = false;
+        }
       }
-    } catch (SAXException | IOException e) {
-      logger.error("Port mapping on {} failed. {}. Error: {}", gatewayDevice.getFriendlyName(), portForwardingInfo, e.getMessage());
-      return false;
     }
+    return success;
   }
 
   boolean addPortMapping(PortForwardingInfo portForwardingInfo, int attempts) {
     boolean successful = false;
     for(int i = 0; i < attempts && !successful; i++) {
-      successful = addPortMapping(portForwardingInfo);
+      successful = addPortMapping(portForwardingInfo, false);
       portForwardingInfo = portForwardingInfo.getNextExternalPort();
     }
     return successful;
   }
 
-  private void removePortMapping(PortForwardingInfo portForwardingInfo) {
+  void removePortMapping(PortForwardingInfo portForwardingInfo) {
     try {
       boolean success = gatewayDevice.deletePortMapping(portForwardingInfo.getExternalPort(),
               portForwardingInfo.getPortType().toString());
@@ -90,7 +102,7 @@ public class WanGateway implements Closeable {
   }
 
   void refreshAll() {
-    mappedPorts.forEach(this::addPortMapping);
+    mappedPorts.forEach(mappedPort -> addPortMapping(mappedPort, false));
   }
 
   String getFriendlyName() {

@@ -93,6 +93,6 @@ public class PortForwardingController {
   void addNATForwardingEntry(int localListeningPort, int externalListeningPort) {
     PortForwardingInfo portMapping = new PortForwardingInfo(PortForwardingInfo.PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
     mappings.add(portMapping);
-    gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping));
+    gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping, 20));
   }
 }
