@@ -26,14 +26,6 @@ public class WatchFolder {
   }
 
   @Override
-  public String toString() {
-    return "WatchFolder{" +
-            "directory='" + directory + '\'' +
-            ", recursive=" + recursive +
-            '}';
-  }
-
-  @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;

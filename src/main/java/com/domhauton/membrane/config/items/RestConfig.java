@@ -28,9 +28,4 @@ public class RestConfig {
 
     return port == that.port;
   }
-
-  @Override
-  public int hashCode() {
-    return port;
-  }
 }

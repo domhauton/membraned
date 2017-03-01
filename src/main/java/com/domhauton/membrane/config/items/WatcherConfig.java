@@ -50,18 +50,9 @@ public class WatcherConfig {
 
     WatcherConfig that = (WatcherConfig) o;
 
-    if (chunkSizeMB != that.chunkSizeMB) return false;
-    if (fileRescanInterval != that.fileRescanInterval) return false;
-    if (folderRescanInterval != that.folderRescanInterval) return false;
-    return folders != null ? folders.equals(that.folders) : that.folders == null;
-  }
-
-  @Override
-  public int hashCode() {
-    int result = chunkSizeMB;
-    result = 31 * result + (folders != null ? folders.hashCode() : 0);
-    result = 31 * result + fileRescanInterval;
-    result = 31 * result + folderRescanInterval;
-    return result;
+    return chunkSizeMB == that.chunkSizeMB &&
+            fileRescanInterval == that.fileRescanInterval &&
+            folderRescanInterval == that.folderRescanInterval &&
+            (folders != null ? folders.equals(that.folders) : that.folders == null);
   }
 }

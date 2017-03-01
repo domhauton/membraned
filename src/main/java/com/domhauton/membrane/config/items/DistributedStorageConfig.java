@@ -44,17 +44,8 @@ public class DistributedStorageConfig extends StorageConfig {
 
     DistributedStorageConfig that = (DistributedStorageConfig) o;
 
-    if (transportPort != that.transportPort) return false;
-    if (externalTransportPort != that.externalTransportPort) return false;
-    return natForwardingEnabled == that.natForwardingEnabled;
-  }
-
-  @Override
-  public int hashCode() {
-    int result = super.hashCode();
-    result = 31 * result + transportPort;
-    result = 31 * result + externalTransportPort;
-    result = 31 * result + (natForwardingEnabled ? 1 : 0);
-    return result;
+    return transportPort == that.transportPort &&
+            externalTransportPort == that.externalTransportPort &&
+            natForwardingEnabled == that.natForwardingEnabled;
   }
 }

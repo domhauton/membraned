@@ -15,7 +15,7 @@ public class Config {
   private WatcherConfig watcher;
   private RestConfig rest;
 
-  public Config() {
+  Config() {
     localStorage = new LocalStorageConfig();
     distributedStorage = new DistributedStorageConfig();
     watcher = new WatcherConfig();
@@ -52,19 +52,9 @@ public class Config {
 
     Config config = (Config) o;
 
-    if (distributedStorage != null ? !distributedStorage.equals(config.distributedStorage) : config.distributedStorage != null)
-      return false;
-    if (localStorage != null ? !localStorage.equals(config.localStorage) : config.localStorage != null) return false;
-    if (watcher != null ? !watcher.equals(config.watcher) : config.watcher != null) return false;
-    return rest != null ? rest.equals(config.rest) : config.rest == null;
-  }
-
-  @Override
-  public int hashCode() {
-    int result = distributedStorage != null ? distributedStorage.hashCode() : 0;
-    result = 31 * result + (localStorage != null ? localStorage.hashCode() : 0);
-    result = 31 * result + (watcher != null ? watcher.hashCode() : 0);
-    result = 31 * result + (rest != null ? rest.hashCode() : 0);
-    return result;
+    return (distributedStorage != null ? distributedStorage.equals(config.distributedStorage) : config.distributedStorage == null) &&
+            (localStorage != null ? localStorage.equals(config.localStorage) : config.localStorage == null) &&
+            (watcher != null ? watcher.equals(config.watcher) : config.watcher == null) &&
+            (rest != null ? rest.equals(config.rest) : config.rest == null);
   }
 }
