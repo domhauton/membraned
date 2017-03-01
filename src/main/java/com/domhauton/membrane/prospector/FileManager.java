@@ -111,7 +111,7 @@ public class FileManager {
   /**
    * Scans folders for file changes.
    */
-  private void checkFileChanges() {
+  void checkFileChanges() {
     logger.debug("Checking for File changes.");
     ProspectorChangeSet pcs = prospector.checkChanges();
     Set<Path> retryPaths = queuedAdditions;

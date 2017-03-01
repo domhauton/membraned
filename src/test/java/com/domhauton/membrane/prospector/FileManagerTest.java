@@ -2,15 +2,18 @@ package com.domhauton.membrane.prospector;
 
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.storage.StorageManager;
+import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
 
@@ -47,7 +50,105 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
             .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
+    Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, fileManager.getCurrentlyWatchedFiles().size());
+
     ProspectorTestUtils.removeTestFiles(dir);
+    Files.delete(Paths.get(dir));
+  }
+
+  @Test
+  void retryOnStoreShardFailTest() throws Exception {
+    ProspectorTestUtils.createTestFiles(dir);
+    StorageManager storageManager = Mockito.mock(StorageManager.class);
+
+    Mockito.doThrow(new StorageManagerException("Mock Exception"))
+            .when(storageManager)
+            .storeShard(Mockito.anyString(), Mockito.any(byte[].class));
+
+    WatchFolder watchFolder = new WatchFolder(dir, false);
+    fileManager.addStorageManager(storageManager);
+    fileManager.addWatchFolder(watchFolder);
+    fileManager.fullFileScanSweep();
+
+    Mockito.verify(storageManager, Mockito.never())
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    fileManager.checkFileChanges();
+
+    // Should try to re-add files
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    Mockito.verify(storageManager, Mockito.never())
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+    ProspectorTestUtils.removeTestFiles(dir);
+
+    fileManager.checkFileChanges();
+
+    // Should have tried to re-scan deleted files and failed.
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    Mockito.verify(storageManager, Mockito.never())
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+    Files.delete(Paths.get(dir));
+  }
+
+  @Test
+  void retryOnStoreHeaderFailTest() throws Exception {
+    ProspectorTestUtils.createTestFiles(dir);
+    StorageManager storageManager = Mockito.mock(StorageManager.class);
+
+    Mockito.doThrow(new StorageManagerException("Mock Exception"))
+            .when(storageManager)
+            .addFile(Mockito.anyList(), Mockito.any(DateTime.class), Mockito.any(Path.class));
+
+    WatchFolder watchFolder = new WatchFolder(dir, false);
+    fileManager.addStorageManager(storageManager);
+    fileManager.addWatchFolder(watchFolder);
+    fileManager.fullFileScanSweep();
+
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    fileManager.checkFileChanges();
+
+    // Should try to re-add files
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
+    ProspectorTestUtils.removeTestFiles(dir);
+
+    fileManager.checkFileChanges();
+
+    // Should have tried to re-scan deleted files and failed.
+
+    Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
+
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+            .addFile(Mockito.any(), Mockito.any(), Mockito.any());
+    Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
+            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+
     Files.delete(Paths.get(dir));
   }
 
