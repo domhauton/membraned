@@ -126,7 +126,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
     testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
     // https://mvnrepository.com/artifact/org.mockito/mockito-core
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.11'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.12'
     // https://mvnrepository.com/artifact/io.vertx/vertx-codegen
     testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.0.Beta1'
 }
