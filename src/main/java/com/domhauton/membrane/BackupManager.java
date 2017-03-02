@@ -1,16 +1,16 @@
 package com.domhauton.membrane;
 
+import com.domhauton.membrane.api.RestfulApiException;
+import com.domhauton.membrane.api.RestfulApiManager;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
-import com.domhauton.membrane.distributed.DistributedException;
-import com.domhauton.membrane.distributed.DistributedManager;
-import com.domhauton.membrane.distributed.connection.ConnectionException;
+import com.domhauton.membrane.network.NetworkException;
+import com.domhauton.membrane.network.NetworkManager;
+import com.domhauton.membrane.network.connection.ConnectionException;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
-import com.domhauton.membrane.restful.RestfulApiException;
-import com.domhauton.membrane.restful.RestfulApiManager;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -45,7 +45,7 @@ public class BackupManager implements Closeable {
   private StorageManager localStorageManager;
   private StorageManager distributedStorageManager;
   private RestfulApiManager restfulApiManager;
-  private DistributedManager distributedManager;
+  private NetworkManager networkManager;
   private final Logger logger;
 
   private final ScheduledExecutorService trimExecutor;
@@ -73,10 +73,10 @@ public class BackupManager implements Closeable {
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      distributedManager = new DistributedManager(configPath.getParent(), monitorMode, config.getDistributedStorage());
+      networkManager = new NetworkManager(configPath.getParent(), monitorMode, config.getDistributedStorage());
       restfulApiManager.start();
-      distributedManager.setStorageManager(distributedStorageManager);
-    } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | DistributedException e) {
+      networkManager.setStorageManager(distributedStorageManager);
+    } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | NetworkException e) {
       logger.error("Failed to start membrane backup manager.");
       logger.error(e.getMessage());
       throw new IllegalArgumentException("Error starting up.", e);
@@ -229,7 +229,7 @@ public class BackupManager implements Closeable {
     }
 
     logger.info("Shutdown - Stopping Distributed Manager");
-    distributedManager.close();
+    networkManager.close();
 
     try {
       logger.info("Shutdown - Stopping Distributed Storage.");
