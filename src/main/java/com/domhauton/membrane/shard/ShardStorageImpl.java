@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.shard;
+package com.domhauton.membrane.shard;
 
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
