@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.shard;
+package com.domhauton.membrane.shard;
 
 /**
  * Created by dominic on 30/01/17.

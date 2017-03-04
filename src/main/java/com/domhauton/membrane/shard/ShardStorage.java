@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.shard;
+package com.domhauton.membrane.shard;
 
 import java.util.Set;
 

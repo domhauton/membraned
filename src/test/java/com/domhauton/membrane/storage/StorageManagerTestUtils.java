@@ -1,6 +1,6 @@
 package com.domhauton.membrane.storage;
 
-import com.domhauton.membrane.storage.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorage;
 import com.google.common.hash.Hashing;
 
 import java.io.File;

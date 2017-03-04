@@ -1,13 +1,13 @@
 package com.domhauton.membrane.storage;
 
+import com.domhauton.membrane.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorageException;
+import com.domhauton.membrane.shard.ShardStorageImpl;
 import com.domhauton.membrane.storage.catalogue.CatalogueUtils;
 import com.domhauton.membrane.storage.catalogue.FileCatalogue;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
-import com.domhauton.membrane.storage.shard.ShardStorage;
-import com.domhauton.membrane.storage.shard.ShardStorageException;
-import com.domhauton.membrane.storage.shard.ShardStorageImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;

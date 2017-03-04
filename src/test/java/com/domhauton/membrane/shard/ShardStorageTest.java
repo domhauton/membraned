@@ -1,4 +1,4 @@
-package com.domhauton.membrane.storage.shard;
+package com.domhauton.membrane.shard;
 
 import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import com.google.common.hash.Hashing;

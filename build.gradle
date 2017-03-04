@@ -34,6 +34,18 @@ jar {
     version = project.version
 }
 
+//create a single Jar with all dependencies
+task fatJar(type: Jar) {
+    manifest {
+        attributes 'Implementation-Title': 'membrane-daemon',
+                'Implementation-Version': version,
+                'Main-Class': group + '.Main'
+    }
+    baseName = 'membrane-daemon-all'
+    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
+    with jar
+}
+
 compileTestJava {
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
