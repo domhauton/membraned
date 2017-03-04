@@ -29,7 +29,7 @@ class UploadRateLimiterTest {
     addExecutor.schedule(() -> {
       looper.cancel(true);
       Mockito.verify(runnableMock, Mockito.atMost(5)).run();
-    }, 520, TimeUnit.MILLISECONDS);
+    }, 550, TimeUnit.MILLISECONDS);
     ScheduledFuture<?> testEnd = addExecutor.schedule(() -> Mockito.verify(runnableMock, Mockito.times(6)).run(), 710, TimeUnit.MILLISECONDS);
 
     testEnd.get(1, TimeUnit.SECONDS);
