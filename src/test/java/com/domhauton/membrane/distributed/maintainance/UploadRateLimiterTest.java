@@ -23,14 +23,12 @@ class UploadRateLimiterTest {
     ScheduledExecutorService addExecutor = Executors.newSingleThreadScheduledExecutor();
     ScheduledFuture<?> looper = addExecutor.scheduleWithFixedDelay(uploadRateLimiter::requestUpload, 0, 10, TimeUnit.MILLISECONDS);
 
-    addExecutor.schedule(() -> {
-      Mockito.verify(runnableMock, Mockito.times(4)).run();
-    }, 420, TimeUnit.MILLISECONDS);
+    addExecutor.schedule(() -> Mockito.verify(runnableMock, Mockito.times(4)).run(), 420, TimeUnit.MILLISECONDS);
     addExecutor.schedule(() -> {
       looper.cancel(true);
       Mockito.verify(runnableMock, Mockito.atMost(5)).run();
-    }, 550, TimeUnit.MILLISECONDS);
-    ScheduledFuture<?> testEnd = addExecutor.schedule(() -> Mockito.verify(runnableMock, Mockito.times(6)).run(), 710, TimeUnit.MILLISECONDS);
+    }, 570, TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> testEnd = addExecutor.schedule(() -> Mockito.verify(runnableMock, Mockito.times(6)).run(), 790, TimeUnit.MILLISECONDS);
 
     testEnd.get(1, TimeUnit.SECONDS);
   }
