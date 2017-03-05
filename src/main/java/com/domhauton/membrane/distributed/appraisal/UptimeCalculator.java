@@ -16,13 +16,17 @@ public class UptimeCalculator {
 
   private DateTime previousUpdateTime;
 
-  public UptimeCalculator() {
-    timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
-    previousUpdateTime = DateTime.now();
-    firstMeasured = DateTime.now();
+  UptimeCalculator() {
+    this(DateTime.now(), DateTime.now());
   }
 
-  public synchronized void updateUptime() {
+  UptimeCalculator(DateTime firstMeasured, DateTime previousUpdateTime) {
+    this.firstMeasured = firstMeasured;
+    this.previousUpdateTime = previousUpdateTime;
+    timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
+  }
+
+  synchronized void updateUptime() {
     updateUptime(DateTime.now());
   }
 

@@ -26,8 +26,7 @@ class UptimeCalculatorTest {
     for (double val : uptimeDistribution) {
       if (val != 0) {
         nonZeroValues++;
-        Assertions.assertTrue(val < ((double) 200 / DateTimeConstants.MILLIS_PER_HOUR));
-        Assertions.assertTrue(val > ((double) 100 / DateTimeConstants.MILLIS_PER_HOUR));
+        Assertions.assertEquals(val, ((double) 200 / DateTimeConstants.MILLIS_PER_HOUR), 0.0001);
       } else {
         zeroValues++;
       }
@@ -41,8 +40,9 @@ class UptimeCalculatorTest {
 
   @Test
   void fillWeekTest() throws Exception {
-    UptimeCalculator uptimeCalculator = new UptimeCalculator();
-    DateTime dateTime = DateTime.now().plusWeeks(1).plusMillis(1500);
+    DateTime baseDateTime = DateTime.now();
+    UptimeCalculator uptimeCalculator = new UptimeCalculator(baseDateTime, baseDateTime);
+    DateTime dateTime = baseDateTime.plusWeeks(1).plusMillis(100);
 
     uptimeCalculator.updateUptime(dateTime);
     double[] uptimeDistribution = uptimeCalculator.getUptimeDistribution(dateTime);
@@ -58,8 +58,7 @@ class UptimeCalculatorTest {
         oneValues++;
       } else {
         nonOneValues++;
-        Assertions.assertTrue(val < ((double) 2250 / DateTimeConstants.MILLIS_PER_HOUR) + 0.5);
-        Assertions.assertTrue(val > ((double) 750 / DateTimeConstants.MILLIS_PER_HOUR) + 0.5);
+        Assertions.assertEquals(((double) (100) / (double) (DateTimeConstants.MILLIS_PER_WEEK) + 1) / 2, val, 0.0001);
       }
     }
 
