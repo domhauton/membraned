@@ -5,8 +5,6 @@ import org.joda.time.DateTimeConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
 /**
  * Created by Dominic Hauton on 05/03/17.
  */
@@ -37,8 +35,8 @@ class PeerAppraisalTest {
   void assertCorrectReturnTest() throws Exception {
     DateTime baseDateTime = DateTime.now();
     PeerAppraisal peerAppraisal = new PeerAppraisal("dummyPeer1", baseDateTime);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(1), 0, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
+    peerAppraisal.registerReport(baseDateTime.plusHours(1), 0, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
     double[] emptyDistribution = peerAppraisal.getShardReturnDistribution(baseDateTime.plusWeeks(1));
 
     int zeroCnt = 0;
@@ -69,9 +67,9 @@ class PeerAppraisalTest {
   void assertCorrectReturnFullTest() throws Exception {
     DateTime baseDateTime = DateTime.now();
     PeerAppraisal peerAppraisal = new PeerAppraisal("dummyPeer1", baseDateTime);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(1), 0, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
+    peerAppraisal.registerReport(baseDateTime.plusHours(1), 0, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard2");
     double[] emptyDistribution = peerAppraisal.getShardReturnDistribution(baseDateTime.plusWeeks(1));
 
     int zeroCnt = 0;
@@ -98,9 +96,9 @@ class PeerAppraisalTest {
   void assertCorrectFourWeeksTest() throws Exception {
     DateTime baseDateTime = DateTime.now();
     PeerAppraisal peerAppraisal = new PeerAppraisal("dummyPeer1", baseDateTime);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(1), 0, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
+    peerAppraisal.registerReport(baseDateTime.plusHours(1), 0, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard2");
     double[] emptyDistribution = peerAppraisal.getShardReturnDistribution(baseDateTime.plusWeeks(4));
 
     int zeroCnt = 0;
@@ -127,16 +125,14 @@ class PeerAppraisalTest {
   void assertCorrectFourWeeksFalseTest() throws Exception {
     DateTime baseDateTime = DateTime.now();
     PeerAppraisal peerAppraisal = new PeerAppraisal("dummyPeer1", baseDateTime);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(1), 0, true);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, false);
-    peerAppraisal.reportShardConfirmed(baseDateTime.plusHours(2), 2, true);
+    peerAppraisal.registerReport(baseDateTime.plusHours(1), 0, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2);
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
     double[] emptyDistribution = peerAppraisal.getShardReturnDistribution(baseDateTime.plusWeeks(4));
 
     int zeroCnt = 0;
     int eighthCnt = 0;
     int quartCnt = 0;
-
-    System.out.println(Arrays.toString(emptyDistribution));
 
     for (double val : emptyDistribution) {
       if (val == 0.0d) {
@@ -153,6 +149,39 @@ class PeerAppraisalTest {
     Assertions.assertEquals(DateTimeConstants.HOURS_PER_WEEK - 2, zeroCnt);
     Assertions.assertEquals(1, quartCnt);
     Assertions.assertEquals(1, eighthCnt);
+
+    peerAppraisal.flushHourlyReportIntake();
+    Assertions.assertEquals(0.5d, peerAppraisal.getCompleteReportChance());
+  }
+
+  @Test
+  void assertCorrectFourWeeksDuplicateConfirmationTest() throws Exception {
+    DateTime baseDateTime = DateTime.now();
+    PeerAppraisal peerAppraisal = new PeerAppraisal("dummyPeer1", baseDateTime);
+    peerAppraisal.registerReport(baseDateTime.plusHours(1), 0, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
+    peerAppraisal.registerReport(baseDateTime.plusHours(2), 2, "shard1");
+    double[] emptyDistribution = peerAppraisal.getShardReturnDistribution(baseDateTime.plusWeeks(5));
+
+    int zeroCnt = 0;
+    int tenthCnt = 0;
+    int fifth = 0;
+
+    for (double val : emptyDistribution) {
+      if (val == 0.0d) {
+        zeroCnt++;
+      } else if (val == 0.1d) {
+        tenthCnt++;
+      } else if (val == 0.2d) {
+        fifth++;
+      } else {
+        Assertions.fail("Value should not exist: " + val);
+      }
+    }
+
+    Assertions.assertEquals(DateTimeConstants.HOURS_PER_WEEK - 2, zeroCnt);
+    Assertions.assertEquals(1, fifth);
+    Assertions.assertEquals(1, tenthCnt);
 
     peerAppraisal.flushHourlyReportIntake();
     Assertions.assertEquals(0.5d, peerAppraisal.getCompleteReportChance());

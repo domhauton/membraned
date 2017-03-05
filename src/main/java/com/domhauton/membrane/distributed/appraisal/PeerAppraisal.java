@@ -6,6 +6,9 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
 
+import java.util.HashSet;
+import java.util.Set;
+
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
@@ -19,15 +22,16 @@ public class PeerAppraisal {
   private long completeReports = 0;
 
 
-  private long reportsReceived;
+  private Set<String> reportsReceived;
   private long reportsExpected;
   private DateTime countingForHour;
+
 
   PeerAppraisal(String peerId, DateTime firstInteractionTime) {
     this.peerId = peerId;
     this.firstInteractionTime = firstInteractionTime;
     timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
-    reportsReceived = 0L;
+    reportsReceived = new HashSet<>();
   }
 
   public String getPeerId() {
@@ -35,21 +39,32 @@ public class PeerAppraisal {
   }
 
   /**
-   * Report a new shard has arrived.
+   * Accept report from the peer that they are there.
    *
    * @param dateTimeSeen        Time the shard arrived
    * @param totalExpectedShards Total shard reports expect this hour.
-   * @param shardConfirmed      True if this is an actual shard confirmation. Not just a connection confirmation.
    */
-  void reportShardConfirmed(DateTime dateTimeSeen, long totalExpectedShards, boolean shardConfirmed) {
+  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedShards) {
+    registerReport(dateTimeSeen, totalExpectedShards, null);
+  }
+
+  /**
+   * Report a new shard confirmation has arrived from peer.
+   *
+   * @param dateTimeSeen        Time the shard arrived
+   * @param totalExpectedShards Total shard reports expect this hour.
+   * @param shardId             Id of shard being confirmed.
+   */
+  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedShards, String shardId) {
+    boolean newShardId = countHourlyReports(dateTimeSeen, shardId, totalExpectedShards);
+
     int hourOfWeek = dateTimeSeen.getHourOfDay() + (dateTimeSeen.getDayOfWeek() - 1) * DateTimeConstants.HOURS_PER_DAY;
     double shardPercentage = totalExpectedShards == 0 ? 1.0d : 1.0d / (double) totalExpectedShards;
 
     // Prevent users with required shards getting credit for empty reports
-    shardPercentage = totalExpectedShards != 0 && !shardConfirmed ? 0.0d : shardPercentage;
+    shardPercentage = totalExpectedShards != 0 && !newShardId ? 0.0d : shardPercentage;
 
-    reportShardConfirmed(hourOfWeek, shardPercentage);
-    countHourlyReports(dateTimeSeen, shardPercentage == 0.0d ? 0 : 1, totalExpectedShards);
+    registerReport(hourOfWeek, shardPercentage);
   }
 
   /**
@@ -59,7 +74,7 @@ public class PeerAppraisal {
    * @param hourOfWeek        hour of the week in the array to add to
    * @param shardPercentage   value to add for the hour of the week
    */
-  private void reportShardConfirmed(int hourOfWeek, double shardPercentage) {
+  private void registerReport(int hourOfWeek, double shardPercentage) {
     if (hourOfWeek < timesSeenAtHourOfWeek.length()) {
       timesSeenAtHourOfWeek.addAndGet(hourOfWeek, shardPercentage);
     } else {
@@ -79,7 +94,7 @@ public class PeerAppraisal {
 
       // Pretend the hour shifted forward
 
-      countHourlyReports(countingForHour.plusHours(1), 0, 0);
+      countHourlyReports(countingForHour.plusHours(1), null, 0);
 
       // Reset the values
 
@@ -92,26 +107,30 @@ public class PeerAppraisal {
    * Report (a) new report/s arriving at the given dateTime. Should never report past events.
    *
    * @param dateTime           Time the report arrived
-   * @param reportValue        Number of reports to note down
+   * @param shardId            Id of reported shard. Can be null.
    * @param newReportsExpected Number of reports expected this hour
    */
-  private synchronized void countHourlyReports(DateTime dateTime, int reportValue, long newReportsExpected) {
+  private synchronized boolean countHourlyReports(DateTime dateTime, String shardId, long newReportsExpected) {
     DateTime reportForHour = dateTime.withTime(dateTime.hourOfDay().get(), 0, 0, 0); // Ceiling to hour
     if (countingForHour != null && reportForHour.isBefore(countingForHour)) {
       LOGGER.warn("Reported counted too late for [{}]. Ignoring.", peerId);
     } else {
       if (countingForHour != null && !reportForHour.equals(countingForHour)) {
-        if (reportsExpected <= reportsReceived) {
+        if (reportsExpected <= reportsReceived.size()) {
           completeReports++;
         } else {
           incompleteReports++;
         }
-        reportsReceived = 0L;
+        reportsReceived = new HashSet<>();
       }
       countingForHour = reportForHour;
       reportsExpected = Math.max(reportsExpected, newReportsExpected);
-      reportsReceived += reportValue;
+      if (shardId != null && !reportsReceived.contains(shardId)) {
+        reportsReceived.add(shardId);
+        return true;
+      }
     }
+    return false;
   }
 
   /**

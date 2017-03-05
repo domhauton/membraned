@@ -7,5 +7,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class AppraisalLedger {
   private ConcurrentHashMap<String, PeerAppraisal> appraisalMap;
+  private UptimeCalculator uptimeCalculator;
+
+  public AppraisalLedger() {
+    uptimeCalculator = new UptimeCalculator();
+    appraisalMap = new ConcurrentHashMap<>();
+  }
+
 
 }
