@@ -25,7 +25,7 @@ class UptimeCalculatorTest {
     for (double val : uptimeDistribution) {
       if (val != 0) {
         nonZeroValues++;
-        Assertions.assertEquals(0.85, val, 0.15);
+        Assertions.assertEquals(0.85, val, 0.16);
       } else {
         zeroValues++;
       }
@@ -84,7 +84,7 @@ class UptimeCalculatorTest {
       }
     }
 
-    Assertions.assertEquals((((double) (100) / (double) (DateTimeConstants.MILLIS_PER_WEEK)) + 2) / 3, nonOneValuesSum / 2, 0.01);
+    Assertions.assertEquals((((double) (100) / (double) (DateTimeConstants.MILLIS_PER_WEEK)) + 2) / 3, nonOneValuesSum / 2, 0.1);
 
     // Very unlikely but possible to fail if test is run exactly on the hour.
 
