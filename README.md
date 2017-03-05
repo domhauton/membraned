@@ -7,7 +7,7 @@ Features
 --------
 
 - Both [GUI](https://github.com/domhauton/membrane-gui) and [CLI](https://github.com/domhauton/membrane-cli) interfaces
-- File history ensures file versions are never removed until nessesary.
+- File history ensures file versions are never removed until necessary.
 - Log in from anywhere using your generated 4096-bit RSA key
 - Deduplication reduces storage requirements for similar files.
 - Prioritise backup to friends and family.
@@ -21,6 +21,7 @@ Support
 -------
 
 If you are having issues, please let us know.
+
 We have a mailing list located at: support@mbrn.io
 
 License
