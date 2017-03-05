@@ -32,29 +32,8 @@ public class UptimeCalculator {
   synchronized void updateUptime(DateTime dateTimeOfUptime) {
     long millisBetweenTimes = dateTimeOfUptime.getMillis() - previousUpdateTime.getMillis();
     if (millisBetweenTimes > 0) {
-      calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeenAtHourOfWeek);
+      AppraisalUtils.calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeenAtHourOfWeek);
       previousUpdateTime = dateTimeOfUptime;
-    }
-  }
-
-  private void calcTimeAtHourSlots(DateTime startTime, long millisBetweenTimes, AtomicDoubleArray addToArray) {
-    long millisToNextHour = startTime.plusHours(1).withTime(startTime.plusHours(1).getHourOfDay(), 0, 0, 0).getMillis() - startTime.getMillis();
-    int hourOfWeekLast = startTime.getHourOfDay() + (startTime.getDayOfWeek() - 1) * DateTimeConstants.HOURS_PER_DAY;
-    if (millisToNextHour < millisBetweenTimes) {
-      addToArray.addAndGet(hourOfWeekLast++, (double) millisToNextHour / (double) DateTimeConstants.MILLIS_PER_HOUR);
-      long remainingMillis = millisBetweenTimes - millisToNextHour;
-
-      long extraHours = remainingMillis / DateTimeConstants.MILLIS_PER_HOUR;
-      for (int i = hourOfWeekLast; i < hourOfWeekLast + extraHours; i++) {
-        addToArray.addAndGet(i % DateTimeConstants.HOURS_PER_WEEK, 1.0);
-      }
-
-      int finalIdx = (int) (hourOfWeekLast + extraHours) % DateTimeConstants.HOURS_PER_WEEK;
-      addToArray.addAndGet(finalIdx, (double) (remainingMillis % DateTimeConstants.MILLIS_PER_HOUR) / (double) DateTimeConstants.MILLIS_PER_HOUR);
-
-      // Consider over two hours
-    } else {
-      addToArray.addAndGet(hourOfWeekLast, (double) millisBetweenTimes / (double) DateTimeConstants.MILLIS_PER_HOUR);
     }
   }
 
@@ -63,12 +42,10 @@ public class UptimeCalculator {
   }
 
   double[] getUptimeDistribution(DateTime atDateTime) {
-    // Generate
-
     AtomicDoubleArray timesSeen = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
     long millisBetweenTimes = atDateTime.getMillis() - firstMeasured.getMillis();
     if (millisBetweenTimes > 0) {
-      calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeen);
+      AppraisalUtils.calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeen);
     }
 
     double[] retPercentage = new double[timesSeenAtHourOfWeek.length()];

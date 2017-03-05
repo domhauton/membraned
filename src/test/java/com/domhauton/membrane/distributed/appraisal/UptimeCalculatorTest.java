@@ -5,8 +5,6 @@ import org.joda.time.DateTimeConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
-
 /**
  * Created by Dominic Hauton on 05/03/17.
  */
@@ -27,7 +25,7 @@ class UptimeCalculatorTest {
     for (double val : uptimeDistribution) {
       if (val != 0) {
         nonZeroValues++;
-        Assertions.assertEquals(0.78, val, 0.1);
+        Assertions.assertEquals(0.85, val, 0.15);
       } else {
         zeroValues++;
       }
@@ -70,8 +68,6 @@ class UptimeCalculatorTest {
 
     uptimeCalculator.updateUptime(dateTime);
     double[] uptimeDistribution = uptimeCalculator.getUptimeDistribution(dateTime.plusDays(1));
-
-    System.out.println(Arrays.toString(uptimeDistribution));
 
     int oneValuesCnt = 0;
     int halfValuesCnt = 0;
