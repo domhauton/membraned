@@ -31,3 +31,4 @@ out/
 # Sensitive or high-churn files:
 # User-specific stuff:
 /.classpath
+/docs/.build/
