@@ -15,6 +15,7 @@ class UptimeCalculatorTest {
   @Test
   void spamUpdateUptimeTest() throws Exception {
     UptimeCalculator uptimeCalculator = new UptimeCalculator();
+
     for (int i = 0; i < 3; i++) {
       Thread.sleep(50);
       uptimeCalculator.updateUptime();
@@ -26,7 +27,7 @@ class UptimeCalculatorTest {
     for (double val : uptimeDistribution) {
       if (val != 0) {
         nonZeroValues++;
-        Assertions.assertEquals(val, ((double) 200 / DateTimeConstants.MILLIS_PER_HOUR), 0.0001);
+        Assertions.assertEquals(0.78, val, 0.1);
       } else {
         zeroValues++;
       }
@@ -47,24 +48,51 @@ class UptimeCalculatorTest {
     uptimeCalculator.updateUptime(dateTime);
     double[] uptimeDistribution = uptimeCalculator.getUptimeDistribution(dateTime);
 
-    System.out.println(Arrays.toString(uptimeDistribution));
-
     int oneValues = 0;
-    int nonOneValues = 0;
     for (double val : uptimeDistribution) {
-      if (val > 1) {
-        Assertions.fail("No value should be above one.");
-      } else if (val == 1) {
+      if (val == 1) {
         oneValues++;
       } else {
-        nonOneValues++;
-        Assertions.assertEquals(((double) (100) / (double) (DateTimeConstants.MILLIS_PER_WEEK) + 1) / 2, val, 0.0001);
+        Assertions.fail("No value should be above one.");
       }
     }
 
     // Very unlikely but possible to fail if test is run exactly on the hour.
 
-    Assertions.assertEquals(DateTimeConstants.HOURS_PER_WEEK - 1, oneValues);
-    Assertions.assertEquals(1, nonOneValues);
+    Assertions.assertEquals(DateTimeConstants.HOURS_PER_WEEK, oneValues);
+  }
+
+  @Test
+  void fillEightDaysTest() throws Exception {
+    DateTime baseDateTime = DateTime.now();
+    UptimeCalculator uptimeCalculator = new UptimeCalculator(baseDateTime, baseDateTime);
+    DateTime dateTime = baseDateTime.plusWeeks(1).plusMillis(100);
+
+    uptimeCalculator.updateUptime(dateTime);
+    double[] uptimeDistribution = uptimeCalculator.getUptimeDistribution(dateTime.plusDays(1));
+
+    System.out.println(Arrays.toString(uptimeDistribution));
+
+    int oneValuesCnt = 0;
+    int halfValuesCnt = 0;
+    double nonOneValuesSum = 0;
+    for (double val : uptimeDistribution) {
+      if (val > 1) {
+        Assertions.fail("No value should be above one.");
+      } else if (val == 1) {
+        oneValuesCnt++;
+      } else if (val == 0.5) {
+        halfValuesCnt++;
+      } else {
+        nonOneValuesSum += val;
+      }
+    }
+
+    Assertions.assertEquals((((double) (100) / (double) (DateTimeConstants.MILLIS_PER_WEEK)) + 2) / 3, nonOneValuesSum / 2, 0.01);
+
+    // Very unlikely but possible to fail if test is run exactly on the hour.
+
+    Assertions.assertEquals(DateTimeConstants.HOURS_PER_WEEK - DateTimeConstants.HOURS_PER_DAY - 1, oneValuesCnt);
+    Assertions.assertEquals(DateTimeConstants.HOURS_PER_DAY - 1, halfValuesCnt);
   }
 }
