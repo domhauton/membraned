@@ -156,7 +156,7 @@ public class PeerAppraisal {
    *
    * @return [0.0d-1.0d] 0.0d if success rate is zero
    */
-  double getCompleteReportChance() {
+  double getContractSuccessChance() {
     // Copy before use
 
     long tmpCompleteReports = completeReports;

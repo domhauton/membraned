@@ -7,7 +7,7 @@ import java.security.SecureRandom;
 /**
  * Created by Dominic Hauton on 07/03/17.
  */
-abstract class RemoteShardUtils {
+abstract class ContractUtils {
   private static final int SALT_LENGTH = 256;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -15,11 +15,6 @@ abstract class RemoteShardUtils {
     byte[] salt = new byte[SALT_LENGTH];
     SECURE_RANDOM.nextBytes(salt);
     return salt;
-  }
-
-  static byte[] computeRemoteShardData(byte[] salt, byte[] inputShardData) {
-    //FIXME Correctly wrap and compute local shard data.
-    return inputShardData;
   }
 
   static String getHash(byte[] salt, byte[] remoteShardData) {

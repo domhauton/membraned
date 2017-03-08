@@ -28,7 +28,7 @@ class PeerAppraisalTest {
     }
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(1.0d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(1.0d, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -60,7 +60,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, halfCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -89,7 +89,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(2, oneCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(1.0d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(1.0d, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -118,7 +118,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(2, quarterCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(1.0d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(1.0d, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -151,7 +151,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, eighthCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -184,6 +184,6 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, tenthCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getCompleteReportChance());
+    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
   }
 }
