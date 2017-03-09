@@ -121,6 +121,8 @@ dependencies{
     compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.56'
     // https://mvnrepository.com/artifact/org.bitlet/weupnp
     compile group: 'org.bitlet', name: 'weupnp', version: '0.1.4'
+    // https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java
+    compile group: 'org.xerial.snappy', name: 'snappy-java', version: '1.1.4-M3'
 
     // https://mvnrepository.com/artifact/javax.jmdns/jmdns
     // compile group: 'javax.jmdns', name: 'jmdns', version: '3.4.1'

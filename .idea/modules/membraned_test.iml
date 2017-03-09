@@ -39,6 +39,7 @@
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcprov-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcpkix-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
+    <orderEntry type="library" name="Gradle: org.xerial.snappy:snappy-java:1.1.4-M3" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.jupiter:junit-jupiter-api:5.0.0-M3" level="project" />
     <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.14" level="project" />
     <orderEntry type="library" name="Gradle: io.vertx:vertx-codegen:3.4.0.Beta1" level="project" />

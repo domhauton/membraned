@@ -78,7 +78,7 @@ public class PeerConnection {
     } catch (CertificateEncodingException | CertificateException e) {
       logger.error("Invalid certificated received. Could not generate client ID");
       netSocket.close();
-      throw new PeerException("Connection could not parse certificate. Dropping.");
+      throw new PeerException("Connection could not toBytes certificate. Dropping.");
     }
 
     mostRecentCommunication = new AtomicLong(System.currentTimeMillis());
