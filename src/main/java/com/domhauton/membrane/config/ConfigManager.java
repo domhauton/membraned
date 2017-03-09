@@ -50,11 +50,6 @@ public abstract class ConfigManager {
   }
 
   public static Config loadDefaultConfig() throws ConfigException {
-    try {
-      return new Config();
-    } catch (NullPointerException e) {
-      logger.error("Membrane Config - Could not find default config!");
-      throw new ConfigException("Failed to locate default config.");
-    }
+    return new Config();
   }
 }
