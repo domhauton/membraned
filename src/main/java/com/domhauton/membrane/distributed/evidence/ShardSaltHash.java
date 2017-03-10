@@ -1,13 +1,13 @@
-package com.domhauton.membrane.distributed.contracts;
+package com.domhauton.membrane.distributed.evidence;
 
 /**
  * Created by Dominic Hauton on 06/03/17.
  */
-class ShardConfirmation {
+class ShardSaltHash {
   private final byte[] hashSalt;
   private final String hash;
 
-  ShardConfirmation(byte[] hashSalt, String hash) {
+  ShardSaltHash(byte[] hashSalt, String hash) {
     this.hashSalt = hashSalt;
     this.hash = hash;
   }

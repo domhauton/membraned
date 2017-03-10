@@ -71,7 +71,7 @@ public abstract class AuthUtils {
             issuer,
             keyPair.getPublic());
 
-    // Create a signer to sign (self-sign) the certificate.
+    // Create a signer to build (self-build) the certificate.
 
     JcaContentSignerBuilder signerBuilder = new JcaContentSignerBuilder(SIGNATURE_ALGORITHM);
     JcaX509CertificateConverter converter = new JcaX509CertificateConverter();
@@ -81,8 +81,8 @@ public abstract class AuthUtils {
       logger.info("Successfully generated certificate.");
       return x509Certificate;
     } catch (OperatorCreationException | CertificateException e) {
-      logger.error("Could not sign/create certificate {}", e.getMessage());
-      throw new AuthException("Could not sign/create certificate. " + e.getMessage());
+      logger.error("Could not build/create certificate {}", e.getMessage());
+      throw new AuthException("Could not build/create certificate. " + e.getMessage());
     }
   }
 

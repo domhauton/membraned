@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.contracts;
+package com.domhauton.membrane.distributed.evidence;
 
 import com.google.common.hash.Hashing;
 
@@ -7,7 +7,7 @@ import java.security.SecureRandom;
 /**
  * Created by Dominic Hauton on 07/03/17.
  */
-abstract class ContractUtils {
+abstract class ShardEvidenceUtils {
   private static final int SALT_LENGTH = 256;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -22,6 +22,7 @@ abstract class ContractUtils {
             .newHasher(remoteShardData.length + salt.length)
             .putBytes(salt)
             .putBytes(remoteShardData)
+            .hash()
             .toString();
   }
 
