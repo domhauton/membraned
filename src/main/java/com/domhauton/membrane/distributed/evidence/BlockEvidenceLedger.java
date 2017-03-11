@@ -11,32 +11,32 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class ShardEvidenceLedger {
-  private Map<String, ShardEvidence> storageContractMap;
+public class BlockEvidenceLedger {
+  private Map<String, BlockEvidence> storageContractMap;
 
-  public ShardEvidenceLedger() {
+  public BlockEvidenceLedger() {
     this.storageContractMap = new HashMap<>();
   }
 
   String addNewContract(byte[] data, DateTime end) {
-    ShardEvidence shardEvidence = new EvidenceBuilder(data).build(end);
-    storageContractMap.put(shardEvidence.getRemoteShardId(), shardEvidence);
-    return shardEvidence.getRemoteShardId();
+    BlockEvidence blockEvidence = new EvidenceBuilder(data).build(end);
+    storageContractMap.put(blockEvidence.getBlockId(), blockEvidence);
+    return blockEvidence.getBlockId();
   }
 
   byte[] getContractSalt(String remoteShardId, DateTime dateTime) throws NoSuchElementException {
-    ShardEvidence shardEvidence = storageContractMap.get(remoteShardId);
-    if (shardEvidence != null) {
-      return shardEvidence.getShardConfirmation(dateTime).getHashSalt();
+    BlockEvidence blockEvidence = storageContractMap.get(remoteShardId);
+    if (blockEvidence != null) {
+      return blockEvidence.getBlockConfirmation(dateTime).getHashSalt();
     } else {
       throw new NoSuchElementException("Shard " + remoteShardId + " does not exist.");
     }
   }
 
   boolean confirmContractSaltHash(String remoteShardId, DateTime dateTime, String testHash) throws NoSuchElementException {
-    ShardEvidence shardEvidence = storageContractMap.get(remoteShardId);
-    if (shardEvidence != null) {
-      return shardEvidence.getShardConfirmation(dateTime).getHash().equals(testHash);
+    BlockEvidence blockEvidence = storageContractMap.get(remoteShardId);
+    if (blockEvidence != null) {
+      return blockEvidence.getBlockConfirmation(dateTime).getHash().equals(testHash);
     } else {
       throw new NoSuchElementException("Shard " + remoteShardId + " does not exist.");
     }

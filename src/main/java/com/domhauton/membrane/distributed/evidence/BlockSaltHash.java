@@ -3,11 +3,11 @@ package com.domhauton.membrane.distributed.evidence;
 /**
  * Created by Dominic Hauton on 06/03/17.
  */
-class ShardSaltHash {
+class BlockSaltHash {
   private final byte[] hashSalt;
   private final String hash;
 
-  ShardSaltHash(byte[] hashSalt, String hash) {
+  BlockSaltHash(byte[] hashSalt, String hash) {
     this.hashSalt = hashSalt;
     this.hash = hash;
   }

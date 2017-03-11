@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.shard;
+package com.domhauton.membrane.distributed.block;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -11,27 +11,27 @@ import java.io.IOException;
 /**
  * Created by Dominic Hauton on 08/03/17.
  */
-abstract class ShardDataUtils {
+abstract class BlockUtils {
   private static ObjectMapper objectMapper = new ObjectMapper()
           .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NON_PRIVATE);
 
-  static RemoteShardDataContainer bytes2RemoteShardData(byte[] message) throws ShardDataException {
+  static BlockContainer bytes2RemoteShardData(byte[] message) throws BlockException {
     try {
-      return objectMapper.readValue(message, RemoteShardDataContainer.class);
+      return objectMapper.readValue(message, BlockContainer.class);
     } catch (IOException e) {
-      throw new ShardDataException("Could not decode shard. Error: " + e.getMessage(), e);
+      throw new BlockException("Could not decode shard. Error: " + e.getMessage(), e);
     }
   }
 
-  static byte[] remoteShardData2Bytes(RemoteShardDataContainer message) throws ShardDataException {
+  static byte[] remoteShardData2Bytes(BlockContainer message) throws BlockException {
     try {
       return objectMapper.writeValueAsString(message).getBytes();
     } catch (JsonProcessingException e) { // Should never be spontaneously generated
-      throw new ShardDataException("Could not encode shard. Error: " + e.getMessage(), e);
+      throw new BlockException("Could not encode shard. Error: " + e.getMessage(), e);
     }
   }
 
-  static byte[] compress(byte[] data) throws ShardDataException {
+  static byte[] compress(byte[] data) throws BlockException {
     try {
       byte[] compressedData = Snappy.compress(data);
       if (compressedData.length >= data.length) {
@@ -40,15 +40,15 @@ abstract class ShardDataUtils {
         return compressedData;
       }
     } catch (IOException e) {
-      throw new ShardDataException("Compression stopped.", e);
+      throw new BlockException("Compression stopped.", e);
     }
   }
 
-  static byte[] decompress(byte[] compressed) throws ShardDataException {
+  static byte[] decompress(byte[] compressed) throws BlockException {
     try {
       return Snappy.uncompress(compressed);
     } catch (IOException e) {
-      throw new ShardDataException("Decompression not possible.", e);
+      throw new BlockException("Decompression not possible.", e);
     }
   }
 }

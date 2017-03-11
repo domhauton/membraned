@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.shard;
+package com.domhauton.membrane.distributed.block;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 08/03/17.
  */
-class RemoteShardData {
+class BlockProcessor {
   private static final Logger LOGGER = LogManager.getLogger();
   private static final int SALT_LENGTH = 256;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
@@ -22,26 +22,26 @@ class RemoteShardData {
   private final byte[] salt;
   private final Map<String, LocalShardData> localShardDataList;
 
-  RemoteShardData() {
+  BlockProcessor() {
     salt = generateRandomSalt();
     localShardDataList = new HashMap<>();
   }
 
-  RemoteShardData(byte[] data) throws ShardDataException {
-    RemoteShardDataContainer remoteShardDataContainer = ShardDataUtils.bytes2RemoteShardData(data);
-    salt = remoteShardDataContainer.getSalt();
-    localShardDataList = remoteShardDataContainer.getLocalShardDataList()
+  BlockProcessor(byte[] data) throws BlockException {
+    BlockContainer blockContainer = BlockUtils.bytes2RemoteShardData(data);
+    salt = blockContainer.getSalt();
+    localShardDataList = blockContainer.getLocalShardDataList()
             .stream()
             .collect(Collectors.toMap(LocalShardData::getLocalId, Function.identity()));
   }
 
   int addLocalShard(String hash, byte[] shardData) {
     try {
-      byte[] compressedData = ShardDataUtils.compress(shardData);
+      byte[] compressedData = BlockUtils.compress(shardData);
       LocalShardData localShardData = new LocalShardData(hash, true, compressedData);
       localShardDataList.put(hash, localShardData);
       return compressedData.length;
-    } catch (ShardDataException e) {
+    } catch (BlockException e) {
       LOGGER.trace("Unable to effectively compress shard [{}]. Adding uncompressed. {}", hash, e.getMessage());
       LocalShardData localShardData = new LocalShardData(hash, false, shardData);
       localShardDataList.put(hash, localShardData);
@@ -49,22 +49,22 @@ class RemoteShardData {
     }
   }
 
-  byte[] getShard(String hash) throws NoSuchElementException {
+  byte[] getBlock(String hash) throws NoSuchElementException {
     LocalShardData localShardData = localShardDataList.get(hash);
     if (localShardData == null) {
       throw new NoSuchElementException("Shard with local hash: [" + hash + "] not found.");
     } else {
       try {
-        return localShardData.isCompressed() ? ShardDataUtils.decompress(localShardData.getShardData()) : localShardData.getShardData();
-      } catch (ShardDataException e) {
+        return localShardData.isCompressed() ? BlockUtils.decompress(localShardData.getShardData()) : localShardData.getShardData();
+      } catch (BlockException e) {
         throw new NoSuchElementException("Shard with local hash: [" + hash + "] found, but unable to decompress.");
       }
     }
   }
 
-  byte[] toBytes() throws ShardDataException {
-    RemoteShardDataContainer remoteShardDataContainer = new RemoteShardDataContainer(salt, new ArrayList<>(localShardDataList.values()));
-    return ShardDataUtils.remoteShardData2Bytes(remoteShardDataContainer);
+  byte[] toBytes() throws BlockException {
+    BlockContainer blockContainer = new BlockContainer(salt, new ArrayList<>(localShardDataList.values()));
+    return BlockUtils.remoteShardData2Bytes(blockContainer);
   }
 
   private static byte[] generateRandomSalt() {

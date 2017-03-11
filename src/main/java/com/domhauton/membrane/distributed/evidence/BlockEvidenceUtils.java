@@ -7,7 +7,7 @@ import java.security.SecureRandom;
 /**
  * Created by Dominic Hauton on 07/03/17.
  */
-abstract class ShardEvidenceUtils {
+abstract class BlockEvidenceUtils {
   private static final int SALT_LENGTH = 256;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 

@@ -1,7 +1,7 @@
 package com.domhauton.membrane.distributed;
 
 import com.domhauton.membrane.distributed.appraisal.AppraisalLedger;
-import com.domhauton.membrane.distributed.evidence.ShardEvidenceLedger;
+import com.domhauton.membrane.distributed.evidence.BlockEvidenceLedger;
 import com.domhauton.membrane.distributed.maintainance.UploadRateLimiter;
 import com.domhauton.membrane.distributed.manifest.DistributedStore;
 import org.joda.time.Duration;
@@ -13,13 +13,13 @@ public class Distributor {
   private final static Duration RATE_LIMIT = Duration.standardSeconds(5);
 
   private final DistributedStore distributedStore;
-  private final ShardEvidenceLedger shardEvidenceLedger;
+  private final BlockEvidenceLedger blockEvidenceLedger;
   private final AppraisalLedger appraisalLedger;
   private final UploadRateLimiter uploadRateLimiter;
 
   public Distributor() {
     distributedStore = new DistributedStore();
-    shardEvidenceLedger = new ShardEvidenceLedger();
+    blockEvidenceLedger = new BlockEvidenceLedger();
     appraisalLedger = new AppraisalLedger();
     uploadRateLimiter = new UploadRateLimiter(this::beginUpload, RATE_LIMIT);
   }

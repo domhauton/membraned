@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.shard;
+package com.domhauton.membrane.distributed.block;
 
 /**
  * Created by Dominic Hauton on 08/03/17.

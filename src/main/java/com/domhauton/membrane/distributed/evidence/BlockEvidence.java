@@ -9,31 +9,29 @@ import java.util.NoSuchElementException;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class ShardEvidence {
-  private final DateTime end;
+public class BlockEvidence {
   private final DateTime start;
 
   // Proof of Existence Info
   private final String remoteShardId;
-  private final List<ShardSaltHash> shardSaltHashList;
+  private final List<BlockSaltHash> blockSaltHashList;
 
-  ShardEvidence(DateTime start, DateTime end, String remoteShardId, List<ShardSaltHash> shardSaltHashList) {
+  BlockEvidence(DateTime start, String remoteShardId, List<BlockSaltHash> blockSaltHashList) {
     this.start = start;
-    this.end = end;
     this.remoteShardId = remoteShardId;
-    this.shardSaltHashList = shardSaltHashList;
+    this.blockSaltHashList = blockSaltHashList;
   }
 
-  String getRemoteShardId() {
+  String getBlockId() {
     return remoteShardId;
   }
 
-  public ShardSaltHash getShardConfirmation(DateTime dateTime) throws NoSuchElementException {
+  BlockSaltHash getBlockConfirmation(DateTime dateTime) throws NoSuchElementException {
     int hoursFromStart = Hours.hoursBetween(start, dateTime).getHours();
-    if (hoursFromStart < 0 || hoursFromStart >= shardSaltHashList.size()) {
+    if (hoursFromStart < 0 || hoursFromStart >= blockSaltHashList.size()) {
       throw new NoSuchElementException("There is no shard confirmation for time " + dateTime.toString());
     } else {
-      return shardSaltHashList.get(hoursFromStart);
+      return blockSaltHashList.get(hoursFromStart);
     }
   }
 }

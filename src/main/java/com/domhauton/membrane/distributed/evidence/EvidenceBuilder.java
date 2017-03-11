@@ -15,20 +15,20 @@ class EvidenceBuilder {
 
   private byte[] remoteShardData;
 
-  EvidenceBuilder(byte[] remoteShardData) {
-    this.remoteId = ShardEvidenceUtils.getHash(remoteShardData);
-    this.remoteShardData = remoteShardData;
+  EvidenceBuilder(byte[] blockData) {
+    this.remoteId = BlockEvidenceUtils.getHash(blockData);
+    this.remoteShardData = blockData;
   }
 
 
-  ShardEvidence build(DateTime end) {
+  BlockEvidence build(DateTime end) {
     DateTime start = DateTime.now();
     start = start.withTime(start.getHourOfDay(), 0, 0, 0); // Flatten to nearest hour
     int hoursBetween = Math.max(0, Hours.hoursBetween(start, end).getHours());
-    List<ShardSaltHash> shardSaltHashList = IntStream.range(0, hoursBetween + 1).boxed()
-            .map(x -> ShardEvidenceUtils.generateRandomSalt())
-            .map(randSaltBytes -> new ShardSaltHash(randSaltBytes, ShardEvidenceUtils.getHash(randSaltBytes, remoteShardData)))
+    List<BlockSaltHash> blockSaltHashList = IntStream.range(0, hoursBetween + 1).boxed()
+            .map(x -> BlockEvidenceUtils.generateRandomSalt())
+            .map(randSaltBytes -> new BlockSaltHash(randSaltBytes, BlockEvidenceUtils.getHash(randSaltBytes, remoteShardData)))
             .collect(Collectors.toList());
-    return new ShardEvidence(start, end, remoteId, shardSaltHashList);
+    return new BlockEvidence(start, remoteId, blockSaltHashList);
   }
 }

@@ -1,18 +1,18 @@
-package com.domhauton.membrane.distributed.shard;
+package com.domhauton.membrane.distributed.block;
 
 import java.util.ArrayList;
 
 /**
  * Created by Dominic Hauton on 07/03/17.
  */
-class RemoteShardDataContainer {
+class BlockContainer {
   private byte[] salt;
   private ArrayList<LocalShardData> localShardDataList;
 
-  private RemoteShardDataContainer() {
+  private BlockContainer() {
   } // For Jackson ONLY
 
-  RemoteShardDataContainer(byte[] salt, ArrayList<LocalShardData> localShardDataList) {
+  BlockContainer(byte[] salt, ArrayList<LocalShardData> localShardDataList) {
     this.salt = salt;
     this.localShardDataList = localShardDataList;
   }
