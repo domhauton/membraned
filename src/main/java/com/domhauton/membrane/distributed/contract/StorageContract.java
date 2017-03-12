@@ -2,39 +2,55 @@ package com.domhauton.membrane.distributed.contract;
 
 import com.google.common.collect.ImmutableSet;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
  * Created by Dominic Hauton on 11/03/17.
  */
-public class StorageContract {
-  private final String peerId;
+class StorageContract {
   private Set<String> myBlockIds;
   private Set<String> peerBlockIds;
 
-  public StorageContract(String peerId) {
-    this.peerId = peerId;
+  StorageContract() {
+    myBlockIds = new HashSet<>();
+    peerBlockIds = new HashSet<>();
   }
 
-  public String getPeerId() {
-    return peerId;
+
+  synchronized void addMyBlockId(String blockId) throws ContractStoreException {
+    if (!myBlockIds.contains(blockId)) {
+      if (getRemainingMyBlockSpace() > 0) {
+        myBlockIds.add(blockId);
+      } else {
+        throw new ContractStoreException("Insufficient space for [" + blockId + "]");
+      }
+    }
   }
 
-  public synchronized StorageContract addMyBlockId(String myBlockId) {
-    myBlockIds.add(myBlockId);
-    return this;
+  synchronized void addPeerBlockId(String blockId) throws ContractStoreException {
+    if (!peerBlockIds.contains(blockId)) {
+      if (getRemainingPeerSpace() > 0) {
+        peerBlockIds.add(blockId);
+      } else {
+        throw new ContractStoreException("Insufficient space for [" + blockId + "]");
+      }
+    }
   }
 
-  public synchronized StorageContract addPeerBlockId(String peerBlockId) {
-    peerBlockIds.add(peerBlockId);
-    return this;
+  synchronized void removeMyBlockId(String myBlockId) {
+    myBlockIds.remove(myBlockId);
   }
 
-  public synchronized Set<String> getMyBlockIds() {
+  synchronized void removePeerBlockId(String peerBlockId) {
+    peerBlockIds.remove(peerBlockId);
+  }
+
+  synchronized Set<String> getMyBlockIds() {
     return ImmutableSet.copyOf(myBlockIds);
   }
 
-  public synchronized Set<String> getPeerBlockIds() {
+  synchronized Set<String> getPeerBlockIds() {
     return ImmutableSet.copyOf(peerBlockIds);
   }
 
@@ -43,7 +59,7 @@ public class StorageContract {
    *
    * @return +ve if more of your blocks.
    */
-  int getBlockIdInequality() {
+  private int getBlockInequality() {
     return myBlockIds.size() - peerBlockIds.size();
   }
 
@@ -52,7 +68,20 @@ public class StorageContract {
    *
    * @return 1 + 10% of current holdings
    */
-  int getBlockInequalityThreshold() {
+  private int getBlockInequalityThreshold() {
     return 1 + (Math.min(myBlockIds.size(), peerBlockIds.size()) / 10);
+  }
+
+  private int getRemainingPeerSpace() {
+    return getBlockInequalityThreshold() + getBlockInequality();
+  }
+
+  int getRemainingMyBlockSpace() {
+    return Math.max(0, getBlockInequalityThreshold() - getBlockInequality());
+  }
+
+  double getStorageBalance() {
+    double maxBlocks = Math.max(myBlockIds.size(), peerBlockIds.size());
+    return maxBlocks > 0 ? (double) getBlockInequality() / maxBlocks : 0.0d;
   }
 }
