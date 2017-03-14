@@ -24,8 +24,8 @@
     <orderEntry type="library" name="Gradle: com.google.guava:guava:21.0" level="project" />
     <orderEntry type="library" name="Gradle: joda-time:joda-time:2.9.7" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-collections4:4.1" level="project" />
-    <orderEntry type="library" name="Gradle: io.vertx:vertx-core:3.4.0.Beta1" level="project" />
-    <orderEntry type="library" name="Gradle: io.vertx:vertx-web:3.4.0.Beta1" level="project" />
+    <orderEntry type="library" name="Gradle: io.vertx:vertx-core:3.4.0" level="project" />
+    <orderEntry type="library" name="Gradle: io.vertx:vertx-web:3.4.0" level="project" />
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcprov-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcpkix-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
@@ -42,7 +42,7 @@
     <orderEntry type="library" name="Gradle: io.netty:netty-resolver:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-resolver-dns:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.7.4" level="project" />
-    <orderEntry type="library" name="Gradle: io.vertx:vertx-auth-common:3.4.0.Beta1" level="project" />
+    <orderEntry type="library" name="Gradle: io.vertx:vertx-auth-common:3.4.0" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-codec:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-codec-socks:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-codec-dns:4.1.8.Final" level="project" />
