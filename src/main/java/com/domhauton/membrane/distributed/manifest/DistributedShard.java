@@ -28,6 +28,14 @@ class DistributedShard {
     return priority.getRequiredCopies() - storedByPeers.size();
   }
 
+  void addPeer(String peer) {
+    storedByPeers.add(peer);
+  }
+
+  void removePeer(String peer) {
+    storedByPeers.remove(peer);
+  }
+
   boolean isStoredBy(String peer) {
     return storedByPeers.contains(peer);
   }

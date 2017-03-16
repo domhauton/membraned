@@ -63,27 +63,22 @@ class ContractStoreTest {
       contractStore.addMyBlockId(peer1, "block" + i);
     }
     Assertions.assertEquals(3, contractStore.getMyBlockSpace(peer1));
-    Assertions.assertEquals(0, contractStore.getStorageBalance(peer1));
     for (int i = 0; i < 10; i++) {
       contractStore.removePeerBlockId(peer1, "block" + i);
     }
     Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
-    Assertions.assertEquals(0.5, contractStore.getStorageBalance(peer1));
     for (int i = 10; i < 20; i++) {
       contractStore.removePeerBlockId(peer1, "block" + i);
     }
     Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
-    Assertions.assertEquals(1.0, contractStore.getStorageBalance(peer1));
     for (int i = 0; i < 10; i++) {
       contractStore.removeMyBlockId(peer1, "block" + i);
     }
     Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
-    Assertions.assertEquals(1.0, contractStore.getStorageBalance(peer1));
     for (int i = 10; i < 20; i++) {
       contractStore.removeMyBlockId(peer1, "block" + i);
     }
     Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
-    Assertions.assertEquals(0.0, contractStore.getStorageBalance(peer1));
   }
 
   @Test

@@ -1,5 +1,6 @@
 package com.domhauton.membrane.distributed.contract;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -29,16 +30,12 @@ public class ContractStore {
     getStorageContract(peerId).removeMyBlockId(blockId);
   }
 
-  public void removePeerBlockId(String peerId, String blockId) throws ContractStoreException {
-    getStorageContract(peerId).removePeerBlockId(blockId);
+  public Optional<String> removePeerBlockId(String peerId, String blockId) throws ContractStoreException {
+    return getStorageContract(peerId).removePeerBlockId(blockId);
   }
 
   public int getMyBlockSpace(String peerId) throws ContractStoreException {
-    return getStorageContract(peerId).getRemainingMyBlockSpace();
-  }
-
-  public double getStorageBalance(String peerId) throws ContractStoreException {
-    return getStorageContract(peerId).getStorageBalance();
+    return Math.max(0, getStorageContract(peerId).getRemainingMyBlockSpace());
   }
 
   public Set<String> getMyBlockIds(String peerId) {

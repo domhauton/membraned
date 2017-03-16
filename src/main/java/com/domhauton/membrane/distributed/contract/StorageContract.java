@@ -1,20 +1,22 @@
 package com.domhauton.membrane.distributed.contract;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Iterables;
 
-import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Optional;
 import java.util.Set;
 
 /**
  * Created by Dominic Hauton on 11/03/17.
  */
 class StorageContract {
-  private Set<String> myBlockIds;
-  private Set<String> peerBlockIds;
+  private LinkedHashSet<String> myBlockIds;
+  private LinkedHashSet<String> peerBlockIds;
 
   StorageContract() {
-    myBlockIds = new HashSet<>();
-    peerBlockIds = new HashSet<>();
+    myBlockIds = new LinkedHashSet<>();
+    peerBlockIds = new LinkedHashSet<>();
   }
 
 
@@ -40,10 +42,20 @@ class StorageContract {
 
   synchronized void removeMyBlockId(String myBlockId) {
     myBlockIds.remove(myBlockId);
+    if (getRemainingPeerSpace() < 0 && peerBlockIds.size() > 0) {
+      peerBlockIds.remove(Iterables.get(peerBlockIds, 0));
+    }
   }
 
-  synchronized void removePeerBlockId(String peerBlockId) {
+  synchronized Optional<String> removePeerBlockId(String peerBlockId) {
     peerBlockIds.remove(peerBlockId);
+    if (getRemainingMyBlockSpace() < 0 && myBlockIds.size() > 0) {
+      String removedLocalBlock = Iterables.get(myBlockIds, 0);
+      myBlockIds.remove(removedLocalBlock);
+      return Optional.of(removedLocalBlock);
+    } else {
+      return Optional.empty();
+    }
   }
 
   synchronized Set<String> getMyBlockIds() {
@@ -77,11 +89,6 @@ class StorageContract {
   }
 
   int getRemainingMyBlockSpace() {
-    return Math.max(0, getBlockInequalityThreshold() - getBlockInequality());
-  }
-
-  double getStorageBalance() {
-    double maxBlocks = Math.max(myBlockIds.size(), peerBlockIds.size());
-    return maxBlocks > 0 ? (double) getBlockInequality() / maxBlocks : 0.0d;
+    return getBlockInequalityThreshold() - getBlockInequality();
   }
 }
