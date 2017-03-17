@@ -1,5 +1,7 @@
 package com.domhauton.membrane.distributed.contract;
 
+import com.google.common.collect.ImmutableSet;
+
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +38,10 @@ public class ContractStore {
 
   public int getMyBlockSpace(String peerId) throws ContractStoreException {
     return Math.max(0, getStorageContract(peerId).getRemainingMyBlockSpace());
+  }
+
+  public Set<String> getCurrentPeers() {
+    return ImmutableSet.copyOf(contractList.keySet());
   }
 
   public Set<String> getMyBlockIds(String peerId) {

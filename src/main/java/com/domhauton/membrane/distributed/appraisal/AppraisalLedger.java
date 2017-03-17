@@ -43,6 +43,18 @@ public class AppraisalLedger implements Runnable {
     return getPeerAppraisal(peerId).getContractSuccessChance();
   }
 
+  public double getPeerRating(String peerId) {
+    double[] myUptimeDistribution = getUptime();
+    double[] peerUptimeDistribution = getUptime(peerId);
+    double myUptimeTotal = 0.0d;
+    double adjustedPeerUptimeTotal = 0.0d;
+    for (int i = 0; i < myUptimeDistribution.length; i++) {
+      myUptimeTotal += myUptimeDistribution[i];
+      adjustedPeerUptimeTotal += Math.min(myUptimeDistribution[i], peerUptimeDistribution[i]);
+    }
+    return myUptimeTotal <= 0.0d ? 1.0d : adjustedPeerUptimeTotal / myUptimeTotal;
+  }
+
   @Override
   public void run() {
     executorService.scheduleAtFixedRate(uptimeCalculator::updateUptime, 0, UPTIME_UPDATE_RATE, TimeUnit.MINUTES);

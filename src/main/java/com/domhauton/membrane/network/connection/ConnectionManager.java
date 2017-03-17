@@ -110,7 +110,6 @@ public class ConnectionManager implements Closeable {
       logger.warn("Could not find peer {} in {} {}. Cancelling.", peerId, timeout, timeUnit);
       throw new TimeoutException("Unable to find peer " + peerId);
     }
-
   }
 
   /**
@@ -161,7 +160,7 @@ public class ConnectionManager implements Closeable {
     newPeerMessageCallbacks.add(peerMessageConsumer);
   }
 
-  Collection<Peer> getAllConnectedPeers() {
+  public Collection<Peer> getAllConnectedPeers() {
     return peerConnections.values();
   }
 

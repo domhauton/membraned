@@ -44,22 +44,24 @@ public class DistributedStore {
    *
    * @return Set of shards that could be stored by peers.
    */
-  public Set<DistributedShard> undeployedShards() {
+  public Set<String> undeployedShards() {
     return distributedShardMap.values().stream()
             .filter(distributedShard -> distributedShard.requiredPeers() > 0)
+            .map(DistributedShard::getMd5Hash)
             .collect(Collectors.toSet());
   }
 
   /**
    * Returns the set of shards that need to be stored. That are not stored by this peer.
    *
-   * @param peer Peer request from
+   * @param peer Peer schedule from
    * @return Set of shards that could be stored by the peer.
    */
-  public Set<DistributedShard> undeployedShards(String peer) {
+  public Set<String> undeployedShards(String peer) {
     return distributedShardMap.values().stream()
             .filter(distributedShard -> distributedShard.requiredPeers() > 0)
             .filter(distributedShard -> !distributedShard.isStoredBy(peer))
+            .map(DistributedShard::getMd5Hash)
             .collect(Collectors.toSet());
   }
 }

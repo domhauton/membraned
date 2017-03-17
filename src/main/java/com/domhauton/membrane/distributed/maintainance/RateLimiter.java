@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * Created by Dominic Hauton on 04/03/17.
  */
-public class UploadRateLimiter {
+public class RateLimiter {
   private final Logger logger = LogManager.getLogger();
 
   private final AtomicLong triggerCount;
@@ -21,14 +21,14 @@ public class UploadRateLimiter {
    * @param uploadRunnable
    * @param runLag
    */
-  public UploadRateLimiter(Runnable uploadRunnable, Duration runLag) {
+  public RateLimiter(Runnable uploadRunnable, Duration runLag) {
     this.uploadRunnable = uploadRunnable;
     this.runLag = runLag;
 
     triggerCount = new AtomicLong(0L);
   }
 
-  public void requestUpload() {
+  public void schedule() {
     long previousCount = triggerCount.getAndIncrement();
     if (previousCount == 0) {
       CompletableFuture.runAsync(() -> {

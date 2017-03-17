@@ -16,7 +16,7 @@ class DistributedStoreTest {
     DistributedStore distributedStore = new DistributedStore();
     distributedStore.addDistributedShard("shard1", Priority.Normal);
     distributedStore.addDistributedShard("shard1", Priority.Normal);
-    Set<DistributedShard> distributedShards = distributedStore.undeployedShards();
+    Set<String> distributedShards = distributedStore.undeployedShards();
     Assertions.assertEquals(1, distributedShards.size());
   }
 
@@ -25,7 +25,7 @@ class DistributedStoreTest {
     DistributedStore distributedStore = new DistributedStore();
     distributedStore.addDistributedShard("shard1", Priority.Normal);
     distributedStore.addDistributedShard("shard2", Priority.Normal);
-    Set<DistributedShard> distributedShards = distributedStore.undeployedShards();
+    Set<String> distributedShards = distributedStore.undeployedShards();
     Assertions.assertEquals(2, distributedShards.size());
   }
 

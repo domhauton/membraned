@@ -12,16 +12,16 @@ import java.util.concurrent.TimeUnit;
 /**
  * Created by Dominic Hauton on 04/03/17.
  */
-class UploadRateLimiterTest {
+class RateLimiterTest {
 
   @Test
   void testRateLimiting() throws Exception {
     Runnable runnableMock = Mockito.mock(Runnable.class);
 
-    UploadRateLimiter uploadRateLimiter = new UploadRateLimiter(runnableMock, Duration.millis(100));
+    RateLimiter uploadRateLimiter = new RateLimiter(runnableMock, Duration.millis(100));
 
     ScheduledExecutorService addExecutor = Executors.newSingleThreadScheduledExecutor();
-    ScheduledFuture<?> looper = addExecutor.scheduleWithFixedDelay(uploadRateLimiter::requestUpload, 0, 10, TimeUnit.MILLISECONDS);
+    ScheduledFuture<?> looper = addExecutor.scheduleWithFixedDelay(uploadRateLimiter::schedule, 0, 10, TimeUnit.MILLISECONDS);
 
     addExecutor.schedule(() -> Mockito.verify(runnableMock, Mockito.times(4)).run(), 420, TimeUnit.MILLISECONDS);
     addExecutor.schedule(() -> {

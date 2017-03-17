@@ -40,6 +40,10 @@ class DistributedShard {
     return storedByPeers.contains(peer);
   }
 
+  public String getMd5Hash() {
+    return md5Hash;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
