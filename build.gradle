@@ -112,9 +112,9 @@ dependencies{
     // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
     compile group: 'org.apache.commons', name: 'commons-collections4', version: '4.1'
     // https://mvnrepository.com/artifact/io.vertx/vertx-core
-    compile group: 'io.vertx', name: 'vertx-core', version: '3.4.0'
+    compile group: 'io.vertx', name: 'vertx-core', version: '3.4.1'
     // https://mvnrepository.com/artifact/io.vertx/vertx-web
-    compile group: 'io.vertx', name: 'vertx-web', version: '3.4.0'
+    compile group: 'io.vertx', name: 'vertx-web', version: '3.4.1'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
     compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.56'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on
@@ -142,7 +142,7 @@ dependencies {
     // https://mvnrepository.com/artifact/org.mockito/mockito-core
     testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.17'
     // https://mvnrepository.com/artifact/io.vertx/vertx-codegen
-    testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.0'
+    testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.1'
 }
 
 buildConfig {
