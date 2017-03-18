@@ -2,6 +2,7 @@ package com.domhauton.membrane.distributed.appraisal;
 
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
+import org.joda.time.DateTimeZone;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +63,7 @@ class UptimeCalculatorTest {
 
   @Test
   void fillEightDaysTest() throws Exception {
-    DateTime baseDateTime = DateTime.now();
+    DateTime baseDateTime = DateTime.now(DateTimeZone.UTC);
     UptimeCalculator uptimeCalculator = new UptimeCalculator(baseDateTime, baseDateTime);
     DateTime dateTime = baseDateTime.plusWeeks(1).plusMillis(100);
 

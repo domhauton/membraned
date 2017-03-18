@@ -26,6 +26,8 @@ class ConnectionManagerTest {
   private static final String TEST_SENDER = "user1";
   private static final String TEST_RECIPIENT = "user2";
 
+  private static int listenPort1 = 12450;
+  private static int listenPort2 = 12451;
 
   private MembraneAuthInfo membraneAuthInfo1;
   private MembraneAuthInfo membraneAuthInfo2;
@@ -39,8 +41,9 @@ class ConnectionManagerTest {
     AuthUtils.addProvider();
     membraneAuthInfo1 = AuthUtils.generateAuthenticationInfo();
     membraneAuthInfo2 = AuthUtils.generateAuthenticationInfo();
-    connectionManager1 = new ConnectionManager(membraneAuthInfo1, 12450);
-    connectionManager2 = new ConnectionManager(membraneAuthInfo2, 12451);
+
+    connectionManager1 = new ConnectionManager(membraneAuthInfo1, listenPort1);
+    connectionManager2 = new ConnectionManager(membraneAuthInfo2, listenPort2);
   }
 
   @Test
@@ -51,7 +54,7 @@ class ConnectionManagerTest {
     connectionManager1.registerNewPeerCallback(peer -> con1Callback.complete(true));
     connectionManager2.registerNewPeerCallback(peer -> con2Callback.complete(true));
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     Assertions.assertTrue(con1Callback.get(5, TimeUnit.SECONDS),
             "Connection Established in Con Manager 1");
@@ -89,7 +92,7 @@ class ConnectionManagerTest {
     connectionManager1.registerMessageCallback(con1MessageCallback::complete);
     connectionManager2.registerMessageCallback(con2MessageCallback::complete);
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     Assertions.assertNotNull(con1MessageCallback.get(2, TimeUnit.SECONDS),
             "Connection Established in Con Manager 1");
@@ -128,7 +131,7 @@ class ConnectionManagerTest {
     connectionManager1.registerMessageCallback(con1MessageCallback::complete);
     connectionManager2.registerMessageCallback(con2MessageCallback::complete);
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     // Ensure no messages arrived within 5 seconds
 
@@ -151,9 +154,9 @@ class ConnectionManagerTest {
 
     connectionManager2.registerNewPeerCallback(getPeerConsumer(con2Callback_1, con2Callback_2, con2Callback_3));
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
-    connectionManager1.connectToPeer("127.0.0.1", 12451);
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
+    connectionManager1.connectToPeer("127.0.0.1", listenPort2);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     Assertions.assertNotNull(con1Callback_3.get(5, TimeUnit.SECONDS),
             "Connection Established 3 times in Con Manager 1");
@@ -166,38 +169,10 @@ class ConnectionManagerTest {
   }
 
   @Test
-  void cannotFindPeerTest() throws Exception {
-    Assertions.assertThrows(TimeoutException.class, () -> connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS));
-  }
-
-  @Test
-  void timeoutWaitingForReply() throws Exception {
-
-    CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
-      try {
-        Peer peer = connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS);
-        PongMessage pongMessage = new PongMessage(membraneAuthInfo1.getClientId(), TEST_RECIPIENT, MembraneBuild.VERSION, -1L);
-        Assertions.assertThrows(TimeoutException.class, () -> peer.sendPeerMessageAndWait(pongMessage, 2, TimeUnit.SECONDS));
-      } catch (TimeoutException e) {
-        Assertions.fail("Could not find peer.");
-      }
-    });
-
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
-
-    try {
-      completableFuture.get(5, TimeUnit.SECONDS);
-    } catch (TimeoutException e) {
-      Assertions.fail("Timed out while waiting for connections to complete.");
-    }
-  }
-
-  @Test
   void sendToClosedConnection() throws Exception {
-
     CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
       try {
-        Peer peer = connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS);
+        Peer peer = connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 3, TimeUnit.SECONDS);
         peer.close();
         while (!peer.isClosed()) {
           Thread.sleep(100);
@@ -211,7 +186,7 @@ class ConnectionManagerTest {
       }
     });
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     try {
       completableFuture.get(5, TimeUnit.SECONDS);
@@ -235,7 +210,7 @@ class ConnectionManagerTest {
         Peer peer = connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS);
         PingMessage pingMessage = new PingMessage(membraneAuthInfo1.getClientId(), TEST_RECIPIENT, MembraneBuild.VERSION);
         try {
-          peer.sendPeerMessageAndWait(pingMessage, 2, TimeUnit.SECONDS);
+          peer.sendPeerMessageAndWait(pingMessage, 10, TimeUnit.SECONDS);
         } catch (TimeoutException e) {
           Assertions.fail("Unsuccessful ping-pong: con1-PING->con2-PONG->con1. Did not return fast enough.");
         }
@@ -246,7 +221,34 @@ class ConnectionManagerTest {
       }
     });
 
-    connectionManager2.connectToPeer("127.0.0.1", 12450);
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
+
+    try {
+      completableFuture.get(5, TimeUnit.SECONDS);
+    } catch (TimeoutException e) {
+      Assertions.fail("Timed out while waiting for connections to complete.");
+    }
+  }
+
+  @Test
+  void cannotFindPeerTest() throws Exception {
+    Assertions.assertThrows(TimeoutException.class, () -> connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS));
+  }
+
+  @Test
+  void timeoutWaitingForReply() throws Exception {
+
+    CompletableFuture<Void> completableFuture = CompletableFuture.runAsync(() -> {
+      try {
+        Peer peer = connectionManager1.getPeerConnection(membraneAuthInfo2.getClientId(), 2, TimeUnit.SECONDS);
+        PongMessage pongMessage = new PongMessage(membraneAuthInfo1.getClientId(), TEST_RECIPIENT, MembraneBuild.VERSION, -1L);
+        Assertions.assertThrows(TimeoutException.class, () -> peer.sendPeerMessageAndWait(pongMessage, 2, TimeUnit.SECONDS));
+      } catch (TimeoutException e) {
+        Assertions.fail("Could not find peer.");
+      }
+    });
+
+    connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     try {
       completableFuture.get(5, TimeUnit.SECONDS);
@@ -269,8 +271,13 @@ class ConnectionManagerTest {
   }
 
   @AfterEach
-  void tearDown() {
+  void tearDown() throws Exception {
     connectionManager1.close();
     connectionManager2.close();
+
+    // Use different ports
+
+    listenPort1 += 2;
+    listenPort2 += 2;
   }
 }

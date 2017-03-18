@@ -3,6 +3,10 @@
   <component name="NewModuleRootManager" LANGUAGE_LEVEL="JDK_1_8" inherit-compiler-output="false">
     <output url="file://$MODULE_DIR$/../../build/classes/main" />
     <exclude-output />
+    <content url="file://$MODULE_DIR$/../../build/gen">
+      <sourceFolder url="file://$MODULE_DIR$/../../build/gen/buildconfig/src/main" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/../../build/gen/buildconfig/src" isTestSource="false" />
+    </content>
     <content url="file://$MODULE_DIR$/../../src/main">
       <sourceFolder url="file://$MODULE_DIR$/../../src/main/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/../../src/main/resources" type="java-resource" />
@@ -11,16 +15,16 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-core:2.8.1" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.0.pr1" level="project" />
+    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.9.0.pr1" level="project" />
     <orderEntry type="module-library" scope="PROVIDED">
-      <library>
-        <CLASSES>
-          <root url="file://$MODULE_DIR$/../../build/gen/buildconfig/classes/main" />
-        </CLASSES>
+      <library name="BulidConfig">
+        <CLASSES />
         <JAVADOC />
-        <SOURCES />
+        <SOURCES>
+          <root url="file://$MODULE_DIR$/../../build/gen/buildconfig/src/main" />
+        </SOURCES>
       </library>
     </orderEntry>
-    <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.9.0.pr1" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava:21.0" level="project" />
     <orderEntry type="library" name="Gradle: joda-time:joda-time:2.9.7" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.commons:commons-collections4:4.1" level="project" />
