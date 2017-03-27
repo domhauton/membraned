@@ -41,6 +41,24 @@ class ShardStorageTest {
   }
 
   @Test
+  void testCreateAndGetSize() throws Exception {
+    shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
+    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    long shardSize = shardStorage.getShardSize(addedFile);
+    Assertions.assertEquals(StorageManagerTestUtils.RAND_SHARD_SIZE, shardSize);
+
+    shardStorage.removeShard(addedFile);
+    Files.delete(Paths.get(testDir));
+  }
+
+  @Test
+  void testGetSizeFail() throws Exception {
+    shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
+    Assertions.assertThrows(ShardStorageException.class, () -> shardStorage.getShardSize("artsratasta"));
+    Files.delete(Paths.get(testDir));
+  }
+
+  @Test
   void testCreateAndList() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
     String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);

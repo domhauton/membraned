@@ -91,6 +91,22 @@ public class ShardStorageImpl implements ShardStorage {
   }
 
   /**
+   * Retrieves the size of a share from storage
+   *
+   * @param md5Hash md5Hash of requested shard
+   * @return size of requested shard in bytes. 0L if unknown.
+   * @throws ShardStorageException If shard does not exist.
+   */
+  public long getShardSize(String md5Hash) throws ShardStorageException {
+    File shardFile = getPath(basePath.toString(), md5Hash).toFile();
+    if (shardFile.exists()) {
+      return shardFile.length();
+    } else {
+      throw new ShardStorageException("Shard " + md5Hash + " not found.");
+    }
+  }
+
+  /**
    * Removes the shard from the storage shard pool.
    *
    * @param md5Hash the hash of the shard to remove

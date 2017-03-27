@@ -24,6 +24,15 @@ public interface ShardStorage {
   byte[] retrieveShard(String md5Hash) throws ShardStorageException;
 
   /**
+   * Retrieves the size of a share from storage
+   *
+   * @param md5Hash md5Hash of requested shard
+   * @return size of requested shard in bytes. 0L if unknown.
+   * @throws ShardStorageException If shard does not exist.
+   */
+  long getShardSize(String md5Hash) throws ShardStorageException;
+
+  /**
    * Removes the shard from storage
    *
    * @param md5Hash the hash of the shard to remove

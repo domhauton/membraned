@@ -18,9 +18,10 @@ import java.util.Random;
 public abstract class StorageManagerTestUtils {
 
   public static final String BASE_DIR = System.getProperty("java.io.tmpdir") + File.separator + "membrane";
+  public static final long RAND_SHARD_SIZE = 128;
 
   public static String addRandFile(Random random, ShardStorage shardStorage) throws Exception {
-    byte[] data = new byte[128];
+    byte[] data = new byte[(int) RAND_SHARD_SIZE];
     random.nextBytes(data);
     String hash = Hashing.md5().hashBytes(data).toString();
     shardStorage.storeShard(hash, data);
