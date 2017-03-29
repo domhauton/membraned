@@ -48,22 +48,33 @@ public class PexLedger {
   }
 
   static PexLedger deserialize(Collection<String> ledgerFile, int maxLedgerSize) {
+    LOGGER.trace("Deserializing PEX");
     PexLedger pexLedger = new PexLedger(maxLedgerSize);
 
     for (String entry : ledgerFile) {
       try {
-        String[] splitEntry = entry.split(ENTRY_SEP, 1);
+        String[] splitEntry = entry.split(ENTRY_SEP, 2);
         if (splitEntry.length == 2) {
           PexEntry pexEntry = PexEntry.deserialize(splitEntry[1]);
           pexLedger.addPexEntry(splitEntry[0], pexEntry);
         } else {
           LOGGER.warn("Pex entry must be of form 'userId,entry': {}", entry);
         }
-        PexEntry.deserialize(entry);
       } catch (PexException e) {
         LOGGER.warn("Unable to parse PEX entry. {}", e.getMessage());
       }
     }
     return pexLedger;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+
+    PexLedger pexLedger = (PexLedger) o;
+
+    if (maxLedgerSize != pexLedger.maxLedgerSize) return false;
+    return pexRecord != null ? pexRecord.equals(pexLedger.pexRecord) : pexLedger.pexRecord == null;
   }
 }
