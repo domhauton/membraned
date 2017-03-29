@@ -6,7 +6,7 @@ import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.connection.ConnectionException;
 import com.domhauton.membrane.network.connection.ConnectionManager;
-import com.domhauton.membrane.network.connection.upnp.PortForwardingService;
+import com.domhauton.membrane.network.upnp.PortForwardingService;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;

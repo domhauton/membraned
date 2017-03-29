@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.connection.upnp;
+package com.domhauton.membrane.network.upnp;
 
 import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;

@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.connection.upnp;
+package com.domhauton.membrane.network.upnp;
 
 /**
  * Created by Dominic Hauton on 23/02/17.

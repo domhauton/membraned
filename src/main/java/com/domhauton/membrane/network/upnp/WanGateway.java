@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.connection.upnp;
+package com.domhauton.membrane.network.upnp;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

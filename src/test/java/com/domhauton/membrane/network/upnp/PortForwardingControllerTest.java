@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.connection.upnp;
+package com.domhauton.membrane.network.upnp;
 
 import org.joda.time.Period;
 import org.junit.jupiter.api.AfterEach;
