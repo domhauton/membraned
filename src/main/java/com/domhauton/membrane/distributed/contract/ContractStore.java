@@ -40,6 +40,14 @@ public class ContractStore {
     return Math.max(0, getStorageContract(peerId).getRemainingMyBlockSpace());
   }
 
+  public void setPeerAllowedInequality(String peerId, int value) {
+    getStorageContract(peerId).setPeerBaseAllowedInequality(value);
+  }
+
+  public void setMyAllowedInequality(String peerId, int value) {
+    getStorageContract(peerId).setMyBaseAllowedInequality(value);
+  }
+
   public Set<String> getCurrentPeers() {
     return ImmutableSet.copyOf(contractList.keySet());
   }

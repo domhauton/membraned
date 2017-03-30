@@ -13,6 +13,8 @@ import java.util.Set;
 class StorageContract {
   private LinkedHashSet<String> myBlockIds;
   private LinkedHashSet<String> peerBlockIds;
+  private int myBaseAllowedInequality = 0;
+  private int peerBaseAllowedInequality = 0;
 
   StorageContract() {
     myBlockIds = new LinkedHashSet<>();
@@ -80,15 +82,23 @@ class StorageContract {
    *
    * @return 1 + 10% of current holdings
    */
-  private int getBlockInequalityThreshold() {
-    return 1 + (Math.min(myBlockIds.size(), peerBlockIds.size()) / 10);
+  private int getBlockInequalityThreshold(int base) {
+    return base + (Math.min(myBlockIds.size(), peerBlockIds.size()) / 10);
   }
 
   private int getRemainingPeerSpace() {
-    return getBlockInequalityThreshold() + getBlockInequality();
+    return getBlockInequalityThreshold(peerBaseAllowedInequality) + getBlockInequality();
   }
 
   int getRemainingMyBlockSpace() {
-    return getBlockInequalityThreshold() - getBlockInequality();
+    return getBlockInequalityThreshold(myBaseAllowedInequality) - getBlockInequality();
+  }
+
+  void setMyBaseAllowedInequality(int myBaseAllowedInequality) {
+    this.myBaseAllowedInequality = myBaseAllowedInequality;
+  }
+
+  void setPeerBaseAllowedInequality(int peerBaseAllowedInequality) {
+    this.peerBaseAllowedInequality = peerBaseAllowedInequality;
   }
 }

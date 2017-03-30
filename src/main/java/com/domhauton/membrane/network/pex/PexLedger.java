@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,12 +34,16 @@ public class PexLedger {
     }
   }
 
-  public synchronized Optional<PexEntry> getPexEntry(String userId) {
+  synchronized Optional<PexEntry> getPexEntry(String userId) {
     return Optional.ofNullable(pexRecord.get(userId));
   }
 
-  public synchronized Set<String> availableHosts() {
+  synchronized Set<String> availableHosts() {
     return pexRecord.keySet();
+  }
+
+  synchronized Set<Map.Entry<String, PexEntry>> getPexEntries() {
+    return pexRecord.entrySet();
   }
 
   synchronized String serialize() {

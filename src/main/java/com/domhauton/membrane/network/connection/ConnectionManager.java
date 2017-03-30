@@ -9,11 +9,13 @@ import org.apache.logging.log4j.Logger;
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.concurrent.*;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * Created by dominic on 08/02/17.
@@ -83,7 +85,7 @@ public class ConnectionManager implements Closeable {
   /**
    * Attempt to connect to new peer at given ip and port. Non-blocking.
    */
-  void connectToPeer(String ip, int port) {
+  public void connectToPeer(String ip, int port) {
     logger.info("Dialling Peer at [{}:{}]", ip, port);
     peerDialler.dialClient(ip, port);
   }
@@ -162,6 +164,10 @@ public class ConnectionManager implements Closeable {
 
   public Collection<Peer> getAllConnectedPeers() {
     return peerConnections.values();
+  }
+
+  public Set<String> getAllConnectedPeerIds() {
+    return getAllConnectedPeers().stream().map(Peer::getUid).collect(Collectors.toSet());
   }
 
   /**

@@ -10,6 +10,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
@@ -50,6 +51,10 @@ public class PexManager {
 
   public Set<String> getAvailablePexPeers() {
     return pexLedger.availableHosts();
+  }
+
+  public Set<Map.Entry<String, PexEntry>> getPexEntries() {
+    return pexLedger.getPexEntries();
   }
 
   void saveLedger() throws PexException {

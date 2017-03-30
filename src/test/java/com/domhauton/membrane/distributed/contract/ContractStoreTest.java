@@ -19,6 +19,8 @@ class ContractStoreTest {
   @Test
   void addMyBlockTest() throws Exception {
     ContractStore contractStore = new ContractStore();
+    contractStore.setMyAllowedInequality(peer1, 1);
+    contractStore.setPeerAllowedInequality(peer1, 1);
     Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
     contractStore.addMyBlockId(peer1, "block1");
     Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
@@ -29,7 +31,23 @@ class ContractStoreTest {
   @Test
   void addPeerBlockTest() throws Exception {
     ContractStore contractStore = new ContractStore();
+    contractStore.setMyAllowedInequality(peer1, 1);
+    contractStore.setPeerAllowedInequality(peer1, 1);
     Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
+    contractStore.addPeerBlockId(peer1, "block1");
+    Assertions.assertEquals(2, contractStore.getMyBlockSpace(peer1));
+    contractStore.addPeerBlockId(peer1, "block1");
+    Assertions.assertThrows(ContractStoreException.class, () -> contractStore.addPeerBlockId(peer1, "block2"));
+  }
+
+  @Test
+  void peerInequalityTest() throws Exception {
+    ContractStore contractStore = new ContractStore();
+    Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
+    contractStore.setMyAllowedInequality(peer1, 1);
+    Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
+    Assertions.assertThrows(ContractStoreException.class, () -> contractStore.addPeerBlockId(peer1, "block1"));
+    contractStore.setPeerAllowedInequality(peer1, 1);
     contractStore.addPeerBlockId(peer1, "block1");
     Assertions.assertEquals(2, contractStore.getMyBlockSpace(peer1));
     contractStore.addPeerBlockId(peer1, "block1");
@@ -39,6 +57,8 @@ class ContractStoreTest {
   @Test
   void addBothBlockTest() throws Exception {
     ContractStore contractStore = new ContractStore();
+    contractStore.setMyAllowedInequality(peer1, 1);
+    contractStore.setPeerAllowedInequality(peer1, 1);
     Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
     contractStore.addPeerBlockId(peer1, "block1");
     Assertions.assertEquals(2, contractStore.getMyBlockSpace(peer1));
@@ -53,6 +73,8 @@ class ContractStoreTest {
   @Test
   void scalingTest() throws Exception {
     ContractStore contractStore = new ContractStore();
+    contractStore.setMyAllowedInequality(peer1, 1);
+    contractStore.setPeerAllowedInequality(peer1, 1);
     for (int i = 0; i < 10; i++) {
       contractStore.addPeerBlockId(peer1, "block" + i);
       contractStore.addMyBlockId(peer1, "block" + i);
@@ -84,6 +106,10 @@ class ContractStoreTest {
   @Test
   void blockListingTest() throws Exception {
     ContractStore contractStore = new ContractStore();
+    contractStore.setMyAllowedInequality(peer1, 1);
+    contractStore.setPeerAllowedInequality(peer1, 1);
+    contractStore.setMyAllowedInequality(peer2, 1);
+    contractStore.setPeerAllowedInequality(peer2, 1);
     Set<String> blockSet1 = IntStream.range(0, 10).boxed().map(x -> "block" + x).collect(Collectors.toSet());
     Set<String> blockSet2 = IntStream.range(10, 20).boxed().map(x -> "block" + x).collect(Collectors.toSet());
     blockSet1.forEach(x -> addBlockEvenly(contractStore, x, peer1));

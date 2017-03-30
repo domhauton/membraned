@@ -23,7 +23,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class Distributor implements Runnable {
+public class Distributor implements Runnable, ContractManager {
   private final static Duration UPLOAD_RATE_LIMIT = Duration.standardSeconds(5);
   private final static long BLOCK_SIZE_BYTES = 16L * 1024L * 1024L * 1024L; //16MB
   private final Logger logger = LogManager.getLogger();
@@ -37,8 +37,12 @@ public class Distributor implements Runnable {
   private final ContractStore contractStore;
   private NetworkManager networkManager;
 
-  public Distributor(ShardStorage shardStorage) {
+  private int contractLimit;
+
+  public Distributor(ShardStorage shardStorage, NetworkManager networkManager, int contractLimit) {
     this.shardStorage = shardStorage;
+    this.networkManager = networkManager;
+    this.contractLimit = contractLimit;
 
     distributedStore = new DistributedStore();
     blockEvidenceLedger = new BlockEvidenceLedger();
@@ -59,13 +63,13 @@ public class Distributor implements Runnable {
   void beginUpload() {
     // This is expensive. Be careful.
     Map<String, Double> peerReliabilityMap = contractStore.getCurrentPeers().stream()
-            .filter(this::isPeerConnected)
-            .collect(Collectors.toMap(x -> x, appraisalLedger::getPeerRating));
+        .filter(this::isPeerConnected)
+        .collect(Collectors.toMap(x -> x, appraisalLedger::getPeerRating));
     // Do not chain with above. Memoize reliability score!
     List<String> connectedPeersByRank = peerReliabilityMap.entrySet().stream()
-            .sorted(Comparator.comparingDouble(Map.Entry::getValue))
-            .map(Map.Entry::getKey)
-            .collect(Collectors.toList());
+        .sorted(Comparator.comparingDouble(Map.Entry::getValue))
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toList());
     // Send all possible shards to top X peers and wait a second and re-prompt upload if shards remain.
 
     Set<String> usedShardSet = new HashSet<>();
@@ -107,18 +111,6 @@ public class Distributor implements Runnable {
     }
   }
 
-  void updateContractedPeers(Set<String> peerIds) {
-    if (networkManager != null) {
-      networkManager.setContractedPeerList(peerIds);
-    }
-  }
-
-  void updatePeerBlockList(Set<String> peerIds) {
-    if (networkManager != null) {
-      networkManager.setPeerBlockList(peerIds);
-    }
-  }
-
   public void run() {
     appraisalLedger.run();
   }
@@ -128,7 +120,7 @@ public class Distributor implements Runnable {
   }
 
   private boolean isPeerConnected(String peerId) {
-    return networkManager != null && networkManager.peerConnected(peerId);
+    return networkManager.peerConnected(peerId);
   }
 
   private Set<String> uploadShardsToPeer(String peerId, Set<String> candidateShards) {
@@ -157,6 +149,7 @@ public class Distributor implements Runnable {
       }
     }
 
+    // Upload the created block
     try {
       uploadBlock(peerId, blockProcessor);
       return uploadedSet;
@@ -173,11 +166,7 @@ public class Distributor implements Runnable {
 
       // FIXME encrypt
 
-      if (networkManager != null) {
-        networkManager.uploadBlockToPeer(peerId, blockData);
-      } else {
-        throw new DistributorException("Not connected to network! Can't upload.");
-      }
+      networkManager.uploadBlockToPeer(peerId, blockData);
     } catch (BlockException | NetworkException e) {
       throw new DistributorException("Unable to upload generated block", e);
     }
@@ -187,7 +176,19 @@ public class Distributor implements Runnable {
     // TODO Recovery shard async
   }
 
-  public void setNetworkManager(NetworkManager networkManager) {
-    this.networkManager = networkManager;
+  @Override
+  public Set<String> getContractedPeers() {
+    return contractStore.getCurrentPeers();
+  }
+
+  @Override
+  public int getContractCountTarget() {
+    return contractLimit;
+  }
+
+  @Override
+  public void addContractedPeer(String peerId) throws DistributorException {
+    //TODO add new contract
+    //TODO send in-balance of 1.
   }
 }
