@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 29/03/17.
  */
-public class Gatekeeper {
+public class Gatekeeper implements Runnable {
   private static final int HOURS_BEFORE_PEX_ENTRY_CONSIDERED_OLD = DateTimeConstants.HOURS_PER_WEEK;
 
   private final Logger logger = LogManager.getLogger();
@@ -38,7 +38,7 @@ public class Gatekeeper {
   private final Set<String> trackers;
 
   private int maxConnections;
-  private boolean isSearchingForNewPeers;
+  private boolean isSearchingForNewPeers = false;
 
   private ContractManager contractManager;
 
@@ -52,8 +52,23 @@ public class Gatekeeper {
     this.trackers = new HashSet<>();
   }
 
-  private void newPeerConnected(String peerId) {
-    //TODO If is searching for new peers, needs new peers and this is a new peer, send PEX and add to contracts
+  void maintainPeerPopulation() {
+    connectToContractedPeers();
+    connectToPeersInPex();
+
+    int requiredConnections = requiredConnections();
+    int remainingConnections = remainingConnections();
+    if (requiredConnections > 0 && remainingConnections > 0) {
+      requestPexInformation();
+      if (isSearchingForNewPeers) {
+        sendPexUpdate();
+      }
+    } else if (remainingConnections < 0) {
+      disconnectRedundantPeers(-remainingConnections);
+    }
+  }
+
+  void processNewPeerConnected(String peerId) {
     Supplier<Boolean> isContracted = () -> contractManager.getContractedPeers().contains(peerId);
     Supplier<Boolean> newPeersRequired = () -> requiredConnections() > 0;
 
@@ -73,15 +88,14 @@ public class Gatekeeper {
    * @param peerId   User pex entry is about.
    * @param pexEntry PEX entry information.
    */
-  private void recievePEX(String peerId, PexEntry pexEntry) {
+  void processNewPexEntry(String peerId, PexEntry pexEntry) {
     // Suppliers for lazy loading / short circuit
-    Supplier<Boolean> isContracted = () -> contractManager.getContractedPeers().contains(peerId);
     Supplier<Boolean> isConnected = () -> connectionManager.getAllConnectedPeerIds().contains(peerId);
     Supplier<Boolean> newPeersRequired = () -> requiredConnections() > 0;
     Supplier<Boolean> remainingConnections = () -> remainingConnections() > 0;
 
     // Try to dial peer if all conditions satisfied.
-    if (isSearchingForNewPeers && !isConnected.get() && !isContracted.get() && newPeersRequired.get() && remainingConnections.get()) {
+    if (isSearchingForNewPeers && !isConnected.get() && newPeersRequired.get() && remainingConnections.get()) {
       connectionManager.connectToPeer(pexEntry.getAddress(), pexEntry.getPort());
     }
   }
@@ -131,6 +145,10 @@ public class Gatekeeper {
     }
   }
 
+  private void sendPexUpdate() {
+    // TODO send public PEX update;
+  }
+
   private void requestPexInformation() {
     Set<String> lostPeers = new HashSet<>();
     lostPeers.addAll(contractManager.getContractedPeers());
@@ -146,6 +164,17 @@ public class Gatekeeper {
         }
       }
     }
+  }
+
+  void disconnectRedundantPeers(int peersToDisconnect) {
+    logger.info("Disconnecting {} redundant peers.", peersToDisconnect);
+    Set<String> contractedPeers = contractManager.getContractedPeers();
+
+    connectionManager.getAllConnectedPeerIds().stream()
+        .filter(x -> !contractedPeers.contains(x))
+        .filter(x -> !trackers.contains(x))
+        .limit(peersToDisconnect)
+        .forEach(this::disconnectPeer);
   }
 
   private void disconnectPeer(String peerId) {
@@ -174,5 +203,15 @@ public class Gatekeeper {
 
   public void setContractManager(ContractManager contractManager) {
     this.contractManager = contractManager;
+    connectToPeersInPex();
+  }
+
+  public void setSearchingForNewPeers(boolean searchingForNewPeers) {
+    isSearchingForNewPeers = searchingForNewPeers;
+  }
+
+  @Override
+  public void run() {
+
   }
 }

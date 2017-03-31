@@ -16,7 +16,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Created by Dominic Hauton on 18/02/17.
@@ -76,25 +75,6 @@ public class NetworkManager implements Closeable {
   public boolean peerConnected(String peerId) {
     return connectionManager.getAllConnectedPeers().stream()
             .anyMatch(x -> x.getUid().equals(peerId));
-  }
-
-  public void setContractedPeerList(Set<String> peerList) {
-    // TODO add peers contracted list.
-    // TODO trigger peer search for unconnected contracted peers.
-  }
-
-  public void setPeerBlockList(Set<String> peersList) {
-    // TODO add peer block list.
-    // TODO disconnect from peer if currently blocked
-    // TODO trigger peer search if below limit
-  }
-
-  public void beginPeerSearch() {
-    // TODO Check current PEX list.
-    // TODO Attempt to connect to everyone on list in batches of 5 every 10 seconds until peer quota is met.
-
-    // TODO If quota is not met, request PEX share from all connected peers.
-    // TODO Open up to new random connection requests for next 15 mins.
   }
 
   public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
