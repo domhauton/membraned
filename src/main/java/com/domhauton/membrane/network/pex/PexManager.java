@@ -28,19 +28,32 @@ public class PexManager {
   private final Path pexFolder;
 
   private PexLedger pexLedger;
+  private PexLedger unconfirmedLedger;
 
   public PexManager(int maxLedgerSize, Path pexFolder) throws PexException {
     this.pexFolder = pexFolder;
     this.pexLedger = loadLedgerFromFile(pexFolder, maxLedgerSize);
+    this.unconfirmedLedger = new PexLedger(maxLedgerSize);
   }
 
-  public void addEntry(String peerId, String ip, int port, boolean isPublic) {
+  public void addEntry(String peerId, String ip, int port, boolean isPublic, DateTime dateTime, byte[] signature) {
     logger.info("Adding PEX entry for peer [{}]. IP: '{}' Port: '{}' Public: '{}'", peerId, ip, port, isPublic);
     try {
-      PexEntry newEntry = new PexEntry(ip, port, isPublic, DateTime.now());
+      PexEntry newEntry = new PexEntry(ip, port, isPublic, dateTime, signature);
       pexLedger.addPexEntry(peerId, newEntry);
     } catch (PexException e) {
       logger.error("Ignoring invalid PEX entry: {}", e.getMessage());
+    }
+  }
+
+  public void addUnconfirmedEntry(String ip, int port) {
+    logger.trace("Adding unconfirmed PEX entry. IP: '{}' Port: '{}'", ip, port);
+    try {
+      PexEntry newEntry = new PexEntry(ip, port, true, DateTime.now(), new byte[0]);
+      // Use IP to filter spam
+      unconfirmedLedger.addPexEntry(ip, newEntry);
+    } catch (PexException e) {
+      logger.trace("Ignoring invalid unconfirmed PEX entry: {}", e.getMessage());
     }
   }
 

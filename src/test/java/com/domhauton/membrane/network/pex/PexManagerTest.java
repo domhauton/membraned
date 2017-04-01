@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network.pex;
 
 import com.domhauton.membrane.storage.StorageManagerTestUtils;
+import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,10 @@ class PexManagerTest {
 
   private static final int PORT_1 = 80;
 
+  private static final byte[] SIGNATURE_1 = "thisisasignature-asrtsrat".getBytes();
+
+  private static final DateTime TEST_START_TIME = DateTime.now();
+
   @BeforeEach
   void setUp() throws Exception {
     testFolder = StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR);
@@ -42,7 +47,7 @@ class PexManagerTest {
 
   @Test
   void simpleTest() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_1, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     PexEntry entry = pexManager.getEntry(PEER_1);
     Assertions.assertEquals(IP_1, entry.getAddress());
     Assertions.assertEquals(PORT_1, entry.getPort());
@@ -51,23 +56,23 @@ class PexManagerTest {
 
   @Test
   void invalidEntryTest() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, -5, false);
+    pexManager.addEntry(PEER_1, IP_1, -5, false, TEST_START_TIME, SIGNATURE_1);
     Assertions.assertThrows(PexException.class, () -> pexManager.getEntry(PEER_1));
   }
 
   @Test
   void overflowTest() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, PORT_1, false);
-    pexManager.addEntry(PEER_2, IP_1, PORT_1, false);
-    pexManager.addEntry(PEER_3, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_1, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
+    pexManager.addEntry(PEER_2, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
+    pexManager.addEntry(PEER_3, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     Assertions.assertIterableEquals(Arrays.asList(PEER_1, PEER_2, PEER_3), pexManager.getAvailablePexPeers());
-    pexManager.addEntry(PEER_4, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_4, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     Assertions.assertIterableEquals(Arrays.asList(PEER_2, PEER_3, PEER_4), pexManager.getAvailablePexPeers());
   }
 
   @Test
   void simpleTestFromFile() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_1, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     pexManager.saveLedger();
     // RELOAD
     pexManager = new PexManager(3, Paths.get(testFolder));
@@ -79,7 +84,7 @@ class PexManagerTest {
 
   @Test
   void simpleTestFromBackupFile() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_1, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     pexManager.saveLedger();
     Assertions.assertFalse(getBackupPath().toFile().exists());
     Assertions.assertTrue(getNormalPath().toFile().exists());
@@ -97,7 +102,7 @@ class PexManagerTest {
 
   @Test
   void backupFileLockedTest() throws Exception {
-    pexManager.addEntry(PEER_1, IP_1, PORT_1, false);
+    pexManager.addEntry(PEER_1, IP_1, PORT_1, false, TEST_START_TIME, SIGNATURE_1);
     pexManager.saveLedger();
     Files.move(getNormalPath(), getBackupPath());
 

@@ -1,12 +1,16 @@
 package com.domhauton.membrane.network.messaging.messages;
 
+import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
+import java.security.cert.X509Certificate;
+import java.util.Set;
 import java.util.concurrent.*;
 
 /**
@@ -40,7 +44,20 @@ public class PeerMessageActions {
     }
   }
 
-  private void processPexAdvertisement(String peer, PeerMessage peerMessage) {
+  void processSignedPexInfo(String peer, String ip, int port, boolean isPublic, DateTime dateTime, byte[] signature) {
+    //FIXME Implement
+  }
 
+  void processUnsignedPexInfo(String ip, int port) {
+    //FIXME Implement
+  }
+
+  X509Certificate retrievePeerCertificate(String peerId) throws AuthException {
+    //FIXME Actually Retrieve cert;
+    return null;
+  }
+
+  void processPexRequest(Set<String> requestedPeers, boolean requestPublic) {
+    //FIXME Implement
   }
 }

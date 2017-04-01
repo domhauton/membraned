@@ -2,6 +2,8 @@ package com.domhauton.membrane.network.messaging.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
+import com.domhauton.membrane.network.messaging.PeerMessageException;
+import com.google.common.net.InetAddresses;
 import org.joda.time.DateTime;
 
 import java.security.cert.X509Certificate;
@@ -31,7 +33,7 @@ public class PexAdvertisement extends PeerMessage {
 
   @Override
   public void executeAction(PeerMessageActions peerMessageActions) {
-
+    peerMessageActions.processSignedPexInfo(getSender(), ip, port, isPublic, dateTime, signature);
   }
 
   @Override
@@ -40,8 +42,20 @@ public class PexAdvertisement extends PeerMessage {
   }
 
   @Override
-  public boolean verify(X509Certificate x509Certificate) throws AuthException {
-    return AuthUtils.verifySignedMessage(x509Certificate, generateSignedMessage());
+  public void verify(X509Certificate x509Certificate) throws AuthException, PeerMessageException {
+    if (0 < port && port < 65535) {
+      throw new PeerMessageException("Discarding Pex Advertisement. Port out of bounds. " + port);
+    } else if (!InetAddresses.isInetAddress(ip)) {
+      throw new PeerMessageException("Discarding Pex Advertisement. Not valid IP. " + ip);
+    } else if (!dateTime.isAfter(DateTime.now())) {
+      throw new PeerMessageException("Discarding Pex Advertisement. Signed for future date. " + dateTime);
+    } else if (!AuthUtils.verifySignedMessage(x509Certificate, generateSignedMessage())) {
+      throw new PeerMessageException("Discarding Pex Advertisement. Unable to verify signature.");
+    }
+  }
+
+  public void setSignature(byte[] signature) {
+    this.signature = signature;
   }
 
   private String generateSignedMessage() {

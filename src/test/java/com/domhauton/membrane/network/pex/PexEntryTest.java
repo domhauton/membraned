@@ -9,14 +9,16 @@ import org.junit.jupiter.api.Test;
  */
 class PexEntryTest {
 
+  private static final byte[] SIGNATURE_1 = "thisisasignature-asrtsrat".getBytes();
+
   @Test
   void testSerialisation() throws Exception {
-    PexEntry entry1 = new PexEntry("192.168.0.1", 80, true, DateTime.now());
+    PexEntry entry1 = new PexEntry("192.168.0.1", 80, true, DateTime.now(), SIGNATURE_1);
     String serialized = entry1.serialize();
     PexEntry deserializedEntry = PexEntry.deserialize(serialized);
     Assertions.assertEquals(entry1, deserializedEntry);
 
-    PexEntry entry2 = new PexEntry("192.168.0.1", 80, false, DateTime.now());
+    PexEntry entry2 = new PexEntry("192.168.0.1", 80, false, DateTime.now(), SIGNATURE_1);
     String serialized2 = entry2.serialize();
     PexEntry deserializedEntry2 = PexEntry.deserialize(serialized2);
     Assertions.assertEquals(entry2, deserializedEntry2);
@@ -24,14 +26,14 @@ class PexEntryTest {
 
   @Test
   void failOnOutOfBoundsPort() throws Exception {
-    Assertions.assertThrows(PexException.class, () -> new PexEntry("192.168.0.1", -1, true, DateTime.now()));
-    Assertions.assertThrows(PexException.class, () -> new PexEntry("192.168.0.1", 65536, true, DateTime.now()));
+    Assertions.assertThrows(PexException.class, () -> new PexEntry("192.168.0.1", -1, true, DateTime.now(), SIGNATURE_1));
+    Assertions.assertThrows(PexException.class, () -> new PexEntry("192.168.0.1", 65536, true, DateTime.now(), SIGNATURE_1));
   }
 
   @Test
   void corruptEntryTest() throws Exception {
     DateTime now = DateTime.now();
-    PexEntry entry1 = new PexEntry("192.168.0.1", 80, true, now);
+    PexEntry entry1 = new PexEntry("192.168.0.1", 80, true, now, SIGNATURE_1);
     String serialized = entry1.serialize();
 
     // Ensure valid

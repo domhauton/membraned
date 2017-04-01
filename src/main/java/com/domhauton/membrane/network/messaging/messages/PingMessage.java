@@ -23,8 +23,8 @@ public class PingMessage extends PeerMessage {
   }
 
   @Override
-  public boolean verify(X509Certificate x509Certificate) throws AuthException {
-    return true;
+  public void verify(X509Certificate x509Certificate) throws AuthException {
+    // Nothing to verify
   }
 
   @Override

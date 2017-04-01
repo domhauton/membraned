@@ -25,13 +25,15 @@ class PexLedgerTest {
   private final String user3 = "USER_3";
   private final String user4 = "USER_4";
 
+  private static final byte[] SIGNATURE_1 = "thisisasignature-asrtsrat".getBytes();
+
   @BeforeEach
   void setUp() throws Exception {
-    pexEntry1 = new PexEntry("192.168.0.1", 80, true, DateTime.now());
-    pexEntry2 = new PexEntry("192.168.0.1", 81, true, DateTime.now());
-    pexEntry3 = new PexEntry("192.168.0.2", 82, true, DateTime.now());
-    pexEntry4 = new PexEntry("192.168.0.2", 83, true, DateTime.now());
-    pexEntry5 = new PexEntry("192.168.1.1", 84, true, DateTime.now());
+    pexEntry1 = new PexEntry("192.168.0.1", 80, true, DateTime.now(), SIGNATURE_1);
+    pexEntry2 = new PexEntry("192.168.0.1", 81, true, DateTime.now(), SIGNATURE_1);
+    pexEntry3 = new PexEntry("192.168.0.2", 82, true, DateTime.now(), SIGNATURE_1);
+    pexEntry4 = new PexEntry("192.168.0.2", 83, true, DateTime.now(), SIGNATURE_1);
+    pexEntry5 = new PexEntry("192.168.1.1", 84, true, DateTime.now(), SIGNATURE_1);
   }
 
   @Test

@@ -11,9 +11,10 @@ public class PexEntry {
   private final String address;
   private final int port;
   private final boolean publicEntry;
+  private final byte[] signature;
   private final DateTime lastUpdateDateTime;
 
-  public PexEntry(String address, int port, boolean publicEntry, DateTime lastUpdateDateTime) throws PexException {
+  public PexEntry(String address, int port, boolean publicEntry, DateTime lastUpdateDateTime, byte[] signature) throws PexException {
     if (port < 1 || port > 65535) {
       throw new PexException("Invalid port given");
     }
@@ -21,6 +22,7 @@ public class PexEntry {
     this.port = port;
     this.publicEntry = publicEntry;
     this.lastUpdateDateTime = lastUpdateDateTime;
+    this.signature = signature;
   }
 
   public String getAddress() {
@@ -29,6 +31,10 @@ public class PexEntry {
 
   public int getPort() {
     return port;
+  }
+
+  public byte[] getSignature() {
+    return signature;
   }
 
   public boolean isPublicEntry() {
@@ -43,12 +49,13 @@ public class PexEntry {
     return address + SEP +
         port + SEP +
         (publicEntry ? "PUB" : "PRIV") + SEP +
-        lastUpdateDateTime.getMillis();
+        lastUpdateDateTime.getMillis() + SEP +
+        signature;
   }
 
   static PexEntry deserialize(String entry) throws PexException {
-    String[] splitEntry = entry.split(SEP);
-    if (splitEntry.length == 4) {
+    String[] splitEntry = entry.split(SEP, 5);
+    if (splitEntry.length == 5) {
       try {
         // IP Address format unchecked. Assume user does not try to sabotage application...
 
@@ -71,7 +78,7 @@ public class PexEntry {
           throw new PexException("Invalid millis given");
         }
 
-        return new PexEntry(ip, port, isPublic, dateTime);
+        return new PexEntry(ip, port, isPublic, dateTime, splitEntry[4].getBytes());
       } catch (NumberFormatException e) {
         throw new PexException("Could not parse numbers of PEX Entry. " + entry, e);
       } catch (Exception e) {

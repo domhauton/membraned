@@ -143,9 +143,9 @@ public class PeerConnection {
       PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());
       if (!peerMessage.getSender().equals(clientID)) {
         logger.warn("Dropping message from peer [{}]. Masquerading as id: [{}]", clientID, peerMessage.getSender());
-      } else if (!peerMessage.verify(x509Certificate)) {
-        logger.warn("Dropping message from peer [{}]. Could not successfully verify", clientID, peerMessage.getSender());
       } else {
+        // Will throw if invalid.
+        peerMessage.verify(x509Certificate);
         mostRecentCommunication.set(System.currentTimeMillis());
         long responseMessageId = peerMessage.getResponseToMessageId();
         if (responseMessageId != -1) {
@@ -156,7 +156,7 @@ public class PeerConnection {
         messageConsumer.accept(peerMessage);
       }
     } catch (PeerMessageException e) {
-      logger.error("Could not receive message. Problem converting from JSON. IGNORING. {}", e.getMessage());
+      logger.error("Invalid message. Ignoring. {}", e.getMessage());
     } catch (AuthException e) {
       logger.error("Could not verify message. IGNORING. {}", e.getMessage());
     } finally {

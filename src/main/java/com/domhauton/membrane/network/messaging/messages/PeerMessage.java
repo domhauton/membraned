@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network.messaging.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
+import com.domhauton.membrane.network.messaging.PeerMessageException;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.security.cert.X509Certificate;
@@ -66,7 +67,7 @@ public abstract class PeerMessage {
 
   public abstract void sign(RSAPrivateKey rsaPrivateKey) throws AuthException;
 
-  public abstract boolean verify(X509Certificate x509Certificate) throws AuthException;
+  public abstract void verify(X509Certificate x509Certificate) throws AuthException, PeerMessageException;
 
   @Override
   public String toString() {
