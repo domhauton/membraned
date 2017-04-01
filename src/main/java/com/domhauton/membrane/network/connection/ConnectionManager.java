@@ -2,7 +2,7 @@ package com.domhauton.membrane.network.connection;
 
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.connection.peer.Peer;
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
+import com.domhauton.membrane.network.messages.PeerMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -158,7 +158,7 @@ public class ConnectionManager implements Closeable {
     newPeerJoinedCallbacks.add(consumer);
   }
 
-  synchronized void registerMessageCallback(Consumer<PeerMessage> peerMessageConsumer) {
+  public synchronized void registerMessageCallback(Consumer<PeerMessage> peerMessageConsumer) {
     newPeerMessageCallbacks.add(peerMessageConsumer);
   }
 

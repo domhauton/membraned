@@ -1,6 +1,6 @@
 package com.domhauton.membrane.network.connection;
 
-import com.domhauton.membrane.network.messaging.messages.PingMessage;
+import com.domhauton.membrane.network.messages.PingMessage;
 
 /**
  * Created by dominic on 01/04/17.

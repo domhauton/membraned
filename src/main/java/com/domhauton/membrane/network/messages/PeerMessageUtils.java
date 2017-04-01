@@ -1,6 +1,5 @@
-package com.domhauton.membrane.network.messaging;
+package com.domhauton.membrane.network.messages;
 
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

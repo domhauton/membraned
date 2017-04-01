@@ -5,8 +5,8 @@ import com.domhauton.membrane.distributed.DistributorException;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
-import com.domhauton.membrane.network.messaging.messages.PexAdvertisement;
+import com.domhauton.membrane.network.messages.PeerMessage;
+import com.domhauton.membrane.network.messages.PexAdvertisement;
 import com.domhauton.membrane.network.pex.PexEntry;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
@@ -37,6 +37,7 @@ public class Gatekeeper implements Runnable {
   private final Logger logger = LogManager.getLogger();
   private final ConnectionManager connectionManager;
   private final PortForwardingService portForwardingService;
+  private ContractManager contractManager; // Should be replaceable.
 
   private final PexManager pexManager;
   private final Set<String> friendPeers;
@@ -44,8 +45,6 @@ public class Gatekeeper implements Runnable {
 
   private int maxConnections;
   private boolean isSearchingForNewPeers = false;
-
-  private ContractManager contractManager;
 
   public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, PortForwardingService portForwardingService, int maxConnections) {
     this.connectionManager = connectionManager;
@@ -79,7 +78,7 @@ public class Gatekeeper implements Runnable {
     sendPexUpdate(sendPublicPexUpdate);
   }
 
-  void processNewPeerConnected(String peerId) {
+  public void processNewPeerConnected(String peerId) {
     Supplier<Boolean> isContracted = () -> contractManager.getContractedPeers().contains(peerId);
     Supplier<Boolean> newPeersRequired = () -> requiredConnections() > 0;
 
@@ -99,7 +98,7 @@ public class Gatekeeper implements Runnable {
    * @param peerId   User pex entry is about.
    * @param pexEntry PEX entry information.
    */
-  void processNewPexEntry(String peerId, PexEntry pexEntry) {
+  public void processNewPexEntry(String peerId, PexEntry pexEntry) {
     // Suppliers for lazy loading / short circuit
     Supplier<Boolean> isConnected = () -> connectionManager.getAllConnectedPeerIds().contains(peerId);
     Supplier<Boolean> newPeersRequired = () -> requiredConnections() > 0;
@@ -234,6 +233,10 @@ public class Gatekeeper implements Runnable {
 
   @Override
   public void run() {
+    //FIXME Implement
+  }
 
+  public void close() {
+    //FIXME Implement
   }
 }

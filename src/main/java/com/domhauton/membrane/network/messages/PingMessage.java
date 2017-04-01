@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.messaging.messages;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
 
@@ -8,17 +8,13 @@ import java.security.interfaces.RSAPrivateKey;
 /**
  * Created by dominic on 12/02/17.
  */
-public class PongMessage extends PeerMessage {
-
-  private PongMessage() {} // For Jackson only!
-
-  public PongMessage(long pingID) {
-    super(pingID);
+public class PingMessage extends PeerMessage {
+  public PingMessage() {
   }
 
   @Override
-  public void executeAction(PeerMessageActions peerMessageActions) {
-
+  public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
+    peerMessageActionProvider.sendPongAsync(getSender(), getMessageId());
   }
 
   @Override
@@ -33,7 +29,7 @@ public class PongMessage extends PeerMessage {
 
   @Override
   public String toString() {
-    return "PongMessage{" +
+    return "PingMessage{" +
             "sender='" + sender + '\'' +
             ", recipient='" + recipient + '\'' +
             ", messageId=" + messageId +

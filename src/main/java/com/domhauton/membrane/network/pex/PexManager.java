@@ -11,7 +11,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static java.nio.file.StandardCopyOption.ATOMIC_MOVE;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
@@ -36,13 +38,22 @@ public class PexManager {
     this.unconfirmedLedger = new PexLedger(maxLedgerSize);
   }
 
-  public void addEntry(String peerId, String ip, int port, boolean isPublic, DateTime dateTime, byte[] signature) {
+  public Optional<PexEntry> addEntry(String peerId, String ip, int port, boolean isPublic, DateTime dateTime, byte[] signature) {
     logger.info("Adding PEX entry for peer [{}]. IP: '{}' Port: '{}' Public: '{}'", peerId, ip, port, isPublic);
     try {
       PexEntry newEntry = new PexEntry(ip, port, isPublic, dateTime, signature);
-      pexLedger.addPexEntry(peerId, newEntry);
+      Optional<PexEntry> oldEntryOptional = pexLedger.getPexEntry(peerId);
+
+      if (!oldEntryOptional.isPresent() || oldEntryOptional.get().getLastUpdateDateTime().isBefore(dateTime)) {
+        pexLedger.addPexEntry(peerId, newEntry);
+        return Optional.of(newEntry);
+      } else {
+        logger.error("Ignoring outdated PEX entry.");
+        return Optional.empty();
+      }
     } catch (PexException e) {
       logger.error("Ignoring invalid PEX entry: {}", e.getMessage());
+      return Optional.empty();
     }
   }
 
@@ -55,6 +66,16 @@ public class PexManager {
     } catch (PexException e) {
       logger.trace("Ignoring invalid unconfirmed PEX entry: {}", e.getMessage());
     }
+  }
+
+  public Set<PexEntry> getPublicEntries(int limit) {
+    DateTime oldestPermittedTime = DateTime.now().minusMinutes(15);
+    return pexLedger.getPexEntries().stream()
+        .map(Map.Entry::getValue)
+        .filter(PexEntry::isPublicEntry)
+        .filter(pexEntry -> pexEntry.getLastUpdateDateTime().isAfter(oldestPermittedTime))
+        .limit(limit)
+        .collect(Collectors.toSet());
   }
 
   public PexEntry getEntry(String peerId) throws PexException {
@@ -70,7 +91,7 @@ public class PexManager {
     return pexLedger.getPexEntries();
   }
 
-  void saveLedger() throws PexException {
+  public void saveLedger() throws PexException {
     Path pexFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_FILE_NAME);
     Path pexBackupFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_BACKUP_FILE_NAME);
 
@@ -97,7 +118,7 @@ public class PexManager {
     }
   }
 
-  PexLedger loadLedgerFromFile(Path pexFolder, int maxLedgerSize) throws PexException {
+  private PexLedger loadLedgerFromFile(Path pexFolder, int maxLedgerSize) throws PexException {
     Path pexFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_FILE_NAME);
     Path pexBackupFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_BACKUP_FILE_NAME);
 

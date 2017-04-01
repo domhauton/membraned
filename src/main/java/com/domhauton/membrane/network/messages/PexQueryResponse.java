@@ -1,15 +1,14 @@
-package com.domhauton.membrane.network.messaging.messages;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
-import com.domhauton.membrane.network.messaging.PeerMessageException;
+import com.domhauton.membrane.network.messages.data.PexQueryResponseEntry;
+import com.domhauton.membrane.network.messages.data.PexQueryResponseSignedEntry;
 import com.google.common.net.InetAddresses;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.joda.time.DateTime;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Arrays;
 import java.util.Set;
 
 /**
@@ -30,20 +29,20 @@ public class PexQueryResponse extends PeerMessage {
   }
 
   @Override
-  public void executeAction(PeerMessageActions peerMessageActions) {
-    processSignedEntries(peerMessageActions);
-    processUnsignedEntries(peerMessageActions);
+  public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
+    processSignedEntries(peerMessageActionProvider);
+    processUnsignedEntries(peerMessageActionProvider);
   }
 
-  private void processSignedEntries(PeerMessageActions peerMessageActions) {
+  private void processSignedEntries(PeerMessageActionProvider peerMessageActionProvider) {
     for (PexQueryResponseSignedEntry entry : pexQueryResponseSignedEntries) {
-      PexAdvertisement pexAdvertisement = new PexAdvertisement(entry.getIp(), entry.getPort(), entry.isPublic, entry.dateTime);
-      pexAdvertisement.setSender(entry.userId);
-      pexAdvertisement.setSignature(entry.signature);
+      PexAdvertisement pexAdvertisement = new PexAdvertisement(entry.getIp(), entry.getPort(), entry.isPublic(), entry.getDateTime());
+      pexAdvertisement.setSender(entry.getUserId());
+      pexAdvertisement.setSignature(entry.getSignature());
       try {
-        X509Certificate peerX509Certificate = peerMessageActions.retrievePeerCertificate(entry.userId);
+        X509Certificate peerX509Certificate = peerMessageActionProvider.retrievePeerCertificate(entry.getUserId());
         pexAdvertisement.verify(peerX509Certificate);
-        pexAdvertisement.executeAction(peerMessageActions);
+        pexAdvertisement.executeAction(peerMessageActionProvider);
       } catch (PeerMessageException e) {
         LOGGER.trace("Invalid pex entry provided. Discarding. {}", e.getMessage());
       } catch (AuthException e) {
@@ -52,14 +51,14 @@ public class PexQueryResponse extends PeerMessage {
     }
   }
 
-  private void processUnsignedEntries(PeerMessageActions peerMessageActions) {
+  private void processUnsignedEntries(PeerMessageActionProvider peerMessageActionProvider) {
     for (PexQueryResponseEntry entry : pexQueryResponseEntries) {
       if (0 < entry.getPort() && entry.getPort() < 65535) {
         LOGGER.trace("Discarding Pex Advertisement. Port out of bounds. {}", entry.getPort());
       } else if (!InetAddresses.isInetAddress(entry.getIp())) {
         LOGGER.trace("Discarding Pex Advertisement. Not valid IP. {}", entry.getIp());
       } else {
-        peerMessageActions.processUnsignedPexInfo(entry.getIp(), entry.getPort());
+        peerMessageActionProvider.processUnsignedPexInfo(entry.getIp(), entry.getPort());
       }
     }
   }
@@ -85,64 +84,5 @@ public class PexQueryResponse extends PeerMessage {
         ", pexQueryResponseEntries=" + pexQueryResponseEntries +
         ", pexQueryResponseSignedEntries=" + pexQueryResponseSignedEntries +
         '}';
-  }
-
-  class PexQueryResponseEntry {
-    private String ip;
-    private int port;
-
-    PexQueryResponseEntry() {
-    } // For Jackson Only
-
-    PexQueryResponseEntry(String ip, int port) {
-      this.ip = ip;
-      this.port = port;
-    }
-
-    String getIp() {
-      return ip;
-    }
-
-    int getPort() {
-      return port;
-    }
-
-    @Override
-    public String toString() {
-      return "PexQueryResponseEntry{" +
-          "ip='" + ip + '\'' +
-          ", port=" + port +
-          '}';
-    }
-  }
-
-  class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
-    private String userId;
-    private boolean isPublic;
-    private DateTime dateTime;
-    private byte[] signature;
-
-    private PexQueryResponseSignedEntry() {
-    } // For Jackson Only
-
-    public PexQueryResponseSignedEntry(String ip, int port, String userId, boolean isPublic, DateTime dateTime, byte[] signature) {
-      super(ip, port);
-      this.userId = userId;
-      this.isPublic = isPublic;
-      this.dateTime = dateTime;
-      this.signature = signature;
-    }
-
-    @Override
-    public String toString() {
-      return "PexQueryResponseSignedEntry{" +
-          "ip='" + getIp() + '\'' +
-          ", port=" + getPort() +
-          ", userId='" + userId + '\'' +
-          ", isPublic=" + isPublic +
-          ", dateTime=" + dateTime +
-          ", signature=" + Arrays.toString(signature) +
-          '}';
-    }
   }
 }

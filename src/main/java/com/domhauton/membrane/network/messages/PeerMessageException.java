@@ -1,4 +1,4 @@
-package com.domhauton.membrane.network.messaging;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.NetworkException;
 

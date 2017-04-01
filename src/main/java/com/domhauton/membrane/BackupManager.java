@@ -72,7 +72,7 @@ public class BackupManager implements Closeable {
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      networkManager = new NetworkManager(configPath.getParent(), monitorMode, config.getDistributedStorage());
+      networkManager = new NetworkManager(configPath.getParent(), config.getDistributedStorage());
       restfulApiManager.start();
     } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException e) {
       logger.error("Failed to start membrane backup manager.");

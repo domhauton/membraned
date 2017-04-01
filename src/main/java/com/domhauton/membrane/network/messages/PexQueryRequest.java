@@ -1,7 +1,6 @@
-package com.domhauton.membrane.network.messaging.messages;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
-import com.domhauton.membrane.network.messaging.PeerMessageException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -27,8 +26,8 @@ public class PexQueryRequest extends PeerMessage {
   }
 
   @Override
-  public void executeAction(PeerMessageActions peerMessageActions) {
-    peerMessageActions.processPexRequest(requestedPeers, requestPublic);
+  public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
+    peerMessageActionProvider.processPexRequest(getSender(), requestedPeers, requestPublic);
   }
 
   @Override

@@ -1,7 +1,6 @@
-package com.domhauton.membrane.network.messaging.messages;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
-import com.domhauton.membrane.network.messaging.PeerMessageException;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.security.cert.X509Certificate;
@@ -63,7 +62,7 @@ public abstract class PeerMessage {
     return version;
   }
 
-  public abstract void executeAction(PeerMessageActions peerMessageActions);
+  public abstract void executeAction(PeerMessageActionProvider peerMessageActionProvider);
 
   public abstract void sign(RSAPrivateKey rsaPrivateKey) throws AuthException;
 

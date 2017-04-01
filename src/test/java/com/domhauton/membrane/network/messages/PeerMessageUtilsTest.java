@@ -1,7 +1,5 @@
-package com.domhauton.membrane.network.messaging;
+package com.domhauton.membrane.network.messages;
 
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
-import com.domhauton.membrane.network.messaging.messages.PingMessage;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

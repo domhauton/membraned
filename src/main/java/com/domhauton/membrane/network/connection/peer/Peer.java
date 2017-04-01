@@ -1,7 +1,7 @@
 package com.domhauton.membrane.network.connection.peer;
 
 import com.domhauton.membrane.network.connection.PeerConnection;
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
+import com.domhauton.membrane.network.messages.PeerMessage;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

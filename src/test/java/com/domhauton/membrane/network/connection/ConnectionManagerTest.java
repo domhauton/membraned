@@ -4,14 +4,17 @@ import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
-import com.domhauton.membrane.network.messaging.messages.PeerMessage;
-import com.domhauton.membrane.network.messaging.messages.PeerMessageActions;
-import com.domhauton.membrane.network.messaging.messages.PingMessage;
-import com.domhauton.membrane.network.messaging.messages.PongMessage;
+import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
+import com.domhauton.membrane.network.messages.PeerMessage;
+import com.domhauton.membrane.network.messages.PeerMessageActionProvider;
+import com.domhauton.membrane.network.messages.PingMessage;
+import com.domhauton.membrane.network.messages.PongMessage;
+import com.domhauton.membrane.network.pex.PexManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -31,6 +34,9 @@ class ConnectionManagerTest {
   private ConnectionManager connectionManager1;
   private ConnectionManager connectionManager2;
 
+  private Gatekeeper gatekeeper;
+  private PexManager pexManager;
+
   @BeforeEach
   void setUp() throws Exception {
     // System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
@@ -41,6 +47,9 @@ class ConnectionManagerTest {
 
     connectionManager1 = new ConnectionManager(membraneAuthInfo1, listenPort1);
     connectionManager2 = new ConnectionManager(membraneAuthInfo2, listenPort2);
+
+    gatekeeper = Mockito.mock(Gatekeeper.class);
+    pexManager = Mockito.mock(PexManager.class);
   }
 
   @Test
@@ -205,11 +214,11 @@ class ConnectionManagerTest {
 
   @Test
   void pingPongTest() throws Exception {
-    PeerMessageActions peerMessageActionsCon1 = new PeerMessageActions(connectionManager1, membraneAuthInfo1.getClientId());
-    PeerMessageActions peerMessageActionsCon2 = new PeerMessageActions(connectionManager2, membraneAuthInfo2.getClientId());
+    PeerMessageActionProvider peerMessageActionProviderCon1 = new PeerMessageActionProvider(connectionManager1, pexManager, gatekeeper, membraneAuthInfo1.getClientId());
+    PeerMessageActionProvider peerMessageActionProviderCon2 = new PeerMessageActionProvider(connectionManager2, pexManager, gatekeeper, membraneAuthInfo2.getClientId());
 
-    connectionManager1.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionsCon1));
-    connectionManager2.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionsCon2));
+    connectionManager1.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionProviderCon1));
+    connectionManager2.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionProviderCon2));
 
     // Connection 2 will send out ping and expect pong when conMan1 connects.
 

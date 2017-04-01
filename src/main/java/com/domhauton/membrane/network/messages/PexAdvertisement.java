@@ -1,8 +1,7 @@
-package com.domhauton.membrane.network.messaging.messages;
+package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
-import com.domhauton.membrane.network.messaging.PeerMessageException;
 import com.google.common.net.InetAddresses;
 import org.joda.time.DateTime;
 
@@ -32,8 +31,8 @@ public class PexAdvertisement extends PeerMessage {
   }
 
   @Override
-  public void executeAction(PeerMessageActions peerMessageActions) {
-    peerMessageActions.processSignedPexInfo(getSender(), ip, port, isPublic, dateTime, signature);
+  public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
+    peerMessageActionProvider.processSignedPexInfo(getSender(), ip, port, isPublic, dateTime, signature);
   }
 
   @Override

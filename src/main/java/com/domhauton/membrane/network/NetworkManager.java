@@ -7,6 +7,9 @@ import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
+import com.domhauton.membrane.network.messages.PeerMessage;
+import com.domhauton.membrane.network.messages.PeerMessageActionProvider;
+import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.upnp.ExternalAddress;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
@@ -29,10 +32,9 @@ public class NetworkManager implements Closeable {
   private final ConnectionManager connectionManager;
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
-  private final boolean monitorMode;
 
 
-  public NetworkManager(Path authInfoPath, boolean monitorMode, DistributedStorageConfig config) throws NetworkException {
+  public NetworkManager(Path authInfoPath, DistributedStorageConfig config) throws NetworkException {
     MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
     this.connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
 
@@ -44,7 +46,10 @@ public class NetworkManager implements Closeable {
     }
     this.pexManager = new PexManager(500, Paths.get(config.getStorageFolder()));
     this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, 100);
-    this.monitorMode = monitorMode;
+
+    // Finally connect messages to callback so they are executed.
+    PeerMessageActionProvider peerMessageActionProvider = new PeerMessageActionProvider(connectionManager, pexManager, gatekeeper, membraneAuthInfo.getClientId());
+    connectionManager.registerMessageCallback((PeerMessage peerMessage) -> peerMessage.executeAction(peerMessageActionProvider));
   }
 
   private MembraneAuthInfo loadAuthInfo(Path authInfoPath) throws NetworkException {
@@ -84,6 +89,12 @@ public class NetworkManager implements Closeable {
   }
 
   public void close() {
+    try {
+      pexManager.saveLedger();
+    } catch (PexException e) {
+      logger.error("Failed to save PEX info before shutdown");
+    }
+    gatekeeper.close();
     portForwardingService.close();
     connectionManager.close();
   }
