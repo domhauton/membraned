@@ -14,6 +14,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
@@ -29,6 +30,9 @@ class PeerListener {
   private final Vertx vertx;
   private final int port;
   private final NetServer server;
+
+  private final RSAPrivateKey messageSigningKey;
+  private final String localClientId;
 
   private final Consumer<Peer> peerConsumer;
   private final Consumer<PeerMessage> peerMessageConsumer;
@@ -63,6 +67,8 @@ class PeerListener {
 
     server = vertx.createNetServer(netServerOptions);
     logger.info("TCP listening server set-up complete.");
+    this.messageSigningKey = membraneAuthInfo.getPrivateKey();
+    this.localClientId = membraneAuthInfo.getClientId();
   }
 
   /**
@@ -87,7 +93,7 @@ class PeerListener {
    */
   private void connectionHandler(final NetSocket netSocket) {
     try {
-      PeerConnection peerConnection = new PeerConnection(netSocket, peerMessageConsumer);
+      PeerConnection peerConnection = new PeerConnection(netSocket, peerMessageConsumer, localClientId, messageSigningKey);
       peerConsumer.accept(new Peer(peerConnection));
     } catch (PeerException e) {
       logger.warn("Unable to accept connection from Peer. {} {}", e.getMessage(), netSocket.remoteAddress());

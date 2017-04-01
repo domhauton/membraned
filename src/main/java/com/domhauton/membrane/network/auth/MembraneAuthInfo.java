@@ -89,6 +89,10 @@ public class MembraneAuthInfo {
     return privateKeyOut.toString().getBytes();
   }
 
+  public RSAPrivateKey getPrivateKey() {
+    return privateKey;
+  }
+
   /**
    * Fetches the encoded private key with PEM headers
    */
@@ -151,10 +155,10 @@ public class MembraneAuthInfo {
   @Override
   public String toString() {
     return "MembraneAuthInfo{" +
-            "x509Certificate=" + new String(x509Certificate.getSignature()) +
-            ", publicKey=" + new String(publicKey.getEncoded()) +
-            ", privateKey=" + new String(privateKey.getEncoded()) +
-            '}';
+        "x509Certificate=" + new String(x509Certificate.getSignature()) +
+        ", publicKey=" + new String(publicKey.getEncoded()) +
+        ", privateKey=" + new String(privateKey.getEncoded()) +
+        '}';
   }
 
   @Override
@@ -163,8 +167,8 @@ public class MembraneAuthInfo {
     if (o == null || getClass() != o.getClass()) return false;
     MembraneAuthInfo that = (MembraneAuthInfo) o;
     return Objects.equal(x509Certificate, that.x509Certificate) &&
-            Objects.equal(publicKey, that.publicKey) &&
-            Objects.equal(privateKey, that.privateKey);
+        Objects.equal(publicKey, that.publicKey) &&
+        Objects.equal(privateKey, that.privateKey);
   }
 
   @Override

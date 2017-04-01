@@ -1,6 +1,5 @@
 package com.domhauton.membrane.network.messaging.messages;
 
-import com.domhauton.membrane.MembraneBuild;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
@@ -35,9 +34,13 @@ public class PeerMessageActions {
   private void sendPong(String targetUser, long pingId) {
     try {
       Peer peer = connectionManager.getPeerConnection(targetUser, 15, TimeUnit.SECONDS);
-      peer.sendPeerMessage(new PongMessage(userID, targetUser, MembraneBuild.VERSION, pingId));
+      peer.sendPeerMessage(new PongMessage(pingId));
     } catch (TimeoutException | PeerException e) {
       logger.warn("Unable to send pong to {}. {}", targetUser, e.getMessage());
     }
+  }
+
+  private void processPexAdvertisement(String peer, PeerMessage peerMessage) {
+
   }
 }

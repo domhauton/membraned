@@ -1,16 +1,16 @@
 package com.domhauton.membrane.network.pex;
 
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.network.NetworkException;
 
 /**
  * Created by dominic on 28/03/17.
  */
-public class PexException extends DistributorException {
-  public PexException(String s) {
+public class PexException extends NetworkException {
+  PexException(String s) {
     super(s);
   }
 
-  public PexException(String s, Throwable throwable) {
+  PexException(String s, Throwable throwable) {
     super(s, throwable);
   }
 }

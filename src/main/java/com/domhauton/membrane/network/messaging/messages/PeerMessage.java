@@ -1,6 +1,10 @@
 package com.domhauton.membrane.network.messaging.messages;
 
+import com.domhauton.membrane.network.auth.AuthException;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+
+import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
 
 /**
  * Created by dominic on 09/02/17.
@@ -13,13 +17,12 @@ public abstract class PeerMessage {
   long responseToMessageId;
   String version;
 
-  protected PeerMessage() {} // For Jackson only
+  public PeerMessage() {
+    this(-1);
+  }
 
-  public PeerMessage(String sender, String recipient, long responseId, String version) {
-    this.sender = sender;
-    this.recipient = recipient;
+  public PeerMessage(long responseId) {
     this.responseToMessageId = responseId;
-    this.version = version;
     messageId = -1L;
   }
 
@@ -39,6 +42,18 @@ public abstract class PeerMessage {
     this.messageId = messageId;
   }
 
+  public void setSender(String sender) {
+    this.sender = sender;
+  }
+
+  public void setRecipient(String recipient) {
+    this.recipient = recipient;
+  }
+
+  public void setVersion(String version) {
+    this.version = version;
+  }
+
   public long getResponseToMessageId() {
     return responseToMessageId;
   }
@@ -48,6 +63,10 @@ public abstract class PeerMessage {
   }
 
   public abstract void executeAction(PeerMessageActions peerMessageActions);
+
+  public abstract void sign(RSAPrivateKey rsaPrivateKey) throws AuthException;
+
+  public abstract boolean verify(X509Certificate x509Certificate) throws AuthException;
 
   @Override
   public String toString() {

@@ -1,5 +1,7 @@
 package com.domhauton.membrane.network.connection;
 
+import com.domhauton.membrane.MembraneBuild;
+import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.domhauton.membrane.network.messaging.PeerMessageException;
@@ -16,6 +18,7 @@ import javax.security.cert.Certificate;
 import javax.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Condition;
@@ -38,6 +41,9 @@ public class PeerConnection {
   private final Consumer<PeerMessage> messageConsumer;
   private AtomicLong mostRecentCommunication;
 
+  private final RSAPrivateKey messageSigningKey;
+  private final String localClientId;
+
   private EvictingQueue<Long> mostRecentResponseIds;
   private Lock responseWaitLock;
   private Condition responseWaitCondition;
@@ -53,7 +59,7 @@ public class PeerConnection {
    * @param messageConsumer Consumer for incoming messages
    * @throws PeerException If connection could not be converted to P2P.
    */
-  PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer) throws PeerException {
+  PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer, String localClientId, RSAPrivateKey messageSigningKey) throws PeerException {
     this.netSocket = netSocket;
     this.isClosed = new CompletableFuture<>();
     this.messageConsumer = messageConsumer;
@@ -89,6 +95,10 @@ public class PeerConnection {
     currentSendId = new AtomicLong(ThreadLocalRandom.current().nextLong(0, Long.MAX_VALUE));
 
     logger.info("Successfully Established P2P Link to {}", netSocket.remoteAddress());
+
+    // Will not be able to send signed messages until this step
+    this.messageSigningKey = messageSigningKey;
+    this.localClientId = localClientId;
   }
 
   /**
@@ -99,9 +109,13 @@ public class PeerConnection {
   public long sendMessage(PeerMessage peerMessage) throws PeerException {
     try {
       if (!netSocket.writeQueueFull()) {
+        peerMessage.setSender(localClientId);
+        peerMessage.setRecipient(getClientID());
+        peerMessage.setVersion(MembraneBuild.VERSION);
         final long id = currentSendId.getAndUpdate(l -> Math.max(++l, 0L));
         logger.trace("Sending data from client [{}] [ID{}]: {}", clientID, id, peerMessage);
         peerMessage.setMessageId(id);
+        peerMessage.sign(messageSigningKey);
 
         Buffer writeBuffer = Buffer.buffer(PeerMessageUtils.message2Bytes(peerMessage));
         netSocket.write(writeBuffer);
@@ -113,16 +127,20 @@ public class PeerConnection {
     } catch (PeerMessageException e) {
       logger.error("Could not send message. Problem converting to JSON. {}", e.getMessage());
       throw new PeerException("Could not send message. Problem converting to JSON. " + e.getMessage());
+    } catch (AuthException e) {
+      logger.error("Could not sign message. {}", e.getMessage());
+      throw new PeerException("Could not sign message. " + e.getMessage());
     }
-
   }
 
   private void messageHandler(Buffer buffer) {
     responseWaitLock.lock();
-    try{
+    try {
       PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());
       if (!peerMessage.getSender().equals(clientID)) {
         logger.warn("Dropping message from peer [{}]. Masquerading as id: [{}]", clientID, peerMessage.getSender());
+      } else if (!peerMessage.verify(x509Certificate)) {
+        logger.warn("Dropping message from peer [{}]. Could not successfully verify", clientID, peerMessage.getSender());
       } else {
         mostRecentCommunication.set(System.currentTimeMillis());
         long responseMessageId = peerMessage.getResponseToMessageId();
@@ -135,6 +153,8 @@ public class PeerConnection {
       }
     } catch (PeerMessageException e) {
       logger.error("Could not receive message. Problem converting from JSON. IGNORING. {}", e.getMessage());
+    } catch (AuthException e) {
+      logger.error("Could not verify message. IGNORING. {}", e.getMessage());
     } finally {
       responseWaitLock.unlock();
     }
@@ -151,7 +171,7 @@ public class PeerConnection {
   public void waitForReply(long responseId, long waitTime, TimeUnit timeUnit) throws TimeoutException {
     try {
       Boolean foundResponse = CompletableFuture.supplyAsync(() -> waitForReply(responseId))
-              .get(waitTime, timeUnit);
+          .get(waitTime, timeUnit);
       if (!foundResponse) {
         throw new TimeoutException("Interrupted while waiting for response.");
       }
@@ -174,12 +194,12 @@ public class PeerConnection {
     try {
       logger.trace("Scanning {} for {}", mostRecentResponseIds, responseId);
       foundResponse = mostRecentResponseIds.stream()
-              .anyMatch(val -> val == responseId);
+          .anyMatch(val -> val == responseId);
       while (!foundResponse) {
         responseWaitCondition.await();
         logger.trace("Rescanning {} for {}", mostRecentResponseIds, responseId);
         foundResponse = mostRecentResponseIds.stream()
-                .anyMatch(val -> val == responseId);
+            .anyMatch(val -> val == responseId);
       }
     } catch (InterruptedException e) {
       logger.error("Interrupted during wait for peer [{}] message [{}]", clientID, responseId);
@@ -187,6 +207,10 @@ public class PeerConnection {
       responseWaitLock.unlock();
     }
     return foundResponse;
+  }
+
+  public X509Certificate getX509Certificate() {
+    return x509Certificate;
   }
 
   public String getIP() {

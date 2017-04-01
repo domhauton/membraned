@@ -110,5 +110,32 @@ public abstract class AuthUtils {
     return Hashing.sha256().hashBytes(x509Certificate.getPublicKey().getEncoded()).toString();
   }
 
+  public static byte[] signMessage(RSAPrivateKey privateKey, String message) throws AuthException {
+    try {
+      Signature signature = Signature.getInstance("SHA1withRSA", "BC");
+      signature.initSign(privateKey);
+      signature.update(message.getBytes());
+      return signature.sign();
+    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+      throw new AuthException("Could not create signature. Invalid algo used! " + e.getMessage());
+    } catch (InvalidKeyException e) {
+      throw new AuthException("Could not create signature. Invalid key! " + e.getMessage());
+    } catch (SignatureException e) {
+      throw new AuthException("Unable to sign correctly. " + e.getMessage());
+    }
+  }
 
+  public static boolean verifySignedMessage(X509Certificate certificate, String message) throws AuthException {
+    try {
+      Signature signature = Signature.getInstance("SHA1withRSA", "BC");
+      signature.initVerify(certificate);
+      return signature.verify(message.getBytes());
+    } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
+      throw new AuthException("Could not create signature. Invalid algo used! " + e.getMessage());
+    } catch (InvalidKeyException e) {
+      throw new AuthException("Could not create signature. Invalid key! " + e.getMessage());
+    } catch (SignatureException e) {
+      throw new AuthException("Unable to sign correctly. " + e.getMessage());
+    }
+  }
 }

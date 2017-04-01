@@ -6,9 +6,12 @@ import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.domhauton.membrane.network.messaging.messages.PeerMessage;
+import com.domhauton.membrane.network.messaging.messages.PexAdvertisement;
 import com.domhauton.membrane.network.pex.PexEntry;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
+import com.domhauton.membrane.network.upnp.ExternalAddress;
+import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -17,6 +20,7 @@ import org.joda.time.DateTimeConstants;
 import org.joda.time.Hours;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +36,7 @@ public class Gatekeeper implements Runnable {
 
   private final Logger logger = LogManager.getLogger();
   private final ConnectionManager connectionManager;
+  private final PortForwardingService portForwardingService;
 
   private final PexManager pexManager;
   private final Set<String> friendPeers;
@@ -42,11 +47,12 @@ public class Gatekeeper implements Runnable {
 
   private ContractManager contractManager;
 
-  public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, int maxConnections) {
+  public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, PortForwardingService portForwardingService, int maxConnections) {
     this.connectionManager = connectionManager;
     this.contractManager = contractManager;
     this.pexManager = pexManager;
     this.maxConnections = maxConnections;
+    this.portForwardingService = portForwardingService;
 
     this.friendPeers = new HashSet<>();
     this.trackers = new HashSet<>();
@@ -58,14 +64,19 @@ public class Gatekeeper implements Runnable {
 
     int requiredConnections = requiredConnections();
     int remainingConnections = remainingConnections();
+
+    boolean sendPublicPexUpdate = false;
+
     if (requiredConnections > 0 && remainingConnections > 0) {
       requestPexInformation();
       if (isSearchingForNewPeers) {
-        sendPexUpdate();
+        sendPublicPexUpdate = true;
       }
     } else if (remainingConnections < 0) {
       disconnectRedundantPeers(-remainingConnections);
     }
+
+    sendPexUpdate(sendPublicPexUpdate);
   }
 
   void processNewPeerConnected(String peerId) {
@@ -145,8 +156,19 @@ public class Gatekeeper implements Runnable {
     }
   }
 
-  private void sendPexUpdate() {
-    // TODO send public PEX update;
+  private void sendPexUpdate(boolean isPublic) {
+    Iterator<ExternalAddress> externalAddresses = portForwardingService.getExternallyMappedAddresses().iterator();
+    ExternalAddress externalAddress = externalAddresses.hasNext() ?
+        externalAddresses.next() : portForwardingService.getNonForwardedAddress();
+    PexAdvertisement pexAdvertisement = new PexAdvertisement(externalAddress.getIpAddress(), externalAddress.getPort(), isPublic, DateTime.now());
+
+    for (Peer peer : connectionManager.getAllConnectedPeers()) {
+      try {
+        peer.sendPeerMessage(pexAdvertisement);
+      } catch (PeerException e) {
+        logger.warn("Failed to send PEX request to [{}]. {}", peer.getUid(), e.getMessage());
+      }
+    }
   }
 
   private void requestPexInformation() {

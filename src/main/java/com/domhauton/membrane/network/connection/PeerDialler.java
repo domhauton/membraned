@@ -14,6 +14,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.security.interfaces.RSAPrivateKey;
 import java.util.function.Consumer;
 
 /**
@@ -26,6 +27,8 @@ class PeerDialler {
 
   private final Vertx vertx;
   private final NetClient client;
+  private final RSAPrivateKey messageSigningKey;
+  private final String localClientId;
 
   private final Consumer<Peer> peerConsumer;
   private final Consumer<PeerMessage> peerMessageConsumer;
@@ -56,6 +59,8 @@ class PeerDialler {
     client = vertx.createNetClient(options);
     this.peerConsumer = peerConsumer;
     this.peerMessageConsumer = peerMessageConsumer;
+    this.messageSigningKey = membraneAuthInfo.getPrivateKey();
+    this.localClientId = membraneAuthInfo.getClientId();
   }
 
   /**
@@ -73,7 +78,7 @@ class PeerDialler {
       NetSocket socket = result.result();
       try {
         logger.debug("Successfully Established TCP Link to new peer. [{}]. Converting to P2P Link.", socket.remoteAddress());
-        PeerConnection peerConnection = new PeerConnection(socket, peerMessageConsumer);
+        PeerConnection peerConnection = new PeerConnection(socket, peerMessageConsumer, localClientId, messageSigningKey);
         peerConsumer.accept(new Peer(peerConnection));
       } catch (PeerException e) {
         logger.warn("Failed to connect: " + e.getMessage());

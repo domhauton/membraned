@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
+import java.security.cert.X509Certificate;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -53,6 +54,14 @@ public class Peer implements Closeable {
     logger.debug("Sent message with id {}. Waiting {} {} for response.", sentMessageId, timeout, timeUnit);
     peerConnection.waitForReply(sentMessageId, timeout, timeUnit);
     return sentMessageId;
+  }
+
+  public X509Certificate getX509Certificate() {
+    return peerConnection.getX509Certificate();
+  }
+
+  public String getIP() {
+    return peerConnection.getIP();
   }
 
   public boolean isClosed() {

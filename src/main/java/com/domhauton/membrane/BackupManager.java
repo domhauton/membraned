@@ -8,7 +8,6 @@ import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManager;
-import com.domhauton.membrane.network.connection.ConnectionException;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.storage.StorageManager;
@@ -75,8 +74,7 @@ public class BackupManager implements Closeable {
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
       networkManager = new NetworkManager(configPath.getParent(), monitorMode, config.getDistributedStorage());
       restfulApiManager.start();
-      networkManager.setStorageManager(distributedStorageManager);
-    } catch (FileManagerException | StorageManagerException | RestfulApiException | ConnectionException | NetworkException e) {
+    } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException e) {
       logger.error("Failed to start membrane backup manager.");
       logger.error(e.getMessage());
       throw new IllegalArgumentException("Error starting up.", e);

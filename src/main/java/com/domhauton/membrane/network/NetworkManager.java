@@ -1,21 +1,23 @@
 package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.config.items.DistributedStorageConfig;
+import com.domhauton.membrane.distributed.ContractManagerImpl;
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
-import com.domhauton.membrane.network.connection.ConnectionException;
 import com.domhauton.membrane.network.connection.ConnectionManager;
+import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
+import com.domhauton.membrane.network.pex.PexManager;
+import com.domhauton.membrane.network.upnp.ExternalAddress;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
-import com.domhauton.membrane.storage.StorageManager;
-import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.nio.file.Paths;
+import java.util.Set;
 
 /**
  * Created by Dominic Hauton on 18/02/17.
@@ -23,23 +25,25 @@ import java.util.Optional;
 public class NetworkManager implements Closeable {
   private final Logger logger = LogManager.getLogger();
 
-  private final Optional<PortForwardingService> portForwardingServiceOptional;
+  private final PortForwardingService portForwardingService;
   private final ConnectionManager connectionManager;
+  private final PexManager pexManager;
+  private final Gatekeeper gatekeeper;
   private final boolean monitorMode;
 
 
-  private StorageManager storageManager;
-
-
-  public NetworkManager(Path authInfoPath, boolean monitorMode, DistributedStorageConfig config) throws NetworkException, ConnectionException {
+  public NetworkManager(Path authInfoPath, boolean monitorMode, DistributedStorageConfig config) throws NetworkException {
     MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
-    connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
+    this.connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
 
-    portForwardingServiceOptional =  config.isNatForwardingEnabled() ?
-            Optional.of(new PortForwardingService(x -> {})) : Optional.empty();
-    portForwardingServiceOptional.ifPresent(
-            service -> service.addNewMapping(config.getTransportPort(), config.getExternalTransportPort()));
-    portForwardingServiceOptional.ifPresent(PortForwardingService::run);
+    this.portForwardingService = new PortForwardingService(x -> {
+    }, config.getTransportPort());
+    if (config.getExternalTransportPort() != -1) {
+      portForwardingService.addNewMapping(config.getExternalTransportPort());
+      portForwardingService.run();
+    }
+    this.pexManager = new PexManager(500, Paths.get(config.getStorageFolder()));
+    this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, 100);
     this.monitorMode = monitorMode;
   }
 
@@ -65,11 +69,8 @@ public class NetworkManager implements Closeable {
     }
   }
 
-  public void setStorageManager(StorageManager storageManager) throws NetworkException {
-    if(this.storageManager != null) {
-      throw new NetworkException("Storage Manager can only be set once.");
-    }
-    this.storageManager = storageManager;
+  public Set<ExternalAddress> getExternalIps() {
+    return portForwardingService.getExternallyMappedAddresses();
   }
 
   public boolean peerConnected(String peerId) {
@@ -79,15 +80,11 @@ public class NetworkManager implements Closeable {
 
   public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
     // TODO Implement
+    throw new NetworkException("Block upload not implemented!");
   }
 
   public void close() {
-    portForwardingServiceOptional.ifPresent(PortForwardingService::close);
-    try {
-      storageManager.close();
-    } catch (StorageManagerException e) {
-      logger.fatal("Could not close storage manager correctly. Unrecoverable. {}", e.getMessage());
-    }
+    portForwardingService.close();
     connectionManager.close();
   }
 }
