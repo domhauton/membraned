@@ -61,6 +61,17 @@ class ConnectionManagerTest {
   }
 
   @Test
+  void preventSelfConnection() throws Exception {
+    CompletableFuture<Boolean> con1Callback = new CompletableFuture<>();
+
+    connectionManager1.registerNewPeerCallback(peer -> con1Callback.complete(true));
+
+    connectionManager1.connectToPeer("127.0.0.1", listenPort1);
+
+    Assertions.assertThrows(TimeoutException.class, () -> con1Callback.get(5, TimeUnit.SECONDS));
+  }
+
+  @Test
   void receiveMessage() throws Exception {
     CompletableFuture<Peer> con1PeerCallback = new CompletableFuture<>();
     con1PeerCallback.thenAccept(x -> {

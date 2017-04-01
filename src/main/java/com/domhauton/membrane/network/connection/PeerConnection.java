@@ -87,6 +87,10 @@ public class PeerConnection {
       throw new PeerException("Connection could not toBytes certificate. Dropping.");
     }
 
+    if (clientID.equalsIgnoreCase(localClientId)) { // You tried to connect to yourself?
+      throw new PeerException("Cannot establish connection to yourself.");
+    }
+
     mostRecentCommunication = new AtomicLong(System.currentTimeMillis());
     responseWaitLock = new ReentrantLock();
     responseWaitCondition = responseWaitLock.newCondition();
