@@ -16,8 +16,8 @@ repositories {
     jcenter()
 }
 
-ext.junitPlatformVersion = '1.0.0-M3'
-ext.junitJupiterVersion  = '5.0.0-M3'
+ext.junitPlatformVersion = '1.0.0-M4'
+ext.junitJupiterVersion  = '5.0.0-M4'
 ext.log4jVersion         = '2.7'
 
 apply plugin: 'java'
@@ -53,7 +53,7 @@ compileTestJava {
 }
 
 junitPlatform {
-    platformVersion '1.0.0-M3'
+    platformVersion '1.0.0-M4'
     filters {
         engines {
             include 'junit-jupiter'
@@ -136,11 +136,11 @@ dependencies{
 
 dependencies {
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M3'
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M4'
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M3'
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M4'
     // https://mvnrepository.com/artifact/org.mockito/mockito-core
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.19'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.7.21'
     // https://mvnrepository.com/artifact/io.vertx/vertx-codegen
     testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.1'
 }
