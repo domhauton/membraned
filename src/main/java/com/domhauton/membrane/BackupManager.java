@@ -7,7 +7,7 @@ import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.network.NetworkException;
-import com.domhauton.membrane.network.NetworkManager;
+import com.domhauton.membrane.network.NetworkManagerImpl;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.storage.StorageManager;
@@ -44,7 +44,7 @@ public class BackupManager implements Closeable {
   private StorageManager localStorageManager;
   private StorageManager distributedStorageManager;
   private RestfulApiManager restfulApiManager;
-  private NetworkManager networkManager;
+  private NetworkManagerImpl networkManager;
   private final Logger logger;
 
   private final ScheduledExecutorService trimExecutor;
@@ -72,7 +72,7 @@ public class BackupManager implements Closeable {
       }
       trimExecutor = Executors.newSingleThreadScheduledExecutor();
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      networkManager = new NetworkManager(configPath.getParent(), config.getDistributedStorage());
+      networkManager = new NetworkManagerImpl(configPath.getParent(), config.getDistributedStorage());
       restfulApiManager.start();
     } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException e) {
       logger.error("Failed to start membrane backup manager.");

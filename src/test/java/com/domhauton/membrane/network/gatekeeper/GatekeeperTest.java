@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network.gatekeeper;
 
 import com.domhauton.membrane.distributed.ContractManager;
+import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
@@ -17,6 +18,7 @@ class GatekeeperTest {
   private ContractManager contractManager;
   private PexManager pexManager;
   private PortForwardingService portForwardingService;
+  private PeerCertManager peerCertManager;
   private Gatekeeper gatekeeper;
 
   @BeforeEach
@@ -25,7 +27,8 @@ class GatekeeperTest {
     contractManager = Mockito.mock(ContractManager.class);
     pexManager = Mockito.mock(PexManager.class);
     portForwardingService = Mockito.mock(PortForwardingService.class);
-    gatekeeper = new Gatekeeper(connectionManager, contractManager, pexManager, portForwardingService, 5);
+    peerCertManager = Mockito.mock(PeerCertManager.class);
+    gatekeeper = new Gatekeeper(connectionManager, contractManager, pexManager, portForwardingService, peerCertManager, 5);
   }
 
   @Test

@@ -2,11 +2,12 @@ package com.domhauton.membrane.network.gatekeeper;
 
 import com.domhauton.membrane.distributed.ContractManager;
 import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
-import com.domhauton.membrane.network.messages.PeerMessage;
 import com.domhauton.membrane.network.messages.PexAdvertisement;
+import com.domhauton.membrane.network.messages.PexQueryRequest;
 import com.domhauton.membrane.network.pex.PexEntry;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
@@ -23,6 +24,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
@@ -33,28 +36,36 @@ import java.util.stream.Collectors;
  */
 public class Gatekeeper implements Runnable {
   private static final int HOURS_BEFORE_PEX_ENTRY_CONSIDERED_OLD = DateTimeConstants.HOURS_PER_WEEK;
+  private static final int PEER_MAINTENANCE_FREQUENCY_SEC = 120;
 
   private final Logger logger = LogManager.getLogger();
   private final ConnectionManager connectionManager;
   private final PortForwardingService portForwardingService;
+  private final PeerCertManager peerCertManager;
   private ContractManager contractManager; // Should be replaceable.
+
 
   private final PexManager pexManager;
   private final Set<String> friendPeers;
   private final Set<String> trackers;
 
+  private final ScheduledExecutorService peerMaintainerExecutor;
+
   private int maxConnections;
   private boolean isSearchingForNewPeers = false;
 
-  public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, PortForwardingService portForwardingService, int maxConnections) {
+  public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, PortForwardingService portForwardingService, PeerCertManager peerCertManager, int maxConnections) {
     this.connectionManager = connectionManager;
     this.contractManager = contractManager;
     this.pexManager = pexManager;
     this.maxConnections = maxConnections;
     this.portForwardingService = portForwardingService;
+    this.peerCertManager = peerCertManager;
 
     this.friendPeers = new HashSet<>();
     this.trackers = new HashSet<>();
+
+    peerMaintainerExecutor = Executors.newSingleThreadScheduledExecutor();
   }
 
   void maintainPeerPopulation() {
@@ -78,14 +89,15 @@ public class Gatekeeper implements Runnable {
     sendPexUpdate(sendPublicPexUpdate);
   }
 
-  public void processNewPeerConnected(String peerId) {
-    Supplier<Boolean> isContracted = () -> contractManager.getContractedPeers().contains(peerId);
+  public void processNewPeerConnected(Peer peer) {
+    Supplier<Boolean> isContracted = () -> contractManager.getContractedPeers().contains(peer.getUid());
     Supplier<Boolean> newPeersRequired = () -> requiredConnections() > 0;
 
     if (!isContracted.get() && newPeersRequired.get()) {
       logger.info("New peer discovered. Assigning to contract.");
       try {
-        contractManager.addContractedPeer(peerId);
+        contractManager.addContractedPeer(peer.getUid());
+        peerCertManager.addCertificate(peer.getUid(), peer.getX509Certificate());
       } catch (DistributorException e) {
         logger.warn("Unable to contract new peer.");
       }
@@ -176,10 +188,10 @@ public class Gatekeeper implements Runnable {
     lostPeers.removeAll(connectionManager.getAllConnectedPeers().stream().map(Peer::getUid).collect(Collectors.toSet()));
 
     if (!lostPeers.isEmpty()) {
-      PeerMessage peerMessage = null; //FIXME generate PEX info request.
+      PexQueryRequest pexQueryRequest = new PexQueryRequest(contractManager.getContractedPeers(), isSearchingForNewPeers);
       for (Peer peer : connectionManager.getAllConnectedPeers()) {
         try {
-          peer.sendPeerMessage(peerMessage);
+          peer.sendPeerMessage(pexQueryRequest);
         } catch (PeerException e) {
           logger.warn("Failed to send PEX request to [{}]. {}", peer.getUid(), e.getMessage());
         }
@@ -224,6 +236,7 @@ public class Gatekeeper implements Runnable {
 
   public void setContractManager(ContractManager contractManager) {
     this.contractManager = contractManager;
+    this.peerCertManager.setContractManager(contractManager);
     connectToPeersInPex();
   }
 
@@ -233,10 +246,10 @@ public class Gatekeeper implements Runnable {
 
   @Override
   public void run() {
-    //FIXME Implement
+    peerMaintainerExecutor.scheduleWithFixedDelay(this::maintainPeerPopulation, 0, PEER_MAINTENANCE_FREQUENCY_SEC, TimeUnit.SECONDS);
   }
 
   public void close() {
-    //FIXME Implement
+    peerMaintainerExecutor.shutdown();
   }
 }

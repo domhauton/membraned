@@ -154,7 +154,7 @@ public class ConnectionManager implements Closeable {
     return peer;
   }
 
-  synchronized void registerNewPeerCallback(Consumer<Peer> consumer) {
+  public synchronized void registerNewPeerCallback(Consumer<Peer> consumer) {
     newPeerJoinedCallbacks.add(consumer);
   }
 

@@ -24,6 +24,11 @@ public class PortForwardingService implements Runnable {
   private final PortForwardingController portForwardingController;
   private final int internalPort;
 
+  public PortForwardingService(int internalPort) {
+    this(x -> {
+    }, internalPort);
+  }
+
   public PortForwardingService(Consumer<ExternalAddress> externalAddressConsumer, int internalPort) {
     this.scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
     this.internalPort = internalPort;

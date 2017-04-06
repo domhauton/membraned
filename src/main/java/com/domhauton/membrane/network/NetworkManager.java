@@ -1,101 +1,35 @@
 package com.domhauton.membrane.network;
 
-import com.domhauton.membrane.config.items.DistributedStorageConfig;
-import com.domhauton.membrane.distributed.ContractManagerImpl;
-import com.domhauton.membrane.network.auth.AuthException;
-import com.domhauton.membrane.network.auth.AuthUtils;
-import com.domhauton.membrane.network.auth.MembraneAuthInfo;
-import com.domhauton.membrane.network.connection.ConnectionManager;
-import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
-import com.domhauton.membrane.network.messages.PeerMessage;
-import com.domhauton.membrane.network.messages.PeerMessageActionProvider;
-import com.domhauton.membrane.network.pex.PexException;
-import com.domhauton.membrane.network.pex.PexManager;
-import com.domhauton.membrane.network.upnp.ExternalAddress;
-import com.domhauton.membrane.network.upnp.PortForwardingService;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import com.domhauton.membrane.distributed.ContractManager;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Set;
 
 /**
- * Created by Dominic Hauton on 18/02/17.
+ * Created by dominic on 06/04/17.
  */
-public class NetworkManager implements Closeable {
-  private final Logger logger = LogManager.getLogger();
+public interface NetworkManager extends Runnable, Closeable {
 
-  private final PortForwardingService portForwardingService;
-  private final ConnectionManager connectionManager;
-  private final PexManager pexManager;
-  private final Gatekeeper gatekeeper;
+  /**
+   * Set the contract manager in all of the network subsystems
+   *
+   * @param contractManager ContractManager to set
+   */
+  void setContractManager(ContractManager contractManager);
 
+  /**
+   * Check if peer is connected
+   *
+   * @param peerId Id of the peer connected
+   * @return true if peer is connected.
+   */
+  boolean peerConnected(String peerId);
 
-  public NetworkManager(Path authInfoPath, DistributedStorageConfig config) throws NetworkException {
-    MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
-    this.connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
-
-    this.portForwardingService = new PortForwardingService(x -> {
-    }, config.getTransportPort());
-    if (config.getExternalTransportPort() != -1) {
-      portForwardingService.addNewMapping(config.getExternalTransportPort());
-      portForwardingService.run();
-    }
-    this.pexManager = new PexManager(500, Paths.get(config.getStorageFolder()));
-    this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, 100);
-
-    // Finally connect messages to callback so they are executed.
-    PeerMessageActionProvider peerMessageActionProvider = new PeerMessageActionProvider(connectionManager, pexManager, gatekeeper, membraneAuthInfo.getClientId());
-    connectionManager.registerMessageCallback((PeerMessage peerMessage) -> peerMessage.executeAction(peerMessageActionProvider));
-  }
-
-  private MembraneAuthInfo loadAuthInfo(Path authInfoPath) throws NetworkException {
-    try {
-      logger.info("Loading auth info from [{}].", authInfoPath);
-      return new MembraneAuthInfo(authInfoPath);
-    } catch (AuthException e) {
-      logger.warn("Could not load auth info from [{}]. Generating new auth info.", authInfoPath);
-      try {
-        AuthUtils.addProvider();
-        MembraneAuthInfo tmpAuthInfo = AuthUtils.generateAuthenticationInfo();
-        logger.info("Storing new auth info at [{}]", authInfoPath);
-        tmpAuthInfo.write(authInfoPath);
-        return tmpAuthInfo;
-      } catch (AuthException e1) {
-        logger.error("Could not generate new auth info. {}", e.getMessage());
-        throw new NetworkException("Could not generate auth info. " + e.getMessage(), e1);
-      } catch (IOException e1) {
-        logger.error("Could not store new auth info. This is required for future login.");
-        throw new NetworkException("Could not store new auth info. " + e.getMessage(), e1);
-      }
-    }
-  }
-
-  public Set<ExternalAddress> getExternalIps() {
-    return portForwardingService.getExternallyMappedAddresses();
-  }
-
-  public boolean peerConnected(String peerId) {
-    return connectionManager.getAllConnectedPeers().stream()
-            .anyMatch(x -> x.getUid().equals(peerId));
-  }
-
-  public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
-    // TODO Implement
-    throw new NetworkException("Block upload not implemented!");
-  }
-
-  public void close() {
-    try {
-      pexManager.saveLedger();
-    } catch (PexException e) {
-      logger.error("Failed to save PEX info before shutdown");
-    }
-    gatekeeper.close();
-    portForwardingService.close();
-    connectionManager.close();
-  }
+  /**
+   * Upload block to peer provided. Async with no confirmation of upload.
+   *
+   * @param peerId              Peer to upload to
+   * @param blockData           The bytes inside the block to upload
+   * @throws NetworkException   If there was an issue uploading. Peer not connected or buffer full.
+   */
+  void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException;
 }
