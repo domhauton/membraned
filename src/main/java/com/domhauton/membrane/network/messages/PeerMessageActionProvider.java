@@ -25,21 +25,19 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 26/02/17.
  */
-public class PeerMessageActionProvider {
+class PeerMessageActionProvider {
   private final Logger logger = LogManager.getLogger();
 
-  private final String userID;
   private final ExecutorService executorService;
 
   private final ConnectionManager connectionManager;
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
 
-  public PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper, String userID) {
+  PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper) {
     this.connectionManager = connectionManager;
     this.pexManager = pexManager;
     this.gatekeeper = gatekeeper;
-    this.userID = userID;
     ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setNameFormat("memb-peer-msg-pool-%d")
             .build();

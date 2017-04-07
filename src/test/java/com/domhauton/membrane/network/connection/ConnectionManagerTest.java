@@ -6,7 +6,7 @@ import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.messages.PeerMessage;
-import com.domhauton.membrane.network.messages.PeerMessageActionProvider;
+import com.domhauton.membrane.network.messages.PeerMessageConsumer;
 import com.domhauton.membrane.network.messages.PingMessage;
 import com.domhauton.membrane.network.messages.PongMessage;
 import com.domhauton.membrane.network.pex.PexManager;
@@ -214,11 +214,11 @@ class ConnectionManagerTest {
 
   @Test
   void pingPongTest() throws Exception {
-    PeerMessageActionProvider peerMessageActionProviderCon1 = new PeerMessageActionProvider(connectionManager1, pexManager, gatekeeper, membraneAuthInfo1.getClientId());
-    PeerMessageActionProvider peerMessageActionProviderCon2 = new PeerMessageActionProvider(connectionManager2, pexManager, gatekeeper, membraneAuthInfo2.getClientId());
+    PeerMessageConsumer peerMessageConsumer1 = new PeerMessageConsumer(connectionManager1, pexManager, gatekeeper);
+    PeerMessageConsumer peerMessageConsumer2 = new PeerMessageConsumer(connectionManager2, pexManager, gatekeeper);
 
-    connectionManager1.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionProviderCon1));
-    connectionManager2.registerMessageCallback(peerMessage -> peerMessage.executeAction(peerMessageActionProviderCon2));
+    connectionManager1.registerMessageCallback(peerMessageConsumer1);
+    connectionManager2.registerMessageCallback(peerMessageConsumer2);
 
     // Connection 2 will send out ping and expect pong when conMan1 connects.
 

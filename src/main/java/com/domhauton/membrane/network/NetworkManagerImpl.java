@@ -9,8 +9,7 @@ import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
-import com.domhauton.membrane.network.messages.PeerMessage;
-import com.domhauton.membrane.network.messages.PeerMessageActionProvider;
+import com.domhauton.membrane.network.messages.PeerMessageConsumer;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
@@ -126,11 +125,8 @@ public class NetworkManagerImpl implements NetworkManager {
   @Override
   public void run() {
     // Configure message callback to all required network modules
-    PeerMessageActionProvider peerMessageActionProvider =
-        new PeerMessageActionProvider(connectionManager, pexManager, gatekeeper, membraneAuthInfo.getClientId());
-    connectionManager.registerMessageCallback((PeerMessage peerMessage) -> peerMessage.executeAction(peerMessageActionProvider));
-
-    // Configure new peer callback
+    PeerMessageConsumer peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper);
+    connectionManager.registerMessageCallback(peerMessageConsumer);
     connectionManager.registerNewPeerCallback(gatekeeper::processNewPeerConnected);
 
     // Run all services
