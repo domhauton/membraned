@@ -35,13 +35,12 @@ public class NetworkManagerImpl implements NetworkManager {
   private final ConnectionManager connectionManager;
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
-  private final MembraneAuthInfo membraneAuthInfo;
 
 
   public NetworkManagerImpl(Path authInfoPath, DistributedStorageConfig config) throws NetworkException {
 
     // Setup authentication information
-    membraneAuthInfo = loadAuthInfo(authInfoPath);
+    MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
     Path peerCertFolder = Paths.get(authInfoPath.toString() + File.separator + "/peer");
     this.peerCertManager = new PeerCertManager(peerCertFolder);
 

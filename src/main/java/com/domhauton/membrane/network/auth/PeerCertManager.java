@@ -11,10 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.cert.X509Certificate;
-import java.util.HashMap;
-import java.util.NoSuchElementException;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by dominic on 03/04/17.
@@ -62,13 +59,14 @@ public class PeerCertManager {
     HashMap<String, X509Certificate> existingPeerCerts = new HashMap<>();
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(certStoreFolder)) {
       for (Path path : directoryStream) {
-        if (path.endsWith(EXTENSION)) {
+        if (path.toString().endsWith(EXTENSION)) {
           try {
             X509Certificate x509Certificate = AuthFileUtils.loadCertificate(path);
             String peerName = path.getFileName().toString().replace(EXTENSION, "");
+            logger.debug("Loaded cert for user [{}]", peerName);
             existingPeerCerts.put(peerName, x509Certificate);
           } catch (AuthException e) {
-            e.printStackTrace();
+            logger.error("Error loading cert [{}]", path);
           }
         }
       }
@@ -80,7 +78,7 @@ public class PeerCertManager {
 
   private void removeNonContractedPeers(Set<String> contractedPeers) {
     logger.info("Removing certificates for uncontracted peers.");
-    Set<String> redundantPeerCerts = certificateMap.keySet();
+    Set<String> redundantPeerCerts = new HashSet<>(certificateMap.keySet());
     redundantPeerCerts.removeAll(contractedPeers);
     redundantPeerCerts.stream()
         .peek(certificateMap::remove)
