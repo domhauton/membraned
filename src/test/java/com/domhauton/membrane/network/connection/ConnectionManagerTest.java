@@ -2,6 +2,7 @@ package com.domhauton.membrane.network.connection;
 
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
+import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
@@ -36,6 +37,7 @@ class ConnectionManagerTest {
 
   private Gatekeeper gatekeeper;
   private PexManager pexManager;
+  private PeerCertManager peerCertManager;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -50,6 +52,7 @@ class ConnectionManagerTest {
 
     gatekeeper = Mockito.mock(Gatekeeper.class);
     pexManager = Mockito.mock(PexManager.class);
+    peerCertManager = Mockito.mock(PeerCertManager.class);
   }
 
   @Test
@@ -214,8 +217,8 @@ class ConnectionManagerTest {
 
   @Test
   void pingPongTest() throws Exception {
-    PeerMessageConsumer peerMessageConsumer1 = new PeerMessageConsumer(connectionManager1, pexManager, gatekeeper);
-    PeerMessageConsumer peerMessageConsumer2 = new PeerMessageConsumer(connectionManager2, pexManager, gatekeeper);
+    PeerMessageConsumer peerMessageConsumer1 = new PeerMessageConsumer(connectionManager1, pexManager, gatekeeper, peerCertManager);
+    PeerMessageConsumer peerMessageConsumer2 = new PeerMessageConsumer(connectionManager2, pexManager, gatekeeper, peerCertManager);
 
     connectionManager1.registerMessageCallback(peerMessageConsumer1);
     connectionManager2.registerMessageCallback(peerMessageConsumer2);

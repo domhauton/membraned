@@ -1,6 +1,6 @@
 package com.domhauton.membrane.network.messages;
 
-import com.domhauton.membrane.network.auth.AuthException;
+import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
@@ -15,10 +15,7 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.security.cert.X509Certificate;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.*;
 import java.util.stream.Collectors;
 
@@ -33,11 +30,13 @@ class PeerMessageActionProvider {
   private final ConnectionManager connectionManager;
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
+  private final PeerCertManager peerCertManager;
 
-  PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper) {
+  PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper, PeerCertManager peerCertManager) {
     this.connectionManager = connectionManager;
     this.pexManager = pexManager;
     this.gatekeeper = gatekeeper;
+    this.peerCertManager = peerCertManager;
     ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setNameFormat("memb-peer-msg-pool-%d")
             .build();
@@ -66,9 +65,8 @@ class PeerMessageActionProvider {
     pexManager.addUnconfirmedEntry(ip, port);
   }
 
-  X509Certificate retrievePeerCertificate(String peerId) throws AuthException {
-    //FIXME Actually Retrieve cert;
-    return null;
+  X509Certificate retrievePeerCertificate(String peerId) throws NoSuchElementException {
+    return peerCertManager.getCertificate(peerId);
   }
 
   void processPexRequest(String targetUser, Set<String> requestedPeers, boolean requestPublic) {

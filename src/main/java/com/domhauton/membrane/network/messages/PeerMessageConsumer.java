@@ -1,5 +1,6 @@
 package com.domhauton.membrane.network.messages;
 
+import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.pex.PexManager;
@@ -17,8 +18,8 @@ public class PeerMessageConsumer implements Consumer<PeerMessage> {
 
   private final PeerMessageActionProvider actionProvider;
 
-  public PeerMessageConsumer(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper) {
-    actionProvider = new PeerMessageActionProvider(connectionManager, pexManager, gatekeeper);
+  public PeerMessageConsumer(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper, PeerCertManager peerCertManager) {
+    actionProvider = new PeerMessageActionProvider(connectionManager, pexManager, gatekeeper, peerCertManager);
   }
 
   @Override

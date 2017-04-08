@@ -9,6 +9,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
+import java.util.NoSuchElementException;
 import java.util.Set;
 
 /**
@@ -45,6 +46,8 @@ public class PexQueryResponse extends PeerMessage {
         pexAdvertisement.executeAction(peerMessageActionProvider);
       } catch (PeerMessageException e) {
         LOGGER.trace("Invalid pex entry provided. Discarding. {}", e.getMessage());
+      } catch (NoSuchElementException e) {
+        LOGGER.trace("Unable to find cert for peer. Did not request. Discarding. {}", e.getMessage());
       } catch (AuthException e) {
         LOGGER.trace("Unable to verify signed entry peer provided. Discarding. {}", e.getMessage());
       }

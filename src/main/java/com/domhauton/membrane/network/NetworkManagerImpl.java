@@ -124,7 +124,7 @@ public class NetworkManagerImpl implements NetworkManager {
   @Override
   public void run() {
     // Configure message callback to all required network modules
-    PeerMessageConsumer peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper);
+    PeerMessageConsumer peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);
     connectionManager.registerMessageCallback(peerMessageConsumer);
     connectionManager.registerNewPeerCallback(gatekeeper::processNewPeerConnected);
 
