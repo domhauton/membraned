@@ -90,6 +90,7 @@ public class BackupManager implements Closeable {
     fileManager.runScanners(
             config.getWatcher().getFileRescanInterval(),
             config.getWatcher().getFileRescanInterval());
+    networkManager.run();
     if (!monitorMode) { // No need to trim storage in Monitor Mode
       trimExecutor.scheduleWithFixedDelay(this::trimStorage,
               1,

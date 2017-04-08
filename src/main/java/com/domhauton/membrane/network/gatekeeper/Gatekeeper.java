@@ -16,13 +16,10 @@ import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
-import org.joda.time.DateTimeComparator;
-import org.joda.time.DateTimeConstants;
-import org.joda.time.Hours;
+import org.joda.time.Minutes;
 
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -35,7 +32,6 @@ import java.util.stream.Collectors;
  * Created by dominic on 29/03/17.
  */
 public class Gatekeeper implements Runnable {
-  private static final int HOURS_BEFORE_PEX_ENTRY_CONSIDERED_OLD = DateTimeConstants.HOURS_PER_WEEK;
   private static final int PEER_MAINTENANCE_FREQUENCY_SEC = 120;
 
   private final Logger logger = LogManager.getLogger();
@@ -47,12 +43,13 @@ public class Gatekeeper implements Runnable {
 
   private final PexManager pexManager;
   private final Set<String> friendPeers;
-  private final Set<String> trackers;
+  private final Set<Tracker> trackers;
 
   private final ScheduledExecutorService peerMaintainerExecutor;
 
   private int maxConnections;
-  private boolean isSearchingForNewPeers = false;
+  private boolean searchForNewPublicPeers = false;
+  private final DateTime startUpDateTime;
 
   public Gatekeeper(ConnectionManager connectionManager, ContractManager contractManager, PexManager pexManager, PortForwardingService portForwardingService, PeerCertManager peerCertManager, int maxConnections) {
     this.connectionManager = connectionManager;
@@ -66,27 +63,39 @@ public class Gatekeeper implements Runnable {
     this.trackers = new HashSet<>();
 
     peerMaintainerExecutor = Executors.newSingleThreadScheduledExecutor();
+    startUpDateTime = DateTime.now();
   }
 
   void maintainPeerPopulation() {
+    // First attempt to connect to any peers with pre-established contracts
     connectToContractedPeers();
-    connectToPeersInPex();
 
-    int requiredConnections = requiredConnections();
-    int remainingConnections = remainingConnections();
+    // Check if new connections are required and have space
 
-    boolean sendPublicPexUpdate = false;
+    int remainingConnectionCount = remainingConnections();
+    boolean requireMoreConnections = requiredConnections() > 0;
+    boolean haveRemainingConnections = remainingConnectionCount > 0;
 
-    if (requiredConnections > 0 && remainingConnections > 0) {
+    if (requireMoreConnections && haveRemainingConnections) {
       requestPexInformation();
-      if (isSearchingForNewPeers) {
-        sendPublicPexUpdate = true;
+      if (searchForNewPublicPeers) {
+        connectToPublicPeersInPex();
       }
-    } else if (remainingConnections < 0) {
-      disconnectRedundantPeers(-remainingConnections);
     }
 
-    sendPexUpdate(sendPublicPexUpdate);
+    sendPexUpdate(searchForNewPublicPeers && requireMoreConnections);
+
+    // Disconnect from peers taking up useful connection slots
+
+    if (requireMoreConnections && !haveRemainingConnections) {
+      disconnectRedundantPeers(-remainingConnectionCount);
+    }
+
+    // Connect to a tracker if struggling for peers.
+
+    if (shouldConnectToTrackers()) {
+      connectToTrackers();
+    }
   }
 
   public void processNewPeerConnected(Peer peer) {
@@ -117,7 +126,7 @@ public class Gatekeeper implements Runnable {
     Supplier<Boolean> remainingConnections = () -> remainingConnections() > 0;
 
     // Try to dial peer if all conditions satisfied.
-    if (isSearchingForNewPeers && !isConnected.get() && newPeersRequired.get() && remainingConnections.get()) {
+    if (searchForNewPublicPeers && !isConnected.get() && newPeersRequired.get() && remainingConnections.get()) {
       connectionManager.connectToPeer(pexEntry.getAddress(), pexEntry.getPort());
     }
   }
@@ -133,7 +142,7 @@ public class Gatekeeper implements Runnable {
     relatedPeers.addAll(connectionManager.getAllConnectedPeerIds());
     relatedPeers.addAll(contractManager.getContractedPeers());
     relatedPeers.addAll(friendPeers);
-    relatedPeers.removeAll(trackers);
+    relatedPeers.removeAll(trackers.stream().map(Tracker::getPeerId).collect(Collectors.toSet()));
     return contractManager.getContractCountTarget() - relatedPeers.size();
   }
 
@@ -147,10 +156,13 @@ public class Gatekeeper implements Runnable {
     totalPeers.addAll(connectionManager.getAllConnectedPeerIds());
     totalPeers.addAll(contractManager.getContractedPeers());
     totalPeers.addAll(friendPeers);
-    totalPeers.removeAll(trackers);
+    totalPeers.removeAll(trackers.stream().map(Tracker::getPeerId).collect(Collectors.toSet()));
     return totalPeers.size() - maxConnections;
   }
 
+  /**
+   * Initiates connections to contracted, unconnected peers with pex info.
+   */
   private void connectToContractedPeers() {
     Set<String> lostPeers = new HashSet<>();
     lostPeers.addAll(contractManager.getContractedPeers());
@@ -167,6 +179,11 @@ public class Gatekeeper implements Runnable {
     }
   }
 
+  /**
+   * Send updated PEX information to all peers.
+   *
+   * @param isPublic
+   */
   private void sendPexUpdate(boolean isPublic) {
     Iterator<ExternalAddress> externalAddresses = portForwardingService.getExternallyMappedAddresses().iterator();
     ExternalAddress externalAddress = externalAddresses.hasNext() ?
@@ -182,13 +199,16 @@ public class Gatekeeper implements Runnable {
     }
   }
 
+  /**
+   * Requests all connected peers for PEX information
+   */
   private void requestPexInformation() {
     Set<String> lostPeers = new HashSet<>();
     lostPeers.addAll(contractManager.getContractedPeers());
     lostPeers.removeAll(connectionManager.getAllConnectedPeers().stream().map(Peer::getUid).collect(Collectors.toSet()));
 
     if (!lostPeers.isEmpty()) {
-      PexQueryRequest pexQueryRequest = new PexQueryRequest(contractManager.getContractedPeers(), isSearchingForNewPeers);
+      PexQueryRequest pexQueryRequest = new PexQueryRequest(contractManager.getContractedPeers(), searchForNewPublicPeers);
       for (Peer peer : connectionManager.getAllConnectedPeers()) {
         try {
           peer.sendPeerMessage(pexQueryRequest);
@@ -199,17 +219,49 @@ public class Gatekeeper implements Runnable {
     }
   }
 
-  void disconnectRedundantPeers(int peersToDisconnect) {
+  /**
+   * Should a tracker connection be initiated based on startup time, and expected peer ratios.
+   *
+   * @return True if connection to trackers is needed
+   */
+  private boolean shouldConnectToTrackers() {
+    int contractedPeerTarget = contractManager.getContractCountTarget();
+    int minutesFromStartup = Minutes.minutesBetween(startUpDateTime, DateTime.now()).getMinutes();
+    if (contractManager == null || contractedPeerTarget < 0 || minutesFromStartup < 5) {
+      return false;
+    }
+    int connectedPeerCount = maxConnections - remainingConnections();
+    float connectedPeerRatio = (float) connectedPeerCount / (float) contractedPeerTarget;
+    float expectedPeerRatio = (float) minutesFromStartup / (float) 200;
+    return connectedPeerRatio < expectedPeerRatio;
+  }
+
+  /**
+   * Initiates a connection to every tracker on the tracker list.
+   */
+  private void connectToTrackers() {
+    trackers.forEach(x -> connectionManager.connectToPeer(x.getIp(), x.getPort()));
+  }
+
+  /**
+   * Selects redundant peers and disconnects from them.
+   */
+  private void disconnectRedundantPeers(int peersToDisconnect) {
     logger.info("Disconnecting {} redundant peers.", peersToDisconnect);
     Set<String> contractedPeers = contractManager.getContractedPeers();
+    Set<String> trackerPeerIds = trackers.stream().map(Tracker::getPeerId).collect(Collectors.toSet());
 
     connectionManager.getAllConnectedPeerIds().stream()
         .filter(x -> !contractedPeers.contains(x))
-        .filter(x -> !trackers.contains(x))
+        .filter(x -> !trackerPeerIds.contains(x))
         .limit(peersToDisconnect)
         .forEach(this::disconnectPeer);
   }
 
+  /**
+   * Disconnect from the given peer.
+   * @param peerId  Peer to disconnect from
+   */
   private void disconnectPeer(String peerId) {
     logger.info("Starting peer disconnect: [{}]", peerId);
     try {
@@ -221,15 +273,11 @@ public class Gatekeeper implements Runnable {
     }
   }
 
-  private void connectToPeersInPex() {
-    Set<String> connectedPeers = connectionManager.getAllConnectedPeerIds();
-    // Start a connection request for every peer in pex young enough for an entry
-    pexManager.getPexEntries().stream()
-        .filter(x -> !connectedPeers.contains(x.getKey()))
-        .map(Map.Entry::getValue)
-        .filter(x -> Hours.hoursBetween(x.getLastUpdateDateTime(), DateTime.now()).isLessThan(Hours.hours(HOURS_BEFORE_PEX_ENTRY_CONSIDERED_OLD)))
-        .sorted((x1, x2) -> DateTimeComparator.getInstance().compare(x1.getLastUpdateDateTime(), x2.getLastUpdateDateTime()))
-        .limit(requiredConnections())
+  /**
+   * Attempt connections to provided public PEX entries.
+   */
+  private void connectToPublicPeersInPex() {
+    pexManager.getPublicEntries(requiredConnections())
         .forEach(x -> connectionManager.connectToPeer(x.getAddress(), x.getPort()));
   }
 
@@ -237,11 +285,11 @@ public class Gatekeeper implements Runnable {
   public void setContractManager(ContractManager contractManager) {
     this.contractManager = contractManager;
     this.peerCertManager.setContractManager(contractManager);
-    connectToPeersInPex();
+    connectToPublicPeersInPex();
   }
 
-  public void setSearchingForNewPeers(boolean searchingForNewPeers) {
-    isSearchingForNewPeers = searchingForNewPeers;
+  public void setSearchForNewPublicPeers(boolean searchForNewPublicPeers) {
+    this.searchForNewPublicPeers = searchForNewPublicPeers;
   }
 
   @Override
