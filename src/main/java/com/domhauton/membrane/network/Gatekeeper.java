@@ -23,7 +23,6 @@ import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Created by dominic on 29/03/17.
@@ -48,7 +47,7 @@ public class Gatekeeper implements Runnable {
   private boolean searchForNewPublicPeers = false;
   private final DateTime startUpDateTime;
 
-  public Gatekeeper(ConnectionManager connectionManager, PexManager pexManager, PortForwardingService portForwardingService, PeerCertManager peerCertManager, TrackerManager trackerManager, int maxConnections) {
+  Gatekeeper(ConnectionManager connectionManager, PexManager pexManager, PortForwardingService portForwardingService, PeerCertManager peerCertManager, TrackerManager trackerManager, int maxConnections) {
     this.connectionManager = connectionManager;
     this.pexManager = pexManager;
     this.maxConnections = maxConnections;
@@ -62,7 +61,10 @@ public class Gatekeeper implements Runnable {
     startUpDateTime = DateTime.now();
   }
 
-  private void maintainPeerPopulation() {
+  /**
+   * Attempt to connect to new peers, spread PEX information and disconnect redundant peers.
+   */
+  void maintainPeerPopulation() {
     logger.info("Running peer maintenance.");
     Set<String> contractedPeers = contractManager.getContractedPeers();
     Set<String> connectedPeers = connectionManager.getAllConnectedPeerIds();
@@ -104,13 +106,13 @@ public class Gatekeeper implements Runnable {
 
     if (remainingConnectionCount < 0) {
       logger.debug("Need to disconnect redundant peers. Too many connections.");
-      disconnectRedundantPeers(-remainingConnectionCount);
+      disconnectRedundantPeers(-remainingConnectionCount, contractedPeers, connectedPeerSet);
     }
 
     // Connect to a tracker if struggling for peers.
 
     int contractedPeerTarget = contractManager == null ? 0 : contractManager.getContractCountTarget();
-    int connectedPeerCount = maxConnections - remainingConnectionCount;
+    int connectedPeerCount = connectedPeerSet.size();
     int minutesFromStartup = Minutes.minutesBetween(startUpDateTime, DateTime.now()).getMinutes();
 
     if (trackerManager.shouldConnectToTrackers(contractedPeerTarget, minutesFromStartup, connectedPeerCount)) {
@@ -119,12 +121,17 @@ public class Gatekeeper implements Runnable {
     }
   }
 
+  /**
+   * Inform gatekeeper of new peer. May trigger creation of new contract
+   *
+   * @param peer New peer connected.
+   */
   void processNewPeerConnected(Peer peer) {
     boolean isContracted = contractManager.getContractedPeers().contains(peer.getUid());
     // If is contracted or need new peers
     if (isContracted) {
       logger.info("New contracted peer connected. [{}]", peer.getUid());
-      processNewPeerConnection(peer);
+      setupPeerContract(peer);
     } else {
       logger.debug("New non-contracted peer connected. [{}]", peer.getUid());
 
@@ -137,13 +144,19 @@ public class Gatekeeper implements Runnable {
 
       if (peerRequired && searchForNewPublicPeers) {
         logger.info("Contracting new peer. [{}]", peer.getUid());
-        processNewPeerConnection(peer);
+        setupPeerContract(peer);
       }
     }
   }
 
-  private void processNewPeerConnection(Peer peer) {
+  /**
+   * Persist important peer information and inform contract manager of new peer.
+   *
+   * @param peer Peer to persist
+   */
+  private void setupPeerContract(Peer peer) {
     try {
+      // Add contracted peer first. Order important.
       contractManager.addContractedPeer(peer.getUid());
       peerCertManager.addCertificate(peer.getUid(), peer.getX509Certificate());
     } catch (DistributorException e) {
@@ -201,7 +214,7 @@ public class Gatekeeper implements Runnable {
    * Initiates connections to contracted, unconnected peers with pex info.
    */
   private void connectToContractedPeers(Set<String> contractedPeers, Set<String> connectedPeers) {
-    logger.info("Connecting to contracted peer.");
+    logger.info("Attempting to restore connection to {} contracted peers.", contractedPeers.size());
     Set<String> lostPeers = new HashSet<>();
     lostPeers.addAll(contractedPeers);
     lostPeers.removeAll(connectedPeers);
@@ -221,40 +234,37 @@ public class Gatekeeper implements Runnable {
   /**
    * Selects redundant peers and disconnects from them.
    */
-  private void disconnectRedundantPeers(int peersToDisconnect) {
+  private void disconnectRedundantPeers(int peersToDisconnect, Set<String> contractedPeers, Collection<Peer> connectedPeerSet) {
     logger.info("Disconnecting {} redundant peers.", peersToDisconnect);
-    Set<String> contractedPeers = contractManager.getContractedPeers();
 
-    connectionManager.getAllConnectedPeerIds().stream()
-        .filter(x -> !contractedPeers.contains(x))
-        .filter(x -> !trackerManager.getTrackerIds().contains(x))
+    long disconnectedPeerCount = connectedPeerSet.stream()
+        .filter(x -> !contractedPeers.contains(x.getUid()))
+        .filter(x -> !trackerManager.getTrackerIds().contains(x.getUid()))
+        .peek(x -> logger.info("Disconnecting peer due to lack of connections. [{}]", x.getUid()))
         .limit(peersToDisconnect)
-        .forEach(this::disconnectPeer);
+        .peek(Peer::close)
+        .count();
+
+    logger.info("{} of {} peers disconnected.", disconnectedPeerCount, peersToDisconnect);
   }
 
   /**
-   * Disconnect from the given peer.
+   * Set the contract manager to be used for establishing contracts.
    *
-   * @param peerId Peer to disconnect from
+   * @param contractManager new contract manager to use.
    */
-  private void disconnectPeer(String peerId) {
-    logger.info("Starting peer disconnect: [{}]", peerId);
-    try {
-      Peer peer = connectionManager.getPeerConnection(peerId, 0, TimeUnit.SECONDS);
-      peer.close(); // Async. Won't happen immediately.
-    } catch (TimeoutException e) {
-      // Disconnected anyway doesn't matter.
-      logger.info("Peer not found for disconnect. Ignoring. [{}]", peerId);
-    }
-  }
-
-  public void setContractManager(ContractManager contractManager) {
+  void setContractManager(ContractManager contractManager) {
     this.contractManager = contractManager;
     // Reprocess all connected peers.
     connectionManager.getAllConnectedPeers().forEach(this::processNewPeerConnected);
   }
 
-  public void setSearchForNewPublicPeers(boolean searchForNewPublicPeers) {
+  /**
+   * Allow new peers to connect and attempt to connect to them.
+   *
+   * @param searchForNewPublicPeers If true, allow new peer connections.
+   */
+  void setSearchForNewPublicPeers(boolean searchForNewPublicPeers) {
     this.searchForNewPublicPeers = searchForNewPublicPeers;
     // Reprocess all connected peers.
     connectionManager.getAllConnectedPeers().forEach(this::processNewPeerConnected);
@@ -276,7 +286,7 @@ public class Gatekeeper implements Runnable {
    *
    * @return number of required connections. Can be negative.
    */
-  static int requiredPeers(int knownPeerCount, int contractManagerTarget) {
+  private static int requiredPeers(int knownPeerCount, int contractManagerTarget) {
     return contractManagerTarget - knownPeerCount;
   }
 
@@ -285,7 +295,7 @@ public class Gatekeeper implements Runnable {
    *
    * @return number of required connections. Can be negative.
    */
-  static int remainingConnections(int knownPeerCount, int maxConnections) {
+  private static int remainingConnections(int knownPeerCount, int maxConnections) {
     return maxConnections - knownPeerCount;
   }
 
@@ -298,7 +308,7 @@ public class Gatekeeper implements Runnable {
    * @param trackerIds      Set of all tracker peers
    * @return Number of peers contracted union those connected ignoring trackers.
    */
-  static int getKnownPeerCount(Set<String> contractedPeers, Set<String> connectedPeers, Set<String> friendPeers, Set<String> trackerIds) {
+  private static int getKnownPeerCount(Set<String> contractedPeers, Set<String> connectedPeers, Set<String> friendPeers, Set<String> trackerIds) {
     Set<String> knownPeers = new HashSet<>();
     knownPeers.addAll(contractedPeers);
     knownPeers.addAll(connectedPeers);

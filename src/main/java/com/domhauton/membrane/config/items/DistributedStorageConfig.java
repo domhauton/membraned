@@ -20,7 +20,7 @@ public class DistributedStorageConfig extends StorageConfig {
   public DistributedStorageConfig() {
     super(System.getProperty("user.home") + File.separator + ".membrane" + File.separator + "distributed");
     transportPort = 14200;
-    externalTransportPort = 14201;
+    externalTransportPort = 14200;
     natForwardingEnabled = true;
   }
 
