@@ -61,6 +61,18 @@ public class PexAdvertisement extends PeerMessage {
     return ip + port + isPublic + dateTime.toString();
   }
 
+  public String getIp() {
+    return ip;
+  }
+
+  public int getPort() {
+    return port;
+  }
+
+  public boolean isPublic() {
+    return isPublic;
+  }
+
   @Override
   public String toString() {
     return "PexAdvertisement{" +

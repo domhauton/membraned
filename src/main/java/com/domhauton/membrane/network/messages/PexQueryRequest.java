@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
+import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -38,6 +39,14 @@ public class PexQueryRequest extends PeerMessage {
   @Override
   public void verify(X509Certificate x509Certificate) throws AuthException, PeerMessageException {
     // No way to sign
+  }
+
+  public Set<String> getRequestedPeers() {
+    return ImmutableSet.copyOf(requestedPeers);
+  }
+
+  public boolean isRequestPublic() {
+    return requestPublic;
   }
 
   @Override

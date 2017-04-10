@@ -6,10 +6,10 @@ import com.domhauton.membrane.network.connection.peer.PeerException;
 import com.domhauton.membrane.network.messages.PexAdvertisement;
 import com.domhauton.membrane.network.messages.PexQueryRequest;
 import com.domhauton.membrane.network.upnp.ExternalAddress;
-import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeComparator;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,6 +29,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 public class PexManager {
   static final String PEX_FILE_NAME = "pex.csv";
   static final String PEX_BACKUP_FILE_NAME = "pex.csv.bak";
+  private static final int PEX_ENTRY_TIMEOUT_MINS = 15;
 
   private final Logger logger = LogManager.getLogger();
   private final Path pexFolder;
@@ -73,11 +74,12 @@ public class PexManager {
   }
 
   public Set<PexEntry> getPublicEntries(int limit) {
-    DateTime oldestPermittedTime = DateTime.now().minusMinutes(15);
+    DateTime oldestPermittedTime = DateTime.now().minusMinutes(PEX_ENTRY_TIMEOUT_MINS);
     return pexLedger.getPexEntries().stream()
         .map(Map.Entry::getValue)
         .filter(PexEntry::isPublicEntry)
         .filter(pexEntry -> pexEntry.getLastUpdateDateTime().isAfter(oldestPermittedTime))
+        .sorted((o1, o2) -> DateTimeComparator.getInstance().reversed().compare(o1.getLastUpdateDateTime(), o2.getLastUpdateDateTime()))
         .limit(limit)
         .collect(Collectors.toSet());
   }
@@ -162,7 +164,13 @@ public class PexManager {
     // Shouldn't be less than zero. Clamping.
     requiredConnections = Math.max(0, requiredConnections);
     LOGGER.info("Connecting to {} peers in public pex.", requiredConnections);
-    getPublicEntries(requiredConnections)
+    DateTime oldestPermittedTime = DateTime.now().minusMinutes(PEX_ENTRY_TIMEOUT_MINS);
+    unconfirmedLedger.getPexEntries()
+        .stream()
+        .map(Map.Entry::getValue)
+        .filter(pexEntry -> pexEntry.getLastUpdateDateTime().isAfter(oldestPermittedTime))
+        .sorted((o1, o2) -> DateTimeComparator.getInstance().reversed().compare(o1.getLastUpdateDateTime(), o2.getLastUpdateDateTime()))
+        .limit(requiredConnections)
         .forEach(x -> connectionManager.connectToPeer(x.getAddress(), x.getPort()));
   }
 
@@ -171,15 +179,11 @@ public class PexManager {
    *
    * @param isPublic should the PEX information be re-distributed
    */
-  public static void sendPexUpdate(PortForwardingService portForwardingService, Collection<Peer> connectedPeers, boolean isPublic) {
+  public static void sendPexUpdate(ExternalAddress externalAddress, Collection<Peer> connectedPeers, boolean isPublic) {
     LOGGER.info("Sending {} PEX updates to {} peers.", isPublic ? "Public" : "Non-Public", connectedPeers.size());
-    Iterator<ExternalAddress> externalAddresses = portForwardingService.getExternallyMappedAddresses().iterator();
-    ExternalAddress externalAddress = externalAddresses.hasNext() ?
-        externalAddresses.next() : portForwardingService.getNonForwardedAddress();
-    PexAdvertisement pexAdvertisement = new PexAdvertisement(externalAddress.getIpAddress(), externalAddress.getPort(), isPublic, DateTime.now());
-
     for (Peer peer : connectedPeers) {
       try {
+        PexAdvertisement pexAdvertisement = new PexAdvertisement(externalAddress.getIpAddress(), externalAddress.getPort(), isPublic, DateTime.now());
         peer.sendPeerMessage(pexAdvertisement);
       } catch (PeerException e) {
         LOGGER.warn("Failed to send PEX request to [{}]. {}", peer.getUid(), e.getMessage());
@@ -190,15 +194,15 @@ public class PexManager {
   /**
    * Requests all connected peers for PEX information
    */
-  public static void requestPexInformation(ConnectionManager connectionManager, Set<String> contractedPeers, boolean searchingForNewPeers) {
+  public static void requestPexInformation(Collection<Peer> peers, Set<String> contractedPeers, boolean searchingForNewPeers) {
     LOGGER.info("Requesting peers for PEX update.");
     Set<String> lostPeers = new HashSet<>();
     lostPeers.addAll(contractedPeers);
-    lostPeers.removeAll(connectionManager.getAllConnectedPeers().stream().map(Peer::getUid).collect(Collectors.toSet()));
+    peers.forEach(x -> lostPeers.remove(x.getUid()));
 
     if (!lostPeers.isEmpty()) {
-      PexQueryRequest pexQueryRequest = new PexQueryRequest(contractedPeers, searchingForNewPeers);
-      for (Peer peer : connectionManager.getAllConnectedPeers()) {
+      PexQueryRequest pexQueryRequest = new PexQueryRequest(lostPeers, searchingForNewPeers);
+      for (Peer peer : peers) {
         try {
           peer.sendPeerMessage(pexQueryRequest);
         } catch (PeerException e) {

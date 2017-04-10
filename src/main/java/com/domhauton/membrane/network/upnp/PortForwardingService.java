@@ -6,7 +6,7 @@ import org.joda.time.Period;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.Set;
+import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -35,7 +35,7 @@ public class PortForwardingService implements Runnable {
     portForwardingController = new PortForwardingController(LEASE_DURATION, externalAddressConsumer);
   }
 
-  public ExternalAddress getNonForwardedAddress() {
+  private ExternalAddress getNonForwardedAddress() {
     try {
       InetAddress localHost = InetAddress.getLocalHost();
       return new ExternalAddress(localHost.getHostAddress(), internalPort);
@@ -45,8 +45,9 @@ public class PortForwardingService implements Runnable {
     }
   }
 
-  public Set<ExternalAddress> getExternallyMappedAddresses() {
-    return portForwardingController.getExternalAddresses();
+  public ExternalAddress getExternalAddress() {
+    Iterator<ExternalAddress> externalAddressIterator = portForwardingController.getExternalAddresses().iterator();
+    return externalAddressIterator.hasNext() ? externalAddressIterator.next() : getNonForwardedAddress();
   }
 
   public void addNewMapping(int externalPort) {

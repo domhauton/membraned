@@ -9,12 +9,14 @@ import com.domhauton.membrane.network.pex.PexEntry;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.TrackerManager;
+import com.domhauton.membrane.network.upnp.ExternalAddress;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -77,8 +79,10 @@ public class Gatekeeper implements Runnable {
     boolean requireMoreConnections = requiredConnections > 0;
     boolean haveRemainingConnections = remainingConnectionCount > 0;
 
+    Collection<Peer> connectedPeerSet = connectionManager.getAllConnectedPeers();
+
     if (requireMoreConnections && haveRemainingConnections) {
-      PexManager.requestPexInformation(connectionManager, contractedPeers, searchForNewPublicPeers);
+      PexManager.requestPexInformation(connectedPeerSet, contractedPeers, searchForNewPublicPeers);
       if (searchForNewPublicPeers) {
         pexManager.connectToPublicPeersInPex(connectionManager, requiredConnections);
       }
@@ -86,7 +90,8 @@ public class Gatekeeper implements Runnable {
 
     boolean isPexUpdatePublic = searchForNewPublicPeers && requireMoreConnections;
 
-    PexManager.sendPexUpdate(portForwardingService, connectionManager.getAllConnectedPeers(), isPexUpdatePublic);
+    ExternalAddress externalAddress = portForwardingService.getExternalAddress();
+    PexManager.sendPexUpdate(externalAddress, connectedPeerSet, isPexUpdatePublic);
 
     // Disconnect from peers taking up useful connection slots
 
