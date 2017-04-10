@@ -48,7 +48,7 @@ public class PexAdvertisement extends PeerMessage {
       throw new PeerMessageException("Discarding Pex Advertisement. Not valid IP. " + ip);
     } else if (!dateTime.isAfter(DateTime.now())) {
       throw new PeerMessageException("Discarding Pex Advertisement. Signed for future date. " + dateTime);
-    } else if (!AuthUtils.verifySignedMessage(x509Certificate, generateSignedMessage())) {
+    } else if (!AuthUtils.verifySignedMessage(x509Certificate, generateSignedMessage(), signature)) {
       throw new PeerMessageException("Discarding Pex Advertisement. Unable to verify signature.");
     }
   }

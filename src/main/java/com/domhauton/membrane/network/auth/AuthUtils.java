@@ -125,11 +125,12 @@ public abstract class AuthUtils {
     }
   }
 
-  public static boolean verifySignedMessage(X509Certificate certificate, String message) throws AuthException {
+  public static boolean verifySignedMessage(X509Certificate certificate, String message, byte[] sigBytes) throws AuthException {
     try {
       Signature signature = Signature.getInstance("SHA1withRSA", "BC");
       signature.initVerify(certificate);
-      return signature.verify(message.getBytes());
+      signature.update(message.getBytes());
+      return signature.verify(sigBytes);
     } catch (NoSuchAlgorithmException | NoSuchProviderException e) {
       throw new AuthException("Could not create signature. Invalid algo used! " + e.getMessage());
     } catch (InvalidKeyException e) {
