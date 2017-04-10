@@ -2,7 +2,6 @@ package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.config.items.DistributedStorageConfig;
 import com.domhauton.membrane.distributed.ContractManager;
-import com.domhauton.membrane.distributed.ContractManagerImpl;
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
@@ -56,7 +55,7 @@ public class NetworkManagerImpl implements NetworkManager {
 
     // Setup maintenance tasks
     this.pexManager = new PexManager(MAX_LEDGER_SIZE, Paths.get(config.getStorageFolder()));
-    this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
+    this.gatekeeper = new Gatekeeper(connectionManager, pexManager, portForwardingService, peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
   }
 
   /**
