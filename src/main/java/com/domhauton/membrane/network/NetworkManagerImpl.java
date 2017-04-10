@@ -8,10 +8,10 @@ import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
-import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.messages.PeerMessageConsumer;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
+import com.domhauton.membrane.network.tracker.TrackerManager;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -51,9 +51,12 @@ public class NetworkManagerImpl implements NetworkManager {
       portForwardingService.addNewMapping(config.getExternalTransportPort());
     }
 
+    // Setup peer info
+    TrackerManager trackerManager = new TrackerManager();
+
     // Setup maintenance tasks
     this.pexManager = new PexManager(MAX_LEDGER_SIZE, Paths.get(config.getStorageFolder()));
-    this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, peerCertManager, MAX_SIMULTANEOUS_CONNECTIONS);
+    this.gatekeeper = new Gatekeeper(connectionManager, new ContractManagerImpl(), pexManager, portForwardingService, peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
   }
 
   /**

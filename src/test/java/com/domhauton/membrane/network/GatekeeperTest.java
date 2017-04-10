@@ -1,9 +1,10 @@
-package com.domhauton.membrane.network.gatekeeper;
+package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.distributed.ContractManager;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.pex.PexManager;
+import com.domhauton.membrane.network.tracker.TrackerManager;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,6 +21,7 @@ class GatekeeperTest {
   private PortForwardingService portForwardingService;
   private PeerCertManager peerCertManager;
   private Gatekeeper gatekeeper;
+  private TrackerManager trackerManager;
 
   @BeforeEach
   void setUp() {
@@ -28,7 +30,8 @@ class GatekeeperTest {
     pexManager = Mockito.mock(PexManager.class);
     portForwardingService = Mockito.mock(PortForwardingService.class);
     peerCertManager = Mockito.mock(PeerCertManager.class);
-    gatekeeper = new Gatekeeper(connectionManager, contractManager, pexManager, portForwardingService, peerCertManager, 5);
+    trackerManager = new TrackerManager();
+    gatekeeper = new Gatekeeper(connectionManager, contractManager, pexManager, portForwardingService, peerCertManager, trackerManager, 5);
   }
 
   @Test

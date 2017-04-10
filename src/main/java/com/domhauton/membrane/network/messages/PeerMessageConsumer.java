@@ -1,8 +1,8 @@
 package com.domhauton.membrane.network.messages;
 
+import com.domhauton.membrane.network.Gatekeeper;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
-import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.pex.PexManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

@@ -1,10 +1,10 @@
 package com.domhauton.membrane.network.messages;
 
+import com.domhauton.membrane.network.Gatekeeper;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
-import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseEntry;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseSignedEntry;
 import com.domhauton.membrane.network.pex.PexEntry;

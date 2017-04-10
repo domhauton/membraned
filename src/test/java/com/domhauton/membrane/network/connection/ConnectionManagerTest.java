@@ -1,11 +1,11 @@
 package com.domhauton.membrane.network.connection;
 
+import com.domhauton.membrane.network.Gatekeeper;
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
 import com.domhauton.membrane.network.connection.peer.PeerException;
-import com.domhauton.membrane.network.gatekeeper.Gatekeeper;
 import com.domhauton.membrane.network.messages.PeerMessage;
 import com.domhauton.membrane.network.messages.PeerMessageConsumer;
 import com.domhauton.membrane.network.messages.PingMessage;
