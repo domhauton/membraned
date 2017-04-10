@@ -28,7 +28,7 @@
         <SOURCES />
       </library>
     </orderEntry>
-    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-core:2.8.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-core:2.8.2" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.9.0.pr2" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-core:2.9.0.pr2" level="project" />
     <orderEntry type="library" name="Gradle: com.google.guava:guava:21.0" level="project" />
@@ -42,9 +42,9 @@
     <orderEntry type="library" name="Gradle: org.xerial.snappy:snappy-java:1.1.4-M3" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.jupiter:junit-jupiter-api:5.0.0-M4" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-gradle-plugin:1.0.0-M4" level="project" />
-    <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.21" level="project" />
+    <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.22" level="project" />
     <orderEntry type="library" name="Gradle: io.vertx:vertx-codegen:3.4.1" level="project" />
-    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-api:2.8.1" level="project" />
+    <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-api:2.8.2" level="project" />
     <orderEntry type="library" name="Gradle: org.yaml:snakeyaml:1.17" level="project" />
     <orderEntry type="library" name="Gradle: io.netty:netty-common:4.1.8.Final" level="project" />
     <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.jupiter:junit-jupiter-engine:5.0.0-M4" level="project" />
