@@ -15,24 +15,24 @@ import java.util.Arrays;
 public class PexAdvertisement extends PeerMessage {
   private String ip;
   private int port;
-  private boolean isPublic;
-  private DateTime dateTime;
+  private boolean publicInfo;
+  private long dateTimeMillis;
   private byte[] signature;
 
   private PexAdvertisement() {
   } // For Jackson only!
 
-  public PexAdvertisement(String ip, int port, boolean isPublic, DateTime dateTime) {
+  public PexAdvertisement(String ip, int port, boolean publicInfo, DateTime dateTime) {
     super();
     this.ip = ip;
     this.port = port;
-    this.isPublic = isPublic;
-    this.dateTime = dateTime;
+    this.publicInfo = publicInfo;
+    this.dateTimeMillis = dateTime.getMillis();
   }
 
   @Override
   public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
-    peerMessageActionProvider.processSignedPexInfo(getSender(), ip, port, isPublic, dateTime, signature);
+    peerMessageActionProvider.processSignedPexInfo(getSender(), ip, port, publicInfo, new DateTime(dateTimeMillis), signature);
   }
 
   @Override
@@ -42,23 +42,23 @@ public class PexAdvertisement extends PeerMessage {
 
   @Override
   public void verify(X509Certificate x509Certificate) throws AuthException, PeerMessageException {
-    if (0 < port && port < 65535) {
+    if (0 > port && port < 65535) {
       throw new PeerMessageException("Discarding Pex Advertisement. Port out of bounds. " + port);
     } else if (!InetAddresses.isInetAddress(ip)) {
       throw new PeerMessageException("Discarding Pex Advertisement. Not valid IP. " + ip);
-    } else if (!dateTime.isAfter(DateTime.now())) {
-      throw new PeerMessageException("Discarding Pex Advertisement. Signed for future date. " + dateTime);
+    } else if (!new DateTime(dateTimeMillis).isAfter(DateTime.now().minusSeconds(15))) { // Allow 15s slip
+      throw new PeerMessageException("Discarding Pex Advertisement. Signed for future date. " + new DateTime(dateTimeMillis));
     } else if (!AuthUtils.verifySignedMessage(x509Certificate, generateSignedMessage(), signature)) {
       throw new PeerMessageException("Discarding Pex Advertisement. Unable to verify signature.");
     }
   }
 
-  public void setSignature(byte[] signature) {
+  void setSignature(byte[] signature) {
     this.signature = signature;
   }
 
   private String generateSignedMessage() {
-    return ip + port + isPublic + dateTime.toString();
+    return ip + port + publicInfo + dateTimeMillis;
   }
 
   public String getIp() {
@@ -69,23 +69,31 @@ public class PexAdvertisement extends PeerMessage {
     return port;
   }
 
-  public boolean isPublic() {
-    return isPublic;
+  public long getDateTimeMillis() {
+    return dateTimeMillis;
+  }
+
+  public byte[] getSignature() {
+    return signature;
+  }
+
+  public boolean isPublicInfo() {
+    return publicInfo;
   }
 
   @Override
   public String toString() {
     return "PexAdvertisement{" +
-        "ip='" + ip + '\'' +
-        ", port=" + port +
-        ", isPublic=" + isPublic +
-        ", sender='" + sender + '\'' +
+        "sender='" + sender + '\'' +
         ", recipient='" + recipient + '\'' +
-        ", dateTime=" + dateTime +
+        ", ip='" + ip + '\'' +
         ", messageId=" + messageId +
+        ", port=" + port +
         ", responseToMessageId=" + responseToMessageId +
-        ", signature=" + Arrays.toString(signature) +
+        ", publicInfo=" + publicInfo +
         ", version='" + version + '\'' +
+        ", dateTimeMillis=" + dateTimeMillis +
+        ", signature=" + Arrays.toString(signature) +
         '}';
   }
 }

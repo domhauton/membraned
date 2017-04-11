@@ -159,6 +159,8 @@ public class PeerConnection {
       logger.error("Invalid message. Ignoring. {}", e.getMessage());
     } catch (AuthException e) {
       logger.error("Could not verify message. IGNORING. {}", e.getMessage());
+    } catch (Exception e) {
+      logger.error("Corrupt message received. Throws unexpected exception during parsing. IGNORING. {}", e.getMessage());
     } finally {
       responseWaitLock.unlock();
     }

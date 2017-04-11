@@ -1,6 +1,5 @@
 package com.domhauton.membrane.network;
 
-import com.domhauton.membrane.config.items.DistributedStorageConfig;
 import com.domhauton.membrane.distributed.ContractManager;
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
@@ -32,30 +31,37 @@ public class NetworkManagerImpl implements NetworkManager {
   private final PortForwardingService portForwardingService;
   private final PeerCertManager peerCertManager;
   private final ConnectionManager connectionManager;
+  private final MembraneAuthInfo membraneAuthInfo; // Stored for test reflection.
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
 
 
-  public NetworkManagerImpl(Path authInfoPath, DistributedStorageConfig config) throws NetworkException {
-
+  public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int externalTransportPort) throws NetworkException {
     // Setup authentication information
-    MembraneAuthInfo membraneAuthInfo = loadAuthInfo(authInfoPath);
-    Path peerCertFolder = Paths.get(authInfoPath.toString() + File.separator + "/peer");
+    membraneAuthInfo = loadAuthInfo(baseNetworkPath); // Auto adds inner dir
+    Path peerCertFolder = Paths.get(baseNetworkPath.toString() + File.separator + "/peer");
     this.peerCertManager = new PeerCertManager(peerCertFolder);
 
     // Setup network connectivity
-    this.connectionManager = new ConnectionManager(membraneAuthInfo, config.getTransportPort());
-    this.portForwardingService = new PortForwardingService(config.getTransportPort());
-    if (config.getExternalTransportPort() < 0) {
-      portForwardingService.addNewMapping(config.getExternalTransportPort());
+    this.connectionManager = new ConnectionManager(membraneAuthInfo, transportPort);
+    this.portForwardingService = new PortForwardingService(transportPort);
+    if (externalTransportPort < 0) {
+      portForwardingService.addNewMapping(externalTransportPort);
     }
 
     // Setup peer info
     TrackerManager trackerManager = new TrackerManager();
 
     // Setup maintenance tasks
-    this.pexManager = new PexManager(MAX_LEDGER_SIZE, Paths.get(config.getStorageFolder()));
-    this.gatekeeper = new Gatekeeper(connectionManager, pexManager, portForwardingService, peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
+    this.pexManager = new PexManager(MAX_LEDGER_SIZE, baseNetworkPath);
+    this.gatekeeper = new Gatekeeper(connectionManager, pexManager, portForwardingService,
+        peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
+
+    // Configure message callback to all required network modules
+    PeerMessageConsumer messageConsumer =
+        new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);
+    connectionManager.registerMessageCallback(messageConsumer);
+    connectionManager.registerNewPeerCallback(gatekeeper::processNewPeerConnected);
   }
 
   /**
@@ -125,11 +131,6 @@ public class NetworkManagerImpl implements NetworkManager {
 
   @Override
   public void run() {
-    // Configure message callback to all required network modules
-    PeerMessageConsumer peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);
-    connectionManager.registerMessageCallback(peerMessageConsumer);
-    connectionManager.registerNewPeerCallback(gatekeeper::processNewPeerConnected);
-
     // Run all services
     gatekeeper.run();
     portForwardingService.run();

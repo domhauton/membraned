@@ -90,7 +90,7 @@ class BackupManagerTest {
             new RestConfig(13200));
 
     backupManager = new BackupManager(config, configPath);
-    backupManager.start();
+    backupManager.run();
   }
 
   private void createTestFolders() throws IOException {
@@ -268,7 +268,7 @@ class BackupManagerTest {
     backupManager.close();
 
     backupManager = new BackupManager(config, configPath);
-    backupManager.start();
+    backupManager.run();
 
     Assertions.assertEquals(backupManager.getCurrentFiles().size(), backupManager.getReferencedFiles().size());
 

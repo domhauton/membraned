@@ -46,7 +46,7 @@ public class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
         "ip='" + getIp() + '\'' +
         ", port=" + getPort() +
         ", userId='" + userId + '\'' +
-        ", isPublic=" + isPublic +
+        ", isPublicInfo=" + isPublic +
         ", dateTime=" + dateTime +
         ", signature=" + Arrays.toString(signature) +
         '}';

@@ -98,6 +98,7 @@ public class PexManager {
   }
 
   public void saveLedger() throws PexException {
+    logger.info("Persisting PEX ledger to file.");
     Path pexFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_FILE_NAME);
     Path pexBackupFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_BACKUP_FILE_NAME);
 

@@ -19,6 +19,7 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.Closeable;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 23/01/17.
  */
-public class BackupManager implements Closeable {
+public class BackupManager implements Runnable, Closeable {
   private final static int MB = 1024 * 1024;
 
   private final Config config;
@@ -42,7 +43,6 @@ public class BackupManager implements Closeable {
   private final FileManager fileManager;
   private final boolean monitorMode;
   private StorageManager localStorageManager;
-  private StorageManager distributedStorageManager;
   private RestfulApiManager restfulApiManager;
   private NetworkManagerImpl networkManager;
   private final Logger logger;
@@ -59,32 +59,53 @@ public class BackupManager implements Closeable {
     this.config = config;
     this.monitorMode = monitorMode;
     this.startTime = DateTime.now();
+    trimExecutor = Executors.newSingleThreadScheduledExecutor();
+
     try {
-      fileManager = new FileManager(config.getWatcher().getChunkSizeMB());
+
+      // Create the file manager (responsible for monitoring changes)
+
+      fileManager = new FileManager(
+          config.getWatcher().getChunkSizeMB());
+
+      // Create the local storage manager. Responsible for persisting files on the local machine.
+
       localStorageManager = new StorageManager(
               Paths.get(config.getLocalStorage().getStorageFolder()),
               config.getLocalStorage().getHardStorageLimit() * MB);
-      distributedStorageManager = new StorageManager(
-              Paths.get(config.getDistributedStorage().getStorageFolder()),
-              config.getDistributedStorage().getHardStorageLimit() * MB);
+
+      // If not in monitor mode connect the file manager to the storage manager.
+
       if (!monitorMode) {
         fileManager.addStorageManager(localStorageManager);
       }
-      trimExecutor = Executors.newSingleThreadScheduledExecutor();
+
+      // Start the rest API
+
       restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
-      networkManager = new NetworkManagerImpl(configPath.getParent(), config.getDistributedStorage());
       restfulApiManager.start();
+
+      // Create in network manager.
+
+      networkManager = new NetworkManagerImpl(getBaseNetworkPath(),
+          config.getDistributedStorage().getTransportPort(),
+          config.getDistributedStorage().getExternalTransportPort());
+
     } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException e) {
-      logger.error("Failed to start membrane backup manager.");
+      logger.error("Failed to run membrane backup manager.");
       logger.error(e.getMessage());
       throw new IllegalArgumentException("Error starting up.", e);
     }
   }
 
+  private Path getBaseNetworkPath() {
+    return Paths.get(config.getLocalStorage().getStorageFolder() + File.separator + "/network");
+  }
+
   /**
    * Start backup processes
    */
-  void start() {
+  public void run() {
     loadStorageMappingToProspector();
     loadWatchFoldersToProspector();
     fileManager.runScanners(
@@ -229,13 +250,6 @@ public class BackupManager implements Closeable {
 
     logger.info("Shutdown - Stopping Distributed Manager");
     networkManager.close();
-
-    try {
-      logger.info("Shutdown - Stopping Distributed Storage.");
-      distributedStorageManager.close();
-    } catch (StorageManagerException e) {
-      logger.error("Shutdown - Failed to stop Distributed Storage.");
-    }
 
     logger.info("Shutdown - Stopping Watcher.");
     fileManager.stopScanners();

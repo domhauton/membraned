@@ -96,10 +96,10 @@ class Main {
       Config config = configPath.toFile().exists() ? ConfigManager.loadConfig(configPath) : ConfigManager.loadDefaultConfig();
       BackupManager backupManager = new BackupManager(config, configPath, demoMode);
       backupManager.registerShutdownHook();
-      backupManager.start();
+      backupManager.run();
       return backupManager;
     } catch (ConfigException e) {
-      logger.fatal("Unable to load config [{}]. Refusing to start up.", configPath);
+      logger.fatal("Unable to load config [{}]. Refusing to run up.", configPath);
       throw e;
     } catch (IllegalArgumentException e) {
       logger.fatal("Failed to startup with given config. {}", e.toString());

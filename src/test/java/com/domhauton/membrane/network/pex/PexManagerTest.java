@@ -262,7 +262,7 @@ class PexManagerTest {
       PexAdvertisement pexAdvertisement = (PexAdvertisement) peerMessage;
       Assertions.assertEquals(ip1, pexAdvertisement.getIp());
       Assertions.assertEquals(port1, pexAdvertisement.getPort());
-      Assertions.assertEquals(true, pexAdvertisement.isPublic());
+      Assertions.assertEquals(true, pexAdvertisement.isPublicInfo());
     }
   }
 
@@ -290,7 +290,7 @@ class PexManagerTest {
       PexAdvertisement pexAdvertisement = (PexAdvertisement) peerMessage;
       Assertions.assertEquals(ip1, pexAdvertisement.getIp());
       Assertions.assertEquals(port1, pexAdvertisement.getPort());
-      Assertions.assertEquals(false, pexAdvertisement.isPublic());
+      Assertions.assertEquals(false, pexAdvertisement.isPublicInfo());
     }
   }
 

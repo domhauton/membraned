@@ -18,6 +18,7 @@ import org.joda.time.DateTime;
 import org.joda.time.Minutes;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.Executors;
@@ -159,6 +160,10 @@ public class Gatekeeper implements Runnable {
       // Add contracted peer first. Order important.
       contractManager.addContractedPeer(peer.getUid());
       peerCertManager.addCertificate(peer.getUid(), peer.getX509Certificate());
+
+      logger.debug("Sending PEX update to contracted Peer");
+      ExternalAddress externalAddress = portForwardingService.getExternalAddress();
+      PexManager.sendPexUpdate(externalAddress, Collections.singleton(peer), false);
     } catch (DistributorException e) {
       logger.warn("Unable to contract new peer.");
     }
