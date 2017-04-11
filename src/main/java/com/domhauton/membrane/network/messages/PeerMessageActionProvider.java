@@ -75,18 +75,27 @@ class PeerMessageActionProvider {
 
   private void processPexRequestBlocking(String targetUser, Set<String> requestedPeers, boolean requestPublic) {
     // Imported to get a final version
+    logger.debug("Processing PEX Request from [{}] for {} specific {}peers", targetUser, requestedPeers.size(), requestPublic ? "and public " : "");
     Set<Map.Entry<String, PexEntry>> pexEntries = pexManager.getPexEntries();
     Set<PexQueryResponseSignedEntry> pexQueryResponseSignedEntries = pexEntries.stream()
         .limit(50)
+        .filter(pexEntry -> !pexEntry.getKey().equals(targetUser))
         .filter(pexEntry -> requestedPeers.contains(pexEntry.getKey()))
         .map(pexEntry -> new PexQueryResponseSignedEntry(pexEntry.getValue().getAddress(), pexEntry.getValue().getPort(), pexEntry.getKey(), pexEntry.getValue().isPublicEntry(), pexEntry.getValue().getLastUpdateDateTime(), pexEntry.getValue().getSignature()))
         .collect(Collectors.toSet());
 
-    Set<PexEntry> publicPexEntries = requestPublic ? pexManager.getPublicEntries(50) : Collections.emptySet();
+    Set<String> ignoredPeers = new HashSet<>(requestedPeers);
+    ignoredPeers.add(targetUser);
+    Set<PexEntry> publicPexEntries = requestPublic ? pexManager.getPublicEntries(50, ignoredPeers) : Collections.emptySet();
 
     Set<PexQueryResponseEntry> unsignedResponseEntries = publicPexEntries.stream()
         .map(pexEntry -> new PexQueryResponseEntry(pexEntry.getAddress(), pexEntry.getPort()))
         .collect(Collectors.toSet());
+
+    logger.debug("Processing PEX Request. Found {} specific peers and {} public peers. [{}].",
+        pexQueryResponseSignedEntries.size(),
+        unsignedResponseEntries.size(),
+        targetUser);
 
     PexQueryResponse pexQueryResponse = new PexQueryResponse(unsignedResponseEntries, pexQueryResponseSignedEntries);
 

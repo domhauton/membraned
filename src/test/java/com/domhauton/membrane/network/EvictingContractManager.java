@@ -18,6 +18,7 @@ class EvictingContractManager implements ContractManager {
   private int size;
 
   public EvictingContractManager(int size) {
+    this.size = size;
     peerQueue = EvictingQueue.create(size);
   }
 

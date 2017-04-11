@@ -133,6 +133,8 @@ public class Gatekeeper implements Runnable {
     if (isContracted) {
       logger.info("New contracted peer connected. [{}]", peer.getUid());
       setupPeerContract(peer);
+    } else if (trackerManager.getTrackerIds().contains(peer.getUid())) {
+      logger.info("Connected to tracker. Not creating contract. [{}]", peer.getUid());
     } else {
       logger.debug("New non-contracted peer connected. [{}]", peer.getUid());
 

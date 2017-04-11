@@ -74,8 +74,13 @@ public class PexManager {
   }
 
   public Set<PexEntry> getPublicEntries(int limit) {
+    return getPublicEntries(limit, Collections.emptySet());
+  }
+
+  public Set<PexEntry> getPublicEntries(int limit, Set<String> ignorePeers) {
     DateTime oldestPermittedTime = DateTime.now().minusMinutes(PEX_ENTRY_TIMEOUT_MINS);
     return pexLedger.getPexEntries().stream()
+        .filter(pexEntry -> !ignorePeers.contains(pexEntry.getKey()))
         .map(Map.Entry::getValue)
         .filter(PexEntry::isPublicEntry)
         .filter(pexEntry -> pexEntry.getLastUpdateDateTime().isAfter(oldestPermittedTime))
@@ -164,15 +169,16 @@ public class PexManager {
   public void connectToPublicPeersInPex(ConnectionManager connectionManager, int requiredConnections) {
     // Shouldn't be less than zero. Clamping.
     requiredConnections = Math.max(0, requiredConnections);
-    LOGGER.info("Connecting to {} peers in public pex.", requiredConnections);
     DateTime oldestPermittedTime = DateTime.now().minusMinutes(PEX_ENTRY_TIMEOUT_MINS);
-    unconfirmedLedger.getPexEntries()
+    long totalDialledPublicPeers = unconfirmedLedger.getPexEntries()
         .stream()
         .map(Map.Entry::getValue)
         .filter(pexEntry -> pexEntry.getLastUpdateDateTime().isAfter(oldestPermittedTime))
         .sorted((o1, o2) -> DateTimeComparator.getInstance().reversed().compare(o1.getLastUpdateDateTime(), o2.getLastUpdateDateTime()))
         .limit(requiredConnections)
-        .forEach(x -> connectionManager.connectToPeer(x.getAddress(), x.getPort()));
+        .peek(x -> connectionManager.connectToPeer(x.getAddress(), x.getPort()))
+        .count();
+    LOGGER.info("Connecting to {} of required peers in public pex.", totalDialledPublicPeers, requiredConnections);
   }
 
   /**
@@ -201,7 +207,8 @@ public class PexManager {
     lostPeers.addAll(contractedPeers);
     peers.forEach(x -> lostPeers.remove(x.getUid()));
 
-    if (!lostPeers.isEmpty()) {
+    if (!lostPeers.isEmpty() || searchingForNewPeers) {
+      LOGGER.info("Sending a PEX request for {} known {}peers", lostPeers.size(), searchingForNewPeers ? "public" : "");
       PexQueryRequest pexQueryRequest = new PexQueryRequest(lostPeers, searchingForNewPeers);
       for (Peer peer : peers) {
         try {

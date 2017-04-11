@@ -56,7 +56,7 @@ public class PexQueryResponse extends PeerMessage {
 
   private void processUnsignedEntries(PeerMessageActionProvider peerMessageActionProvider) {
     for (PexQueryResponseEntry entry : pexQueryResponseEntries) {
-      if (0 < entry.getPort() && entry.getPort() < 65535) {
+      if (0 > entry.getPort() && entry.getPort() < 65535) {
         LOGGER.trace("Discarding Pex Advertisement. Port out of bounds. {}", entry.getPort());
       } else if (!InetAddresses.isInetAddress(entry.getIp())) {
         LOGGER.trace("Discarding Pex Advertisement. Not valid IP. {}", entry.getIp());
@@ -64,6 +64,14 @@ public class PexQueryResponse extends PeerMessage {
         peerMessageActionProvider.processUnsignedPexInfo(entry.getIp(), entry.getPort());
       }
     }
+  }
+
+  public Set<PexQueryResponseEntry> getPexQueryResponseEntries() {
+    return pexQueryResponseEntries;
+  }
+
+  public Set<PexQueryResponseSignedEntry> getPexQueryResponseSignedEntries() {
+    return pexQueryResponseSignedEntries;
   }
 
   @Override

@@ -4,8 +4,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.Period;
 
+import java.net.Inet4Address;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.util.Enumeration;
 import java.util.Iterator;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -37,12 +40,21 @@ public class PortForwardingService implements Runnable {
 
   private ExternalAddress getNonForwardedAddress() {
     try {
-      InetAddress localHost = InetAddress.getLocalHost();
-      return new ExternalAddress(localHost.getHostAddress(), internalPort);
-    } catch (UnknownHostException e) {
-      logger.warn("Unable to detect local address. Returning 192.168.0.1");
-      return new ExternalAddress("192.168.0.1", internalPort);
+      Enumeration<NetworkInterface> networkInterfaces = NetworkInterface.getNetworkInterfaces();
+      while (networkInterfaces.hasMoreElements()) {
+        NetworkInterface ni = networkInterfaces.nextElement();
+        Enumeration<InetAddress> ifaceAddresses = ni.getInetAddresses();
+        while (ifaceAddresses.hasMoreElements() && !ni.getDisplayName().startsWith("vmnet")) {
+          InetAddress addr = ifaceAddresses.nextElement();
+          if (!addr.isLinkLocalAddress() && !addr.isLoopbackAddress() && addr instanceof Inet4Address) {
+            return new ExternalAddress(addr.getHostAddress(), internalPort);
+          }
+        }
+      }
+    } catch (SocketException e) {
+      logger.warn("Unable to detect local address. Returning 192.168.0.1. {}", e.getMessage());
     }
+    return new ExternalAddress("192.168.0.1", internalPort);
   }
 
   public ExternalAddress getExternalAddress() {

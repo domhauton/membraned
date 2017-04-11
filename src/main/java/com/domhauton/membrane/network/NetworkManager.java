@@ -32,4 +32,11 @@ public interface NetworkManager extends Runnable, Closeable {
    * @throws NetworkException   If there was an issue uploading. Peer not connected or buffer full.
    */
   void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException;
+
+  /**
+   * Sets whether the network manager should allow contracts with new peers.
+   *
+   * @param shouldSearch If True, allowed.
+   */
+  void setSearchForNewPublicPeers(boolean shouldSearch);
 }

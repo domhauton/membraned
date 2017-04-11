@@ -62,6 +62,10 @@ public class TrackerManager {
    */
   public void connectToTrackers(ConnectionManager connectionManager) {
     logger.info("Initiating connection to {} tracker/s.", trackers.size());
-    trackers.forEach(x -> connectionManager.connectToPeer(x.getIp(), x.getPort()));
+    for (Tracker tracker : trackers) {
+      logger.info("Dialling tracker {}:{}. [{}]", tracker.getIp(), tracker.getPort(), tracker.getPeerId());
+      connectionManager.connectToPeer(tracker.getIp(), tracker.getPort());
+    }
+    logger.info("Complete initiating connections to {} tracker/s.", trackers.size());
   }
 }

@@ -31,9 +31,12 @@ public class NetworkManagerImpl implements NetworkManager {
   private final PortForwardingService portForwardingService;
   private final PeerCertManager peerCertManager;
   private final ConnectionManager connectionManager;
-  private final MembraneAuthInfo membraneAuthInfo; // Stored for test reflection.
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
+
+  // Stored for test reflection.
+  private final MembraneAuthInfo membraneAuthInfo;
+  private final TrackerManager trackerManager;
 
 
   public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int externalTransportPort) throws NetworkException {
@@ -50,7 +53,7 @@ public class NetworkManagerImpl implements NetworkManager {
     }
 
     // Setup peer info
-    TrackerManager trackerManager = new TrackerManager();
+    trackerManager = new TrackerManager();
 
     // Setup maintenance tasks
     this.pexManager = new PexManager(MAX_LEDGER_SIZE, baseNetworkPath);
@@ -116,6 +119,12 @@ public class NetworkManagerImpl implements NetworkManager {
   public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
     // TODO Implement
     throw new NetworkException("Block upload not implemented!");
+  }
+
+  @Override
+  public void setSearchForNewPublicPeers(boolean shouldSearch) {
+    logger.info("Search for new public peers {}.", shouldSearch ? "enabled" : "disabled");
+    gatekeeper.setSearchForNewPublicPeers(shouldSearch);
   }
 
   /**
