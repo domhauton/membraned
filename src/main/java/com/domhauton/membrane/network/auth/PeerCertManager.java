@@ -28,6 +28,14 @@ public class PeerCertManager {
   public PeerCertManager(Path certStoreFolder) {
     this.certStoreFolder = certStoreFolder;
     this.certificateMap = loadCerts(certStoreFolder);
+
+    try {
+      if (!certStoreFolder.toFile().exists()) {
+        Files.createDirectories(certStoreFolder);
+      }
+    } catch (IOException e) {
+      logger.warn("Could not create folder for peer certificates!", e.getMessage());
+    }
   }
 
   /**
@@ -58,14 +66,6 @@ public class PeerCertManager {
   private HashMap<String, X509Certificate> loadCerts(Path certStoreFolder) {
 
     HashMap<String, X509Certificate> existingPeerCerts = new HashMap<>();
-
-    try {
-      if (!certStoreFolder.toFile().exists()) {
-        Files.createDirectories(certStoreFolder);
-      }
-    } catch (IOException e) {
-      logger.warn("Could not create folder for peer certificates!", e.getMessage());
-    }
 
     try (DirectoryStream<Path> directoryStream = Files.newDirectoryStream(certStoreFolder)) {
       for (Path path : directoryStream) {

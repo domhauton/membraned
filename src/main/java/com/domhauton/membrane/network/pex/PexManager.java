@@ -39,6 +39,16 @@ public class PexManager {
 
   public PexManager(int maxLedgerSize, Path pexFolder) throws PexException {
     this.pexFolder = pexFolder;
+
+    try {
+      if (!pexFolder.toFile().exists()) {
+        Files.createDirectories(pexFolder);
+      }
+    } catch (IOException e) {
+      logger.warn("Could not create folder for peer certificates!", e.getMessage());
+      throw new PexException("Could not create folder for peer certificates. " + e.getMessage());
+    }
+
     this.pexLedger = loadLedgerFromFile(pexFolder, maxLedgerSize);
     this.unconfirmedLedger = new PexLedger(maxLedgerSize);
   }
