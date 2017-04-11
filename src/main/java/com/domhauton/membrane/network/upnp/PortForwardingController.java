@@ -78,7 +78,7 @@ public class PortForwardingController {
     if (!gateways.contains(newGateway)) {
       logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
-      mappings.forEach(mappings -> newGateway.addPortMapping(mappings, 20));
+      mappings.forEach(mapping -> newGateway.addPortMapping(mapping, 20));
     }
   }
 

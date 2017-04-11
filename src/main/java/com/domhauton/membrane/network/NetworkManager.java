@@ -39,4 +39,11 @@ public interface NetworkManager extends Runnable, Closeable {
    * @param shouldSearch If True, allowed.
    */
   void setSearchForNewPublicPeers(boolean shouldSearch);
+
+  /**
+   * Returns the UserId of the Network Manager.
+   *
+   * @return UID generated from the credentials of the Network Manager.
+   */
+  String getUID();
 }

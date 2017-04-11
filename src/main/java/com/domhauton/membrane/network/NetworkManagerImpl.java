@@ -48,7 +48,7 @@ public class NetworkManagerImpl implements NetworkManager {
     // Setup network connectivity
     this.connectionManager = new ConnectionManager(membraneAuthInfo, transportPort);
     this.portForwardingService = new PortForwardingService(transportPort);
-    if (externalTransportPort < 0) {
+    if (externalTransportPort > 0) {
       portForwardingService.addNewMapping(externalTransportPort);
     }
 
@@ -125,6 +125,11 @@ public class NetworkManagerImpl implements NetworkManager {
   public void setSearchForNewPublicPeers(boolean shouldSearch) {
     logger.info("Search for new public peers {}.", shouldSearch ? "enabled" : "disabled");
     gatekeeper.setSearchForNewPublicPeers(shouldSearch);
+  }
+
+  @Override
+  public String getUID() {
+    return membraneAuthInfo.getClientId();
   }
 
   /**

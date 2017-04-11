@@ -14,9 +14,9 @@ import java.nio.file.Paths;
 class MainTest {
   @Test
   void testBasicStartupSixSecondRun() throws Exception {
-    BackupManager backupManager = Main.start(new String[]{"-vvm"});
+    Main.start(new String[]{"-vvm"});
     Thread.sleep(6000);
-    backupManager.close();
+    Main.backupManager.close();
   }
 
   @Test
@@ -35,13 +35,20 @@ class MainTest {
 
   @Test
   void testBasicStartupBigVerboseFlag() throws Exception {
-    BackupManager backupManager = Main.start(new String[]{"--verbose", "--verbose", "-vv"});
+    Main.start(new String[]{"--verbose", "--verbose", "-vv"});
     Thread.sleep(1000);
-    backupManager.close();
+    Main.backupManager.close();
   }
 
   @Test
   void testBasicStartupBadArgs() throws Exception {
     Assertions.assertThrows(IllegalArgumentException.class, () -> Main.start(new String[]{"-x"}));
+  }
+
+  @Test
+  void testBasicTrackerFiveSecondRun() throws Exception {
+    Main.start(new String[]{"-vm", "--tracker"});
+    Thread.sleep(5000);
+    Main.networkManager.close();
   }
 }
