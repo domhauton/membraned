@@ -1,9 +1,11 @@
 buildscript {
     repositories {
         mavenCentral()
+        jcenter()
     }
     dependencies {
         classpath group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-M4'
+        classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '1.2.4'
     }
 }
 
@@ -25,31 +27,19 @@ apply plugin: 'eclipse'
 apply plugin: 'idea'
 apply plugin: 'jacoco'
 apply plugin: 'org.junit.platform.gradle.plugin'
+apply plugin: 'com.github.johnrengelman.shadow'
 
 project.version = '1.0.0-alpha.2'
 project.group = 'com.domhauton.membrane'
 
 jar {
-    baseName = 'membrane-daemon-simple'
-    version = project.version
-    manifest {
-        attributes 'Implementation-Title': 'Membrane Daemon',
-                'Implementation-Version': project.version,
-                'Main-Class': project.group + '.Main'
-    }
-}
-
-//create a single Jar with all dependencies
-task fatJar(type: Jar) {
-    manifest {
-        attributes 'Implementation-Title': 'Membrane Daemon',
-                'Implementation-Version': project.version,
-                'Main-Class': project.group + '.Main'
-    }
     baseName = 'membrane-daemon'
     version = project.version
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
-    with jar
+    manifest {
+        attributes 'Implementation-Title': 'Membrane Daemon',
+                'Implementation-Version': project.version,
+                'Main-Class': project.group + '.Main'
+    }
 }
 
 compileTestJava {
