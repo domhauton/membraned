@@ -30,18 +30,24 @@ project.version = '1.0.0-alpha.2'
 project.group = 'com.domhauton.membrane'
 
 jar {
-    baseName = 'membrane-daemon'
+    baseName = 'membrane-daemon-simple'
     version = project.version
+    manifest {
+        attributes 'Implementation-Title': 'Membrane Daemon',
+                'Implementation-Version': project.version,
+                'Main-Class': project.group + '.Main'
+    }
 }
 
 //create a single Jar with all dependencies
 task fatJar(type: Jar) {
     manifest {
-        attributes 'Implementation-Title': 'membrane-daemon',
-                'Implementation-Version': version,
-                'Main-Class': group + '.Main'
+        attributes 'Implementation-Title': 'Membrane Daemon',
+                'Implementation-Version': project.version,
+                'Main-Class': project.group + '.Main'
     }
-    baseName = 'membrane-daemon-all'
+    baseName = 'membrane-daemon'
+    version = project.version
     from { configurations.compile.collect { it.isDirectory() ? it : zipTree(it) } }
     with jar
 }
