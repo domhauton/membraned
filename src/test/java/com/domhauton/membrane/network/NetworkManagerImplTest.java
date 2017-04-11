@@ -61,13 +61,6 @@ class NetworkManagerImplTest {
   }
 
   @Test
-  void runAttempt() throws Exception {
-
-    networkManager1.run();
-    Thread.sleep(1000);
-  }
-
-  @Test
   void testConnection() throws Exception {
     // Inject PEX entry for Peer 2 into Peer 1
     // Add Peer2 as a contract to Peer1
@@ -80,7 +73,7 @@ class NetworkManagerImplTest {
     networkManager1.run();
     // Should attempt to connect to Peer 2;
     boolean peer2Connected = false;
-    for (int i = 0; i < 10 && !peer2Connected; i++) {
+    for (int i = 0; i < 50 && !peer2Connected; i++) {
       Thread.sleep(50);
       peer2Connected = networkManager1.peerConnected(peerID2);
     }
@@ -107,14 +100,14 @@ class NetworkManagerImplTest {
     networkManager1.run();
     // Should attempt to connect to Peer 2;
     boolean peer2Connected = false;
-    for (int i = 0; i < 10 && !peer2Connected; i++) {
+    for (int i = 0; i < 50 && !peer2Connected; i++) {
       Thread.sleep(50);
       peer2Connected = networkManager1.peerConnected(peerID2);
     }
     Assertions.assertTrue(peer2Connected);
 
     // Give them a second to exchange PEX info
-    Thread.sleep(100);
+    Thread.sleep(400);
 
     networkManager2.close();
 
@@ -126,7 +119,7 @@ class NetworkManagerImplTest {
     networkManager2.run();
 
     boolean peer1Reconnected = false;
-    for (int i = 0; i < 10 && !peer1Reconnected; i++) {
+    for (int i = 0; i < 50 && !peer1Reconnected; i++) {
       Thread.sleep(50);
       peer1Reconnected = networkManager2.peerConnected(peerID1);
     }
@@ -188,6 +181,9 @@ class NetworkManagerImplTest {
     }
     Assertions.assertTrue(pexInfoExchanged);
 
+    // Give them a moment to exchange PEX info
+    Thread.sleep(300);
+
     // Prompt Gatekeepers to run again. They should now have pulled each other PEX info from the tracker.
     extractGatekeeper(networkManager1).maintainPeerPopulation();
     extractGatekeeper(networkManager2).maintainPeerPopulation();
@@ -201,7 +197,7 @@ class NetworkManagerImplTest {
     Assertions.assertTrue(peer1and2Connected);
 
     // Give them a moment to exchange PEX info
-    Thread.sleep(300);
+    Thread.sleep(500);
 
     // Shutdown the tracker, should no longer be needed.
     networkManagerTracker.close();
