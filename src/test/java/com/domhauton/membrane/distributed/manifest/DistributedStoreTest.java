@@ -3,8 +3,7 @@ package com.domhauton.membrane.distributed.manifest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.util.NoSuchElementException;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by Dominic Hauton on 16/03/17.
@@ -73,5 +72,33 @@ class DistributedStoreTest {
 
     distributedStore.addStoragePeer("shard1", "peer4");
     Assertions.assertEquals(0, distributedStore.undeployedShards().size());
+  }
+
+  @Test
+  void distributedStoreMarshalling() {
+    DistributedStore distributedStore = new DistributedStore();
+    distributedStore.addDistributedShard("shard1", Priority.Normal);
+    distributedStore.addDistributedShard("shard2", Priority.Normal);
+    String marshalledStore = distributedStore.marshall();
+
+    DistributedStore unmarshalledStore = DistributedStore.unmarshall(Arrays.asList(marshalledStore.split("\n")));
+    Set<String> distributedShards = unmarshalledStore.undeployedShards();
+    Assertions.assertEquals(2, distributedShards.size());
+  }
+
+  @Test
+  void distributedStoreMarshallingCorrupt() {
+    DistributedStore distributedStore = new DistributedStore();
+    distributedStore.addDistributedShard("shard1", Priority.Normal);
+    distributedStore.addDistributedShard("shard2", Priority.Normal);
+    String marshalledStore = distributedStore.marshall();
+
+    List<String> splitMarshalledStore = new ArrayList<>(Arrays.asList(marshalledStore.split("\n")));
+    splitMarshalledStore.add(0, splitMarshalledStore.get(0).replaceAll("ormal", ""));
+    splitMarshalledStore.remove(1);
+
+    DistributedStore unmarshalledStore = DistributedStore.unmarshall(splitMarshalledStore);
+    Set<String> distributedShards = unmarshalledStore.undeployedShards();
+    Assertions.assertEquals(1, distributedShards.size());
   }
 }

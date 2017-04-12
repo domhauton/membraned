@@ -1,5 +1,10 @@
 package com.domhauton.membrane.distributed.manifest;
 
+import com.domhauton.membrane.distributed.DistributorException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -9,10 +14,15 @@ import java.util.stream.Collectors;
  * Created by Dominic Hauton on 02/03/17.
  */
 public class DistributedStore {
+  private final static Logger LOGGER = LogManager.getLogger();
   private ConcurrentHashMap<String, DistributedShard> distributedShardMap;
 
   public DistributedStore() {
-    this.distributedShardMap = new ConcurrentHashMap<>();
+    this(new ConcurrentHashMap<>());
+  }
+
+  private DistributedStore(ConcurrentHashMap<String, DistributedShard> distributedShardMap) {
+    this.distributedShardMap = distributedShardMap;
   }
 
   public void addDistributedShard(String md5Hash, Priority priority) {
@@ -63,5 +73,24 @@ public class DistributedStore {
             .filter(distributedShard -> !distributedShard.isStoredBy(peer))
             .map(DistributedShard::getMd5Hash)
             .collect(Collectors.toSet());
+  }
+
+  public String marshall() {
+    return distributedShardMap.values().stream()
+        .map(DistributedShard::marshall)
+        .collect(Collectors.joining("\n"));
+  }
+
+  public static DistributedStore unmarshall(List<String> inputData) {
+    ConcurrentHashMap<String, DistributedShard> newMap = new ConcurrentHashMap<>();
+    for (String entry : inputData) {
+      try {
+        DistributedShard distributedShard = DistributedShard.unmarshall(entry);
+        newMap.put(distributedShard.getMd5Hash(), distributedShard);
+      } catch (DistributorException e) {
+        LOGGER.error("Unable to decode distributor store entry. IGNORING. {}", e.getMessage());
+      }
+    }
+    return new DistributedStore(newMap);
   }
 }
