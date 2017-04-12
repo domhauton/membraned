@@ -16,7 +16,7 @@ public class TrackerManager {
   private final static int EXPECTED_CONNECT_TIME = 200; // Connect to trackers if peers have not been saturated in this time.
 
   private final static Set<Tracker> DEFAULT_ENTRIES = ImmutableSet.of(
-      new Tracker("", "caelum.domhauton.com", 14200)
+      new Tracker("672da60b8d67742e35ab9384d0b8983fe275a8f9da70636739d2f24251cf9025", "caelum.domhauton.com", 14200)
   );
 
   private final Logger logger = LogManager.getLogger();
