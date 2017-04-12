@@ -57,8 +57,4 @@ public class UptimeCalculator {
 
     return retPercentage;
   }
-
-  public DateTime getFirstMeasured() {
-    return firstMeasured;
-  }
 }

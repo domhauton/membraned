@@ -20,7 +20,9 @@ public class PeerAppraisal {
   private final AtomicDoubleArray timesSeenAtHourOfWeek;
   private long incompleteReports = 0;
   private long completeReports = 0;
+  private long lostBlocks = 0;
 
+  private long totalLifetimeBlocks = 0;
 
   private Set<String> reportsReceived;
   private long reportsExpected;
@@ -41,44 +43,44 @@ public class PeerAppraisal {
   /**
    * Accept report from the peer that they are there.
    *
-   * @param dateTimeSeen        Time the shard arrived
-   * @param totalExpectedShards Total shard reports expect this hour.
+   * @param dateTimeSeen        Time the block arrived
+   * @param totalExpectedBlocks Total block reports expect this hour.
    */
-  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedShards) {
-    registerReport(dateTimeSeen, totalExpectedShards, null);
+  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedBlocks) {
+    registerReport(dateTimeSeen, totalExpectedBlocks, null);
   }
 
   /**
-   * Report a new shard confirmation has arrived from peer.
+   * Report a new block confirmation has arrived from peer.
    *
-   * @param dateTimeSeen        Time the shard arrived
-   * @param totalExpectedShards Total shard reports expect this hour.
-   * @param shardId             Id of shard being confirmed.
+   * @param dateTimeSeen        Time the block arrived
+   * @param totalExpectedBlocks Total block reports expect this hour.
+   * @param blockId             Id of block being confirmed.
    */
-  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedShards, String shardId) {
-    boolean newShardId = countHourlyReports(dateTimeSeen, shardId, totalExpectedShards);
+  synchronized void registerReport(DateTime dateTimeSeen, long totalExpectedBlocks, String blockId) {
+    boolean newBlockId = countHourlyReports(dateTimeSeen, blockId, totalExpectedBlocks);
 
     int hourOfWeek = dateTimeSeen.getHourOfDay() + (dateTimeSeen.getDayOfWeek() - 1) * DateTimeConstants.HOURS_PER_DAY;
-    double shardPercentage = totalExpectedShards == 0 ? 1.0d : 1.0d / (double) totalExpectedShards;
+    double blockPercentage = totalExpectedBlocks <= 0 ? 1.0d : 1.0d / (double) totalExpectedBlocks;
 
-    // Prevent users with required shards getting credit for empty reports
-    shardPercentage = totalExpectedShards != 0 && !newShardId ? 0.0d : shardPercentage;
+    // Prevent users with required blocks getting credit for empty reports
+    blockPercentage = totalExpectedBlocks > 0 && !newBlockId ? 0.0d : blockPercentage;
 
-    registerReport(hourOfWeek, shardPercentage);
+    registerReport(hourOfWeek, blockPercentage);
   }
 
   /**
-   * Report a new shard is confirmed.
-   * Adds the shard value to the correct portion of the distribution.
+   * Report a new block is confirmed.
+   * Adds the block value to the correct portion of the distribution.
    *
    * @param hourOfWeek        hour of the week in the array to add to
-   * @param shardPercentage   value to add for the hour of the week
+   * @param blockPercentage   value to add for the hour of the week
    */
-  private void registerReport(int hourOfWeek, double shardPercentage) {
+  private void registerReport(int hourOfWeek, double blockPercentage) {
     if (hourOfWeek < timesSeenAtHourOfWeek.length()) {
-      timesSeenAtHourOfWeek.addAndGet(hourOfWeek, shardPercentage);
+      timesSeenAtHourOfWeek.addAndGet(hourOfWeek, blockPercentage);
     } else {
-      LOGGER.error("Invalid datetime passed for shard confirmed: {} < {}. {} hours per week expected.",
+      LOGGER.error("Invalid datetime passed for block confirmed: {} < {}. {} hours per week expected.",
               hourOfWeek, timesSeenAtHourOfWeek.length(), DateTimeConstants.HOURS_PER_DAY);
     }
   }
@@ -107,15 +109,16 @@ public class PeerAppraisal {
    * Report (a) new report/s arriving at the given dateTime. Should never report past events.
    *
    * @param dateTime           Time the report arrived
-   * @param shardId            Id of reported shard. Can be null.
+   * @param blockId            Id of reported block. Can be null.
    * @param newReportsExpected Number of reports expected this hour
    */
-  private synchronized boolean countHourlyReports(DateTime dateTime, String shardId, long newReportsExpected) {
+  private synchronized boolean countHourlyReports(DateTime dateTime, String blockId, long newReportsExpected) {
     DateTime reportForHour = dateTime.withTime(dateTime.hourOfDay().get(), 0, 0, 0); // Ceiling to hour
     if (countingForHour != null && reportForHour.isBefore(countingForHour)) {
       LOGGER.warn("Reported counted too late for [{}]. Ignoring.", peerId);
     } else {
       if (countingForHour != null && !reportForHour.equals(countingForHour)) {
+        totalLifetimeBlocks += reportsExpected;
         if (reportsExpected <= reportsReceived.size()) {
           completeReports++;
         } else {
@@ -125,8 +128,8 @@ public class PeerAppraisal {
       }
       countingForHour = reportForHour;
       reportsExpected = Math.max(reportsExpected, newReportsExpected);
-      if (shardId != null && !reportsReceived.contains(shardId)) {
-        reportsReceived.add(shardId);
+      if (blockId != null && !reportsReceived.contains(blockId)) {
+        reportsReceived.add(blockId);
         return true;
       }
     }
@@ -139,14 +142,15 @@ public class PeerAppraisal {
    * @param dateTime Time the time now.
    * @return Array of hours and probabilities
    */
-  double[] getShardReturnDistribution(DateTime dateTime) {
+  double[] getBlockReturnDistribution(DateTime dateTime) {
     long relationshipLengthMillis = dateTime.getMillis() - firstInteractionTime.getMillis();
     AtomicDoubleArray bestUptime = AppraisalUtils.calcTimeAtHourSlots(firstInteractionTime, relationshipLengthMillis);
 
     double[] result = new double[bestUptime.length()];
     for (int i = 0; i < bestUptime.length(); i++) {
       result[i] = bestUptime.get(i) == 0.0d ? 0.0d : timesSeenAtHourOfWeek.get(i) / bestUptime.get(i);
-      result[i] = Math.min(result[i], 1.0d); // Clamp to 1.
+      result[i] = Math.min(result[i], 1.0d); // Clamp at 1
+      result[i] = Math.max(result[i], 0.0d); // Clamp at 0
     }
     return result;
   }
@@ -165,5 +169,29 @@ public class PeerAppraisal {
     // Chance is 1 if it doesn't exist
 
     return totalReports == 0 ? 1.0d : (double) tmpCompleteReports / (double) totalReports;
+  }
+
+  long getLostBlockCount() {
+    return lostBlocks;
+  }
+
+  synchronized void addLostBlock(DateTime dateTimeLost, int totalExpectedBlocks) {
+    lostBlocks++;
+
+    int hourOfWeek = dateTimeLost.getHourOfDay() + (dateTimeLost.getDayOfWeek() - 1) * DateTimeConstants.HOURS_PER_DAY;
+    double blockPercentage = totalExpectedBlocks <= 0 ? 1.0d : 1.0d / (double) totalExpectedBlocks;
+
+    registerReport(hourOfWeek, -blockPercentage);
+  }
+
+  /**
+   * Chance of peer losing stored block
+   *
+   * @return Chance [0.0,1.0]
+   */
+  double getBlockLosingRate() {
+    double chanceOfLosingBlocks = totalLifetimeBlocks <= 0 ? 0.0d : (double) lostBlocks / (double) totalLifetimeBlocks;
+    // Clamp between 0.0d and 1.0d
+    return Math.min(chanceOfLosingBlocks, 1.0d);
   }
 }

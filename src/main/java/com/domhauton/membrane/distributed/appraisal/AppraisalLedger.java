@@ -25,34 +25,50 @@ public class AppraisalLedger implements Runnable {
 
   public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedShards, String shardId) {
     getPeerAppraisal(peerId).registerReport(reportDateTime, expectedShards, shardId);
+    uptimeCalculator.updateUptime(reportDateTime);
   }
 
   public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedShards) {
     getPeerAppraisal(peerId).registerReport(reportDateTime, expectedShards);
+    uptimeCalculator.updateUptime(reportDateTime);
   }
 
-  public double[] getUptime(String peerId) {
-    return getPeerAppraisal(peerId).getShardReturnDistribution(DateTime.now());
-  }
-
-  public double[] getUptime() {
-    return uptimeCalculator.getUptimeDistribution();
-  }
-
-  public double getPeerContractSuccessRate(String peerId) {
-    return getPeerAppraisal(peerId).getContractSuccessChance();
+  public void registerLostBlock(String peerId, DateTime lostDateTime, int expectedShards) {
+    getPeerAppraisal(peerId).addLostBlock(lostDateTime, expectedShards);
   }
 
   public double getPeerRating(String peerId) {
-    double[] myUptimeDistribution = getUptime();
-    double[] peerUptimeDistribution = getUptime(peerId);
+    return getPeerRating(peerId, DateTime.now());
+  }
+
+  /**
+   * The uptime overlap with the peer, augmented by fulfillment rate.
+   *
+   * @param peerId
+   * @return
+   */
+  double getPeerRating(String peerId, DateTime atTime) {
+    PeerAppraisal peerAppraisal = getPeerAppraisal(peerId);
+
+    double[] myUptimeDistribution = uptimeCalculator.getUptimeDistribution(atTime);
+    double[] peerUptimeDistribution = peerAppraisal.getBlockReturnDistribution(atTime);
     double myUptimeTotal = 0.0d;
     double adjustedPeerUptimeTotal = 0.0d;
     for (int i = 0; i < myUptimeDistribution.length; i++) {
       myUptimeTotal += myUptimeDistribution[i];
       adjustedPeerUptimeTotal += Math.min(myUptimeDistribution[i], peerUptimeDistribution[i]);
     }
-    return myUptimeTotal <= 0.0d ? 1.0d : adjustedPeerUptimeTotal / myUptimeTotal;
+
+    // Now adjust rating according to fulfillment rate.
+
+    double rating = myUptimeTotal <= 0.0d ? 1.0d : adjustedPeerUptimeTotal / myUptimeTotal;
+    rating *= peerAppraisal.getContractSuccessChance();
+    rating = Math.max(0.0d, rating);
+
+    // Multiply by (inverted) block losing rate
+
+    rating *= (1.0d - peerAppraisal.getBlockLosingRate());
+    return rating;
   }
 
   @Override
