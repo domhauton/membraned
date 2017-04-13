@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.block;
+package com.domhauton.membrane.distributed.block.gen;
 
 import com.google.common.hash.Hashing;
 import org.junit.jupiter.api.Assertions;

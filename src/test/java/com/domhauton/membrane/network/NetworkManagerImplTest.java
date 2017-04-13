@@ -73,7 +73,7 @@ class NetworkManagerImplTest {
     networkManager1.run();
     // Should attempt to connect to Peer 2;
     boolean peer2Connected = false;
-    for (int i = 0; i < 50 && !peer2Connected; i++) {
+    for (int i = 0; i < 100 && !peer2Connected; i++) {
       Thread.sleep(50);
       peer2Connected = networkManager1.peerConnected(peerID2);
     }
@@ -100,7 +100,7 @@ class NetworkManagerImplTest {
     networkManager1.run();
     // Should attempt to connect to Peer 2;
     boolean peer2Connected = false;
-    for (int i = 0; i < 50 && !peer2Connected; i++) {
+    for (int i = 0; i < 100 && !peer2Connected; i++) {
       Thread.sleep(50);
       peer2Connected = networkManager1.peerConnected(peerID2);
     }
@@ -119,7 +119,7 @@ class NetworkManagerImplTest {
     networkManager2.run();
 
     boolean peer1Reconnected = false;
-    for (int i = 0; i < 50 && !peer1Reconnected; i++) {
+    for (int i = 0; i < 100 && !peer1Reconnected; i++) {
       Thread.sleep(50);
       peer1Reconnected = networkManager2.peerConnected(peerID1);
     }
@@ -174,7 +174,7 @@ class NetworkManagerImplTest {
     // Give a moment for the tracker to receive the PEX information.
     boolean pexInfoExchanged = false;
     PexManager pexManagerTracker = extractPexManager(networkManagerTracker);
-    for (int i = 0; i < 50 && !pexInfoExchanged; i++) {
+    for (int i = 0; i < 100 && !pexInfoExchanged; i++) {
       Thread.sleep(50);
       // Remember that entries from the same IP overwrite each other
       pexInfoExchanged = !pexManagerTracker.getPublicEntries(10).isEmpty();
@@ -190,7 +190,7 @@ class NetworkManagerImplTest {
 
     // Check if they connect
     boolean peer1and2Connected = false;
-    for (int i = 0; i < 50 && !peer1and2Connected; i++) {
+    for (int i = 0; i < 100 && !peer1and2Connected; i++) {
       Thread.sleep(50);
       peer1and2Connected = networkManager1.peerConnected(peerID2) && networkManager2.peerConnected(peerID1);
     }

@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.block;
+package com.domhauton.membrane.distributed.block.gen;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;

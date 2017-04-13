@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.block;
+package com.domhauton.membrane.distributed.block.gen;
 
 /**
  * Created by Dominic Hauton on 08/03/17.

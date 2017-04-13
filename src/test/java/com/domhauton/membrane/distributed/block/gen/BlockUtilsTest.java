@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.block;
+package com.domhauton.membrane.distributed.block.gen;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

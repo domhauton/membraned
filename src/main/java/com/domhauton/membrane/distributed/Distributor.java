@@ -1,11 +1,11 @@
 package com.domhauton.membrane.distributed;
 
 import com.domhauton.membrane.distributed.appraisal.AppraisalLedger;
-import com.domhauton.membrane.distributed.block.BlockException;
-import com.domhauton.membrane.distributed.block.BlockProcessor;
+import com.domhauton.membrane.distributed.block.gen.BlockException;
+import com.domhauton.membrane.distributed.block.gen.BlockProcessor;
+import com.domhauton.membrane.distributed.block.ledger.BlockLedger;
 import com.domhauton.membrane.distributed.contract.ContractStore;
 import com.domhauton.membrane.distributed.contract.ContractStoreException;
-import com.domhauton.membrane.distributed.evidence.BlockEvidenceLedger;
 import com.domhauton.membrane.distributed.maintainance.RateLimiter;
 import com.domhauton.membrane.distributed.manifest.DistributedStore;
 import com.domhauton.membrane.distributed.manifest.Priority;
@@ -32,7 +32,7 @@ public class Distributor implements Runnable, ContractManager {
   private final ShardStorage shardStorage;
 
   private final DistributedStore distributedStore;
-  private final BlockEvidenceLedger blockEvidenceLedger;
+  private final BlockLedger blockLedger;
   private final AppraisalLedger appraisalLedger;
   private final RateLimiter uploadRateLimiter;
   private final ContractStore contractStore;
@@ -46,7 +46,7 @@ public class Distributor implements Runnable, ContractManager {
     this.contractLimit = contractLimit;
 
     distributedStore = new DistributedStore();
-    blockEvidenceLedger = new BlockEvidenceLedger();
+    blockLedger = new BlockLedger();
     appraisalLedger = new AppraisalLedger(basePath);
     uploadRateLimiter = new RateLimiter(this::beginUpload, UPLOAD_RATE_LIMIT);
     contractStore = new ContractStore();
