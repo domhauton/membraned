@@ -6,11 +6,11 @@ import com.domhauton.membrane.distributed.DistributorException;
  * Created by dominic on 13/04/17.
  */
 public class AppraisalException extends DistributorException {
-  public AppraisalException(String s) {
+  AppraisalException(String s) {
     super(s);
   }
 
-  public AppraisalException(String s, Throwable throwable) {
+  AppraisalException(String s, Throwable throwable) {
     super(s, throwable);
   }
 }

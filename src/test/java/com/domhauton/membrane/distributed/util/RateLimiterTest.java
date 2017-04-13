@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.maintainance;
+package com.domhauton.membrane.distributed.util;
 
 import org.joda.time.Duration;
 import org.junit.jupiter.api.Test;

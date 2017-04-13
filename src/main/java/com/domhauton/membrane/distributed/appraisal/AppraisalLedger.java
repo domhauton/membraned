@@ -8,6 +8,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
+import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -25,7 +26,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class AppraisalLedger implements Runnable {
+public class AppraisalLedger implements Runnable, Closeable {
   private final Logger logger = LogManager.getLogger();
 
   private final static String FILE_NAME = "appraisal.yml";

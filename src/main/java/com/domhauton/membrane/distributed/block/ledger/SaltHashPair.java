@@ -3,7 +3,7 @@ package com.domhauton.membrane.distributed.block.ledger;
 /**
  * Created by Dominic Hauton on 06/03/17.
  */
-class SaltHashPair {
+public class SaltHashPair {
   private final byte[] hashSalt;
   private final String hash;
 

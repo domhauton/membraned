@@ -6,9 +6,9 @@ import com.domhauton.membrane.distributed.block.gen.BlockProcessor;
 import com.domhauton.membrane.distributed.block.ledger.BlockLedger;
 import com.domhauton.membrane.distributed.contract.ContractStore;
 import com.domhauton.membrane.distributed.contract.ContractStoreException;
-import com.domhauton.membrane.distributed.maintainance.RateLimiter;
 import com.domhauton.membrane.distributed.manifest.DistributedStore;
 import com.domhauton.membrane.distributed.manifest.Priority;
+import com.domhauton.membrane.distributed.util.RateLimiter;
 import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManager;
 import com.domhauton.membrane.shard.ShardStorage;
@@ -46,7 +46,7 @@ public class Distributor implements Runnable, ContractManager {
     this.contractLimit = contractLimit;
 
     distributedStore = new DistributedStore();
-    blockLedger = new BlockLedger();
+    blockLedger = new BlockLedger(basePath);
     appraisalLedger = new AppraisalLedger(basePath);
     uploadRateLimiter = new RateLimiter(this::beginUpload, UPLOAD_RATE_LIMIT);
     contractStore = new ContractStore();

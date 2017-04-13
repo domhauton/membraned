@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.maintainance;
+package com.domhauton.membrane.distributed.util;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
