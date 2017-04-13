@@ -25,8 +25,7 @@ import java.util.stream.Collectors;
  * <p>
  * Manages sharded file storage.
  */
-public class StorageManager {
-  static final String DEFAULT_STORAGE_FOLDER = "data";
+public class StorageManager implements BackupLedger, FileEventLogger {
   static final String DEFAULT_CATALOGUE_FOLDER = "catalogue";
   static final String JOURNAL_NAME = "journal.csv";
   private static final String BASE_FILE_MAP_NAME = "file-map.csv";
@@ -56,20 +55,13 @@ public class StorageManager {
   }
 
   /**
-   * Persist the given shard in the storage manager
+   * Protect the given shard in the storage manager
    *
-   * @param md5Hash the MD5 has of the data.
-   * @param data    The data to persist
-   * @throws StorageManagerException If there is a problem writing the data.
+   * @param shardId the MD5 has of the data.
    */
-  public void storeShard(String md5Hash, byte[] data) throws StorageManagerException {
-    try {
-      logger.info("Storing shard [{}]", md5Hash);
-      tempProtectedShards.add(md5Hash);
-      shardStorage.storeShard(md5Hash, data);
-    } catch (ShardStorageException e) {
-      throw new StorageManagerException(e.getMessage());
-    }
+  public void protectShard(String shardId) {
+    logger.info("Protecting shard [{}]", shardId);
+    tempProtectedShards.add(shardId);
   }
 
   /**
@@ -94,9 +86,14 @@ public class StorageManager {
    * @param storedPath           The path of the stored file
    * @param modificationDateTime The time the removal occurred.
    */
-  public synchronized void removeFile(Path storedPath, DateTime modificationDateTime) {
+  public synchronized void removeFile(Path storedPath, DateTime modificationDateTime) throws StorageManagerException {
     logger.info("Removing file [{}] - Time: {}", storedPath, modificationDateTime);
-    fileCatalogue.removeFile(storedPath, modificationDateTime);
+    try {
+      fileCatalogue.removeFile(storedPath, modificationDateTime, journalOutput);
+    } catch (IOException e) {
+      logger.error("Failed to write file removal to journal. [{}]", storedPath);
+      throw new StorageManagerException("Failed to write file removal to journal.", e);
+    }
   }
 
 
@@ -385,6 +382,28 @@ public class StorageManager {
     } catch (IOException e) {
       logger.error("Could not flush journal output!");
       throw new StorageManagerException("Could not flush journal output!");
+    }
+  }
+
+  @Override
+  public synchronized Set<String> getAllRequiredShards() {
+    return fileCatalogue.getReferencedShards();
+  }
+
+  @Override
+  public synchronized List<String> getAllRelatedJournalEntries(String shardId) {
+    return fileCatalogue.getAllRelatedJournalEntries(shardId).stream()
+        .map(JournalEntry::toString)
+        .collect(Collectors.toList());
+  }
+
+  @Override
+  public synchronized void insertJournalEntry(String serializedEntry) throws StorageManagerException {
+    try {
+      JournalEntry journalEntry = new JournalEntry(serializedEntry);
+      fileCatalogue.addJournalEntry(journalEntry, journalOutput);
+    } catch (IllegalArgumentException | IOException e) {
+      throw new StorageManagerException("Could not insert journal entry.");
     }
   }
 }

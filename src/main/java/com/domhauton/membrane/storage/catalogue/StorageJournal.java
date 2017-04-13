@@ -17,11 +17,11 @@ import java.util.stream.Collectors;
 /**
  * Created by dominic on 30/01/17.
  */
-public class StorageJournal {
+class StorageJournal {
   private final Logger logger;
   private final List<JournalEntry> journalEntries;
 
-  public StorageJournal(List<JournalEntry> journalEntries) {
+  StorageJournal(List<JournalEntry> journalEntries) {
     this.journalEntries = journalEntries;
     logger = LogManager.getLogger();
   }
@@ -29,7 +29,7 @@ public class StorageJournal {
   /**
    * Adds a new modification to the journal at this point.
    */
-  public synchronized JournalEntry addEntry(FileVersion shardInfo, FileOperation fileOperation, Path filePath, DateTime dateTime) {
+  synchronized JournalEntry addEntry(FileVersion shardInfo, FileOperation fileOperation, Path filePath, DateTime dateTime) {
     JournalEntry journalEntry = new JournalEntry(dateTime, shardInfo, fileOperation, filePath);
     addEntry(journalEntry);
     return journalEntry;
@@ -40,20 +40,27 @@ public class StorageJournal {
     journalEntries.add(journalEntry);
   }
 
-  public synchronized List<JournalEntry> getJournalEntries() {
+  synchronized List<JournalEntry> getJournalEntries() {
     return journalEntries.stream()
             .sorted(JournalEntry.getComparator())
             .collect(Collectors.toList());
   }
 
-  public synchronized List<JournalEntry> getJournalEntries(Path path) {
+  synchronized List<JournalEntry> getJournalEntries(String shardId) {
+    return journalEntries.stream()
+        .filter(entry -> entry.getShardInfo().getMD5HashList().contains(shardId))
+        .sorted(JournalEntry.getComparator())
+        .collect(Collectors.toList());
+  }
+
+  synchronized List<JournalEntry> getJournalEntries(Path path) {
     return journalEntries.stream()
             .filter(entry -> entry.getFilePath().equals(path))
             .sorted(JournalEntry.getComparator())
             .collect(Collectors.toList());
   }
 
-  public synchronized StorageJournal getJournalEntriesBeforeTime(DateTime until) {
+  synchronized StorageJournal getJournalEntriesBeforeTime(DateTime until) {
     List<JournalEntry> newEntries = journalEntries.stream()
             .filter(journalEntry -> !journalEntry.getDateTime().isAfter(until))
             .sorted(JournalEntry.getComparator())
@@ -61,7 +68,7 @@ public class StorageJournal {
     return new StorageJournal(newEntries);
   }
 
-  public synchronized StorageJournal getJournalEntriesAfterTime(DateTime startAt) {
+  synchronized StorageJournal getJournalEntriesAfterTime(DateTime startAt) {
     List<JournalEntry> newEntries = journalEntries.stream()
             .filter(journalEntry -> journalEntry.getDateTime().isAfter(startAt))
             .sorted(JournalEntry.getComparator())
@@ -69,14 +76,14 @@ public class StorageJournal {
     return new StorageJournal(newEntries);
   }
 
-  public synchronized Map<Path, FileVersion> mapWithJournal(Map<Path, FileVersion> map) {
+  synchronized Map<Path, FileVersion> mapWithJournal(Map<Path, FileVersion> map) {
     Map<Path, FileVersion> newMap = new HashMap<>();
     newMap.putAll(map);
-    journalEntries.forEach(entry -> applyJournalEntry(newMap, entry));
+    getJournalEntries().forEach(entry -> applyJournalEntry(newMap, entry));
     return newMap;
   }
 
-  public Set<String> getReferencedShards() {
+  Set<String> getReferencedShards() {
     return journalEntries.stream()
             .map(JournalEntry::getShardInfo)
             .map(FileVersion::getMD5HashLengthPairs)
@@ -85,13 +92,13 @@ public class StorageJournal {
             .collect(Collectors.toSet());
   }
 
-  public Set<Path> getReferencedPaths() {
+  Set<Path> getReferencedPaths() {
     return journalEntries.stream()
             .map(JournalEntry::getFilePath)
             .collect(Collectors.toSet());
   }
 
-  public DateTime getEarliestDateTime() {
+  DateTime getEarliestDateTime() {
     return new DateTime(journalEntries.stream()
             .mapToLong(journalEntry -> journalEntry.getDateTime().getMillis())
             .min()

@@ -12,6 +12,7 @@ import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
 import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageImpl;
+import com.domhauton.membrane.storage.FileEventLoggerImpl;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -21,7 +22,6 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.Closeable;
-import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -64,22 +64,20 @@ public class BackupManager implements Runnable, Closeable {
     trimExecutor = Executors.newSingleThreadScheduledExecutor();
 
     Path configDir = configPath.getParent();
+    ShardStorage localShardStorage = new ShardStorageImpl(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * MB);
 
     try {
 
       // Create the file manager (responsible for monitoring changes)
-
-      fileManager = new FileManager(
-          config.getWatcher().getChunkSizeMB());
+      fileManager = new FileManager(new FileEventLoggerImpl(), localShardStorage, config.getWatcher().getChunkSizeMB());
 
       // Create the local storage manager. Responsible for persisting files on the local machine.
-      ShardStorage localShardStorage = new ShardStorageImpl(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * MB);
       localStorageManager = new StorageManager(configDir, localShardStorage);
 
       // If not in monitor mode connect the file manager to the storage manager.
 
       if (!monitorMode) {
-        fileManager.addStorageManager(localStorageManager);
+        fileManager.setFileEventLogger(localStorageManager);
       }
 
       // Start the rest API
@@ -89,7 +87,7 @@ public class BackupManager implements Runnable, Closeable {
 
       // Create in network manager.
 
-      networkManager = new NetworkManagerImpl(getBaseNetworkPath(),
+      networkManager = new NetworkManagerImpl(configDir,
           config.getDistributedStorage().getTransportPort(),
           config.getDistributedStorage().getExternalTransportPort());
 
@@ -98,10 +96,6 @@ public class BackupManager implements Runnable, Closeable {
       logger.error(e.getMessage());
       throw new IllegalArgumentException("Error starting up.", e);
     }
-  }
-
-  private Path getBaseNetworkPath() {
-    return Paths.get(config.getLocalStorage().getStorageFolder() + File.separator + "/network");
   }
 
   /**

@@ -65,7 +65,7 @@ public class FileCatalogue {
   /**
    * Reverts catalogue to given time
    */
-  public FileCatalogue revertTo(DateTime until) {
+  FileCatalogue revertTo(DateTime until) {
     StorageJournal newJournal = storageJournal.getJournalEntriesBeforeTime(until);
     return new FileCatalogue(baseFileInfoMap, newJournal);
   }
@@ -77,12 +77,55 @@ public class FileCatalogue {
    * @param storedPath           file that was add
    */
   public synchronized void addFile(List<MD5HashLengthPair> MD5HashLengthPairs, DateTime modificationDateTime, Path storedPath, OutputStreamWriter outputStreamWriter) throws IOException {
-    FileVersion fileVersion = new FileVersion(MD5HashLengthPairs, modificationDateTime);
+    FileVersion newFileVersion = new FileVersion(MD5HashLengthPairs, modificationDateTime);
 
-    JournalEntry journalEntry = storageJournal.addEntry(fileVersion, FileOperation.ADD, storedPath, modificationDateTime);
-    fileInfoMap.put(storedPath, fileVersion);
+
+    // Check if this is an entry before known history.
+
+    FileVersion baseVersionForFile = baseFileInfoMap.get(storedPath);
+    if (baseVersionForFile != null && baseVersionForFile.getModificationDateTime().isAfter(modificationDateTime)) {
+
+      // Should be stored anyway for persistence reasons. Will be moved from journal to file next rebase if required.
+      storageJournal.addEntry(newFileVersion, FileOperation.ADD, storedPath, modificationDateTime);
+
+      // Hot-swap the baseFile. We now need to slip in the new base file.
+      logger.debug("Added file is before the base. Switching the base with this file.");
+      baseFileInfoMap.put(storedPath, newFileVersion);
+      newFileVersion = baseVersionForFile;
+      modificationDateTime = baseVersionForFile.getModificationDateTime();
+    }
+
+    JournalEntry journalEntry = storageJournal.addEntry(newFileVersion, FileOperation.ADD, storedPath, modificationDateTime);
+
+    // Check if this actually belongs at the end of the storage journal
+    FileVersion fileInfoMapVersion = fileInfoMap.get(storedPath);
+    if (fileInfoMapVersion == null || fileInfoMapVersion.getModificationDateTime().isBefore(modificationDateTime)) {
+      fileInfoMap.put(storedPath, newFileVersion);
+    }
 
     outputStreamWriter.write(journalEntry.toString() + "\n");
+    outputStreamWriter.flush();
+  }
+
+  /**
+   * Add a new journal entry externally.
+   *
+   * @param journalEntry journalEntry to add
+   * @throws IOException If trouble persisting.
+   */
+  public synchronized void addJournalEntry(JournalEntry journalEntry, OutputStreamWriter outputStreamWriter) throws IOException {
+    boolean entryInCatalogueAlready = getFileVersionHistory(journalEntry.getFilePath()).contains(journalEntry);
+
+    if (!entryInCatalogueAlready) {
+      logger.trace("Adding journal entry. [{}]", journalEntry);
+      if (journalEntry.getFileOperation() == FileOperation.ADD) {
+        addFile(journalEntry.getShardInfo().getMD5HashLengthPairs(), journalEntry.getDateTime(), journalEntry.getFilePath(), outputStreamWriter);
+      } else {
+        removeFile(journalEntry.getFilePath(), journalEntry.getDateTime(), outputStreamWriter);
+      }
+    } else {
+      logger.trace("Ignoring journal entry as already in catalogue. [{}]", journalEntry);
+    }
   }
 
   /**
@@ -91,10 +134,21 @@ public class FileCatalogue {
    * @param storedPath           file that was removed
    * @param modificationDateTime removal time
    */
-  public synchronized void removeFile(Path storedPath, DateTime modificationDateTime) {
-    FileVersion fileVersion = new FileVersion(Collections.emptyList(), modificationDateTime);
-    storageJournal.addEntry(fileVersion, FileOperation.REMOVE, storedPath, modificationDateTime);
+  public synchronized void removeFile(Path storedPath, DateTime modificationDateTime, OutputStreamWriter outputStreamWriter) throws IOException {
+    FileVersion newFileVersion = new FileVersion(Collections.emptyList(), modificationDateTime);
     fileInfoMap.remove(storedPath);
+
+
+    JournalEntry journalEntry = storageJournal.addEntry(newFileVersion, FileOperation.REMOVE, storedPath, modificationDateTime);
+
+    // Check if this actually belongs at the end of the storage journal
+    FileVersion fileInfoMapVersion = fileInfoMap.get(storedPath);
+    if (fileInfoMapVersion != null && fileInfoMapVersion.getModificationDateTime().isAfter(modificationDateTime)) {
+      fileInfoMap.remove(storedPath);
+    }
+
+    outputStreamWriter.write(journalEntry.toString() + "\n");
+    outputStreamWriter.flush();
   }
 
   /**
@@ -166,6 +220,23 @@ public class FileCatalogue {
     Set<String> journalShards = storageJournal.getReferencedShards();
     retShards.addAll(journalShards);
     return retShards;
+  }
+
+  /**
+   * Return all related journal entries
+   *
+   * @return All entries for the shard.
+   */
+  public List<JournalEntry> getAllRelatedJournalEntries(String shardId) {
+    // First extract any base entries with the information
+    List<JournalEntry> relatedEntries = baseFileInfoMap.entrySet().stream()
+        .filter(fileVersionEntry -> fileVersionEntry.getValue().getMD5HashList().contains(shardId))
+        .map(fv -> new JournalEntry(fv.getValue().getModificationDateTime(), fv.getValue(), FileOperation.ADD, fv.getKey()))
+        .collect(Collectors.toList());
+
+    // Add all journal entries.
+    relatedEntries.addAll(storageJournal.getJournalEntries(shardId));
+    return relatedEntries;
   }
 
   /**

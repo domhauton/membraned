@@ -3,6 +3,9 @@ package com.domhauton.membrane.prospector;
 import com.domhauton.membrane.config.items.WatchFolder;
 import com.domhauton.membrane.prospector.metadata.FileMetadata;
 import com.domhauton.membrane.prospector.metadata.FileMetadataBuilder;
+import com.domhauton.membrane.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorageException;
+import com.domhauton.membrane.storage.FileEventLogger;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
@@ -34,9 +37,10 @@ public class FileManager {
   private Set<Path> queuedAdditions;
 
   private final ScheduledExecutorService scanExecutor;
-  private final Collection<StorageManager> storageManagers;
+  private FileEventLogger fileEventLogger;
+  private ShardStorage shardStorage;
 
-  public FileManager(int chunkSizeMB) throws FileManagerException {
+  public FileManager(FileEventLogger fileEventLogger, ShardStorage shardStorage, int chunkSizeMB) throws FileManagerException {
     logger = LogManager.getLogger();
     this.chunkSizeMB = chunkSizeMB;
     try {
@@ -46,10 +50,10 @@ public class FileManager {
       throw new FileManagerException("Failed to start prospector due to IO exception on watcher.");
     }
     this.managedFiles = new HashMap<>();
-    storageManagers = new LinkedList<>();
+    this.fileEventLogger = fileEventLogger;
+    this.shardStorage = shardStorage;
 
     queuedAdditions = new HashSet<>();
-
     scanExecutor = Executors.newSingleThreadScheduledExecutor();
   }
 
@@ -71,13 +75,12 @@ public class FileManager {
     scanExecutor.shutdown();
   }
 
-  /**
-   * Adds a storage manager that files should be inserted into.
-   *
-   * @param storageManager storageManager to add
-   */
-  public void addStorageManager(StorageManager storageManager) {
-    storageManagers.add(storageManager);
+  public void setFileEventLogger(StorageManager fileEventLogger) {
+    this.fileEventLogger = fileEventLogger;
+  }
+
+  public void setShardStorage(ShardStorage shardStorage) {
+    this.shardStorage = shardStorage;
   }
 
   /**
@@ -180,8 +183,11 @@ public class FileManager {
   private void removeFile(Path path) {
     logger.info("File Removal Detected: [{}]", path);
     managedFiles.remove(path.toString());
-    for (StorageManager sm : storageManagers) {
-      sm.removeFile(path, DateTime.now());
+    try {
+      fileEventLogger.removeFile(path, DateTime.now());
+    } catch (Exception e) {
+      logger.info("File removal failed. Re-queueing.");
+      queuedAdditions.add(path);
     }
   }
 
@@ -217,9 +223,8 @@ public class FileManager {
                 () -> chunkMD5Hash,
                 path::toString,
                 () -> ((float) currentChunkSize) / (1024 * 1024));
-        for (StorageManager sm : storageManagers) {
-          sm.storeShard(chunkMD5Hash, tailoredArray);
-        }
+        fileEventLogger.protectShard(chunkMD5Hash);
+        shardStorage.storeShard(chunkMD5Hash, tailoredArray);
       }
       FileMetadata newFileMetadata = fileMetadataBuilder.build();
 
@@ -230,16 +235,14 @@ public class FileManager {
       // If there was a change update the storage managers.
       if (hasFileChanged) {
         logger.info("Change detected in [{}]. Adding file to storage.", path);
-        for (StorageManager sm : storageManagers) {
-          sm.addFile(newFileMetadata.getMd5HashLengthPairs(), fileLastModified, path);
-        }
+        fileEventLogger.addFile(newFileMetadata.getMd5HashLengthPairs(), fileLastModified, path);
         managedFiles.put(path.toString(), newFileMetadata);
       } else {
         logger.debug("File rescanned but no changed detected [{}].", path);
       }
     } catch (IOException e) {
       logger.error("Error while reading from file [{}]. Ignoring file.", path);
-    } catch (StorageManagerException e) {
+    } catch (StorageManagerException | ShardStorageException e) {
       queuedAdditions.add(path);
       logger.error("Error while storing shard of file. File re-queued. [{}]", path);
     }

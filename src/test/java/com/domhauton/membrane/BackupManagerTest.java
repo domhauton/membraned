@@ -4,6 +4,7 @@ import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.items.*;
 import com.domhauton.membrane.storage.StorageManagerException;
+import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import org.joda.time.DateTime;
 import org.joda.time.Duration;
 import org.junit.jupiter.api.AfterEach;
@@ -352,6 +353,7 @@ class BackupManagerTest {
     backupManager.close();
 
     deleteAllTestFilesAndFolders();
+    StorageManagerTestUtils.deleteDirectoryRecursively(basePath);
     Files.deleteIfExists(fileBaseFolder);
     Files.deleteIfExists(configPath);
 

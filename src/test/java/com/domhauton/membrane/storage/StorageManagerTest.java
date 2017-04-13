@@ -55,7 +55,8 @@ class StorageManagerTest {
 
     String hash = Hashing.md5().hashBytes(data).toString();
 
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
 
     storageManager.addFile(Collections.singletonList(new MD5HashLengthPair(hash, len)), new DateTime(100L), srcFile);
 
@@ -89,8 +90,10 @@ class StorageManagerTest {
     MD5HashLengthPair md5HashLengthPair1 = new MD5HashLengthPair(hash1, 128);
     MD5HashLengthPair md5HashLengthPair2 = new MD5HashLengthPair(hash2, 128);
 
-    storageManager.storeShard(hash1, data1);
-    storageManager.storeShard(hash2, data2);
+    shardStorage.storeShard(hash1, data1);
+    storageManager.protectShard(hash1);
+    shardStorage.storeShard(hash2, data2);
+    storageManager.protectShard(hash2);
 
     storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(100L), srcFile);
 
@@ -124,8 +127,10 @@ class StorageManagerTest {
     MD5HashLengthPair md5HashLengthPair1 = new MD5HashLengthPair(hash1, len / 2);
     MD5HashLengthPair md5HashLengthPair2 = new MD5HashLengthPair(hash2, len - (len / 2));
 
-    storageManager.storeShard(hash1, data1);
-    storageManager.storeShard(hash2, data2);
+    shardStorage.storeShard(hash1, data1);
+    storageManager.protectShard(hash1);
+    shardStorage.storeShard(hash2, data2);
+    storageManager.protectShard(hash2);
 
     storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(100L), srcFile);
 
@@ -164,8 +169,10 @@ class StorageManagerTest {
     MD5HashLengthPair md5HashLengthPair1 = new MD5HashLengthPair(hash1, len / 2);
     MD5HashLengthPair md5HashLengthPair2 = new MD5HashLengthPair(hash2, len - (len / 2));
 
-    storageManager.storeShard(hash1, data1);
-    storageManager.storeShard(hash2, data2);
+    shardStorage.storeShard(hash1, data1);
+    storageManager.protectShard(hash1);
+    shardStorage.storeShard(hash2, data2);
+    storageManager.protectShard(hash2);
 
     storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(250L), srcFile);
 
@@ -195,6 +202,56 @@ class StorageManagerTest {
     storageManager.collectGarbage();
   }
 
+
+  @Test
+  void addAfterCleanTest() throws Exception {
+    int len = 256;
+    byte[] data = new byte[len];
+    random.nextBytes(data);
+
+    byte[] data1 = Arrays.copyOfRange(data, 0, len / 2);
+    byte[] data2 = Arrays.copyOfRange(data, len / 2, len);
+
+    String hash1 = Hashing.md5().hashBytes(data1).toString();
+    String hash2 = Hashing.md5().hashBytes(data2).toString();
+
+    MD5HashLengthPair md5HashLengthPair1 = new MD5HashLengthPair(hash1, len / 2);
+    MD5HashLengthPair md5HashLengthPair2 = new MD5HashLengthPair(hash2, len - (len / 2));
+
+    shardStorage.storeShard(hash1, data1);
+    storageManager.protectShard(hash1);
+    shardStorage.storeShard(hash2, data2);
+    storageManager.protectShard(hash2);
+
+    storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(250L), srcFile);
+
+    storageManager.cleanStorage(new DateTime(250L));
+    storageManager.close();
+
+
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
+
+    storageManager.addFile(Collections.singletonList(md5HashLengthPair1), new DateTime(150L), srcFile);
+
+    Set<Long> modifyTimeSet = storageManager.getFileHistory(srcFile).stream().map(JournalEntry::getDateTime).map(DateTime::getMillis).collect(Collectors.toSet());
+    Assertions.assertEquals(new HashSet<>(Arrays.asList(150L, 250L)), modifyTimeSet);
+
+    storageManager.rebuildFile(srcFile, tgtFile);
+
+    byte[] reconstructed = Files.readAllBytes(tgtFile);
+
+    Assertions.assertEquals(data.length, reconstructed.length);
+    Assertions.assertArrayEquals(data, reconstructed);
+
+    Files.delete(tgtFile);
+
+    storageManager.removeFile(srcFile, new DateTime(200L));
+    storageManager.cleanStorage(new DateTime(250L));
+    storageManager.clearProtectedShards();
+    storageManager.collectGarbage();
+  }
+
   @Test
   void testSizeClamping() throws Exception {
     int len = 16 * 1024 * 1024; //16MB
@@ -203,19 +260,22 @@ class StorageManagerTest {
     random.nextBytes(data);
     String hash = Hashing.md5().hashBytes(data).toString();
     MD5HashLengthPair md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L), srcFile);
 
     random.nextBytes(data);
     hash = Hashing.md5().hashBytes(data).toString();
     md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L).plusMinutes(1), srcFile);
 
     random.nextBytes(data);
     hash = Hashing.md5().hashBytes(data).toString();
     md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L).plusMinutes(2), srcFile);
 
     storageManager.close();
@@ -261,7 +321,8 @@ class StorageManagerTest {
 
     String hash = Hashing.md5().hashBytes(data).toString();
 
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
 
     storageManager.addFile(Collections.singletonList(new MD5HashLengthPair(hash, len)), new DateTime(100L), srcFile);
 
@@ -298,19 +359,22 @@ class StorageManagerTest {
     random.nextBytes(data);
     String hash = Hashing.md5().hashBytes(data).toString();
     MD5HashLengthPair md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L), srcFile);
 
     random.nextBytes(data);
     hash = Hashing.md5().hashBytes(data).toString();
     md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L).plusHours(6), srcFile);
 
     random.nextBytes(data2);
     hash = Hashing.md5().hashBytes(data2).toString();
     md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data2);
+    shardStorage.storeShard(hash, data2);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L).plusHours(12), srcFile);
 
     storageManager.close();
@@ -353,6 +417,89 @@ class StorageManagerTest {
   }
 
   @Test
+  void testSizeClampingPartialOutOfOrder() throws Exception {
+    int len = 16 * 1024 * 1024; //16MB
+    byte[] data1 = new byte[len];
+    byte[] data2 = new byte[len];
+    byte[] data3 = new byte[len];
+
+    random.nextBytes(data2);
+    String hash2 = Hashing.md5().hashBytes(data2).toString();
+    MD5HashLengthPair md5HashLengthPair2 = new MD5HashLengthPair(hash2, len);
+    shardStorage.storeShard(hash2, data2);
+    storageManager.protectShard(hash2);
+    storageManager.addFile(Collections.singletonList(md5HashLengthPair2), new DateTime(100L).plusHours(6), srcFile);
+
+    random.nextBytes(data1);
+    String hash1 = Hashing.md5().hashBytes(data1).toString();
+    MD5HashLengthPair md5HashLengthPair1 = new MD5HashLengthPair(hash1, len);
+    shardStorage.storeShard(hash1, data1);
+    storageManager.protectShard(hash1);
+    storageManager.addFile(Collections.singletonList(md5HashLengthPair1), new DateTime(100L), srcFile);
+
+    for (JournalEntry journalEntry : storageManager.getFileHistory(srcFile)) {
+      String s = journalEntry.toString();
+      storageManager.insertJournalEntry(s);
+    }
+
+    Assertions.assertEquals(2, storageManager.getFileHistory(srcFile).size());
+    storageManager.rebuildFile(srcFile, tgtFile);
+
+    byte[] reconstructed = Files.readAllBytes(tgtFile);
+
+    Assertions.assertEquals(data2.length, reconstructed.length);
+    Assertions.assertArrayEquals(data2, reconstructed);
+
+    Files.delete(tgtFile);
+
+    random.nextBytes(data3);
+    String hash3 = Hashing.md5().hashBytes(data3).toString();
+    MD5HashLengthPair md5HashLengthPair3 = new MD5HashLengthPair(hash3, len);
+    shardStorage.storeShard(hash3, data3);
+    storageManager.protectShard(hash3);
+    storageManager.addFile(Collections.singletonList(md5HashLengthPair3), new DateTime(100L).plusHours(12), srcFile);
+
+    storageManager.close();
+
+    int journalSize = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME)).size();
+    Assertions.assertEquals(3, journalSize);
+
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
+
+    storageManager.clampStorageToSize(len * 2, new HashSet<>(Collections.singletonList(srcFile.getParent())));
+
+    storageManager.close();
+
+    List<String> journal = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME))
+        .stream()
+        .filter(String::isEmpty)
+        .collect(Collectors.toList());
+    System.err.println(journal);
+    Assertions.assertEquals(1, journal.size());
+
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
+
+    List<JournalEntry> journalEntries = storageManager.getFileHistory(srcFile);
+    Assertions.assertEquals(2, journalEntries.size());
+
+    storageManager.rebuildFile(srcFile, tgtFile, journalEntries.get(0).getDateTime());
+
+    byte[] reconstructed2 = Files.readAllBytes(tgtFile);
+
+    Assertions.assertEquals(data2.length, reconstructed2.length);
+    Assertions.assertArrayEquals(data2, reconstructed2);
+
+    Files.delete(tgtFile);
+
+    storageManager.removeFile(srcFile, new DateTime(200L).plusDays(1));
+    storageManager.cleanStorage(new DateTime(250L).plusDays(1));
+    storageManager.clearProtectedShards();
+    storageManager.collectGarbage();
+  }
+
+  @Test
   void testSizeClampingIgnoreFile() throws Exception {
     int len = 16 * 1024 * 1024; //16MB
     byte[] data = new byte[len];
@@ -360,7 +507,8 @@ class StorageManagerTest {
     random.nextBytes(data);
     String hash = Hashing.md5().hashBytes(data).toString();
     MD5HashLengthPair md5HashLengthPair = new MD5HashLengthPair(hash, len);
-    storageManager.storeShard(hash, data);
+    shardStorage.storeShard(hash, data);
+    storageManager.protectShard(hash);
     storageManager.addFile(Collections.singletonList(md5HashLengthPair), new DateTime(100L), srcFile);
 
     storageManager.close();

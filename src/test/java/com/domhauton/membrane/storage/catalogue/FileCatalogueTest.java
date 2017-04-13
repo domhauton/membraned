@@ -119,7 +119,7 @@ class FileCatalogueTest {
     DateTime modifiedDT1 = new DateTime(100L);
     fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
 
-    fileCatalogue.removeFile(path, new DateTime(200L));
+    fileCatalogue.removeFile(path, new DateTime(200L), outputStreamWriter);
     Assertions.assertEquals(10, fileCatalogue.getReferencedShards().size());
 
     FileCatalogue collapsedFC = fileCatalogue.cleanCatalogue(new DateTime(150L));
@@ -205,6 +205,9 @@ class FileCatalogueTest {
     DateTime modifiedDT1 = new DateTime(100L);
     Path path = Paths.get("/tmp/membrane/foobar1");
     fileCatalogue.addFile(hashList1, modifiedDT1, path, outputStreamWriter);
+    List<MD5HashLengthPair> hashList3 = genRandHashSet();
+    DateTime modifiedDT3 = new DateTime(300L);
+    fileCatalogue.addFile(hashList3, modifiedDT3, path, outputStreamWriter);
     List<MD5HashLengthPair> hashList2 = genRandHashSet();
     DateTime modifiedDT2 = new DateTime(200L);
     fileCatalogue.addFile(hashList2, modifiedDT2, path, outputStreamWriter);
@@ -222,6 +225,11 @@ class FileCatalogueTest {
 
     Assertions.assertTrue(fileVersion2.isPresent());
     Assertions.assertTrue(fileVersion2.orElse(null).getMD5HashLengthPairs().equals(hashList2));
+
+    Optional<FileVersion> fileVersion3 = fileCatalogue.getFileVersion(path, new DateTime(300L));
+
+    Assertions.assertTrue(fileVersion3.isPresent());
+    Assertions.assertTrue(fileVersion3.orElse(null).getMD5HashLengthPairs().equals(hashList3));
   }
 
   private List<MD5HashLengthPair> genRandHashSet() {

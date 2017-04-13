@@ -42,7 +42,7 @@ public class NetworkManagerImpl implements NetworkManager {
   public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int externalTransportPort) throws NetworkException {
     // Setup authentication information
     membraneAuthInfo = loadAuthInfo(baseNetworkPath); // Auto adds inner dir
-    Path peerCertFolder = Paths.get(baseNetworkPath.toString() + File.separator + "/peer");
+    Path peerCertFolder = Paths.get(baseNetworkPath.toString() + File.separator + "peer");
     this.peerCertManager = new PeerCertManager(peerCertFolder);
 
     // Setup network connectivity

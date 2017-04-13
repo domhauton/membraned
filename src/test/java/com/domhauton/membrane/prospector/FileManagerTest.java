@@ -1,6 +1,10 @@
 package com.domhauton.membrane.prospector;
 
 import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorageException;
+import com.domhauton.membrane.storage.FileEventLogger;
+import com.domhauton.membrane.storage.FileEventLoggerImpl;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
@@ -26,11 +30,15 @@ class FileManagerTest {
 
   private static final String BASE_DIR = "/tmp";
   private FileManager fileManager;
+  private FileEventLogger fileEventLoggerTemp;
+  private ShardStorage shardStorageMock;
   private String dir;
 
   @BeforeEach
   void setUp() throws Exception {
-    fileManager = new FileManager(64);
+    fileEventLoggerTemp = new FileEventLoggerImpl();
+    shardStorageMock = Mockito.mock(ShardStorage.class);
+    fileManager = new FileManager(fileEventLoggerTemp, shardStorageMock, 64);
     dir = ProspectorTestUtils.createRandomFolder(BASE_DIR);
     logger.info("Setting up in [{}]", dir);
   }
@@ -41,14 +49,16 @@ class FileManagerTest {
     StorageManager storageManager = Mockito.mock(StorageManager.class);
 
     WatchFolder watchFolder = new WatchFolder(dir, false);
-    fileManager.addStorageManager(storageManager);
+    fileManager.setFileEventLogger(storageManager);
     fileManager.addWatchFolder(watchFolder);
     fileManager.fullFileScanSweep();
 
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     Assertions.assertEquals(ProspectorTestUtils.CREATED_FILES_COUNT, fileManager.getCurrentlyWatchedFiles().size());
 
@@ -61,19 +71,21 @@ class FileManagerTest {
     ProspectorTestUtils.createTestFiles(dir);
     StorageManager storageManager = Mockito.mock(StorageManager.class);
 
-    Mockito.doThrow(new StorageManagerException("Mock Exception"))
-            .when(storageManager)
+    Mockito.doThrow(new ShardStorageException("Mock Exception"))
+        .when(shardStorageMock)
             .storeShard(Mockito.anyString(), Mockito.any(byte[].class));
 
     WatchFolder watchFolder = new WatchFolder(dir, false);
-    fileManager.addStorageManager(storageManager);
+    fileManager.setFileEventLogger(storageManager);
     fileManager.addWatchFolder(watchFolder);
     fileManager.fullFileScanSweep();
 
     Mockito.verify(storageManager, Mockito.never())
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
 
@@ -86,7 +98,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.never())
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     ProspectorTestUtils.removeTestFiles(dir);
 
@@ -99,7 +113,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.never())
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     Files.delete(Paths.get(dir));
   }
@@ -114,14 +130,16 @@ class FileManagerTest {
             .addFile(Mockito.anyList(), Mockito.any(DateTime.class), Mockito.any(Path.class));
 
     WatchFolder watchFolder = new WatchFolder(dir, false);
-    fileManager.addStorageManager(storageManager);
+    fileManager.setFileEventLogger(storageManager);
     fileManager.addWatchFolder(watchFolder);
     fileManager.fullFileScanSweep();
 
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     Assertions.assertEquals(0, fileManager.getCurrentlyWatchedFiles().size());
 
@@ -134,7 +152,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     ProspectorTestUtils.removeTestFiles(dir);
 
@@ -147,7 +167,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT * 2))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT * 2))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     Files.delete(Paths.get(dir));
   }
@@ -158,7 +180,7 @@ class FileManagerTest {
 
     WatchFolder watchFolder = new WatchFolder(dir, true);
     fileManager.addWatchFolder(watchFolder);
-    fileManager.addStorageManager(storageManager);
+    fileManager.setFileEventLogger(storageManager);
     String embeddedDir = ProspectorTestUtils.createRandomFolder(dir);
     ProspectorTestUtils.createTestFiles(embeddedDir);
     fileManager.fullFileScanSweep();
@@ -166,7 +188,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
 
     ProspectorTestUtils.removeTestFiles(embeddedDir);
     Files.delete(Paths.get(embeddedDir));
@@ -179,7 +203,7 @@ class FileManagerTest {
 
     WatchFolder watchFolder = new WatchFolder(dir, true);
     fileManager.addWatchFolder(watchFolder);
-    fileManager.addStorageManager(storageManager);
+    fileManager.setFileEventLogger(storageManager);
 
     fileManager.addExistingFile(Paths.get(dir + File.separator + '0'), DateTime.now(), Collections.emptyList());
 
@@ -193,7 +217,9 @@ class FileManagerTest {
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.CREATED_FILES_COUNT))
             .addFile(Mockito.any(), Mockito.any(), Mockito.any());
     Mockito.verify(storageManager, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
-            .storeShard(Mockito.any(), Mockito.any(byte[].class));
+        .protectShard(Mockito.any());
+    Mockito.verify(shardStorageMock, Mockito.times(ProspectorTestUtils.EXPECTED_SHARD_COUNT))
+        .storeShard(Mockito.any(), Mockito.any(byte[].class));
     Mockito.verify(storageManager, Mockito.times(1))
             .removeFile(Mockito.any(), Mockito.any());
 

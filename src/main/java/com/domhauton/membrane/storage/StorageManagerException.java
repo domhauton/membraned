@@ -7,4 +7,8 @@ public class StorageManagerException extends Exception {
   public StorageManagerException(String s) {
     super(s);
   }
+
+  public StorageManagerException(String s, Throwable throwable) {
+    super(s, throwable);
+  }
 }

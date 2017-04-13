@@ -116,16 +116,6 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     }
   }
 
-  @Override
-  public void run() {
-    appraisalLedger.run();
-  }
-
-  @Override
-  public void close() {
-    appraisalLedger.close();
-  }
-
   private boolean isPeerConnected(String peerId) {
     return networkManager.peerConnected(peerId);
   }
@@ -187,5 +177,19 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   public void addContractedPeer(String peerId) throws DistributorException {
     //TODO add new contract
     //TODO send in-balance of 1.
+  }
+
+  @Override
+  public void run() {
+    appraisalLedger.run();
+    blockLedger.run();
+    contractStore.run();
+  }
+
+  @Override
+  public void close() {
+    appraisalLedger.close();
+    blockLedger.close();
+    contractStore.close();
   }
 }
