@@ -149,7 +149,7 @@ public class BlockLedger implements Runnable, Closeable {
     } catch (IOException e) {
       logger.error("Reading block info from file failed. [{}]", path);
       logger.debug(e);
-      throw new BlockLedgerException("Failed to read block info from file. " + e.getMessage());
+      throw new BlockLedgerException("Failed to read block info from file.", e);
     }
   }
 

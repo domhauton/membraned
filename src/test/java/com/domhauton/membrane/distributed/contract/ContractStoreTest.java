@@ -68,6 +68,26 @@ class ContractStoreTest {
   }
 
   @Test
+  void persistenceTest() throws Exception {
+    ContractStore contractStore = new ContractStore(basePath);
+    contractStore.run();
+    Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));
+    contractStore.setMyAllowedInequality(peer1, 1);
+    Assertions.assertEquals(1, contractStore.getMyBlockSpace(peer1));
+    Assertions.assertThrows(ContractStoreException.class, () -> contractStore.addPeerBlockId(peer1, "block1"));
+    contractStore.setPeerAllowedInequality(peer1, 1);
+    contractStore.addPeerBlockId(peer1, "block1");
+    contractStore.close();
+
+    ContractStore contractStore2 = new ContractStore(basePath);
+    contractStore2.run();
+    Assertions.assertEquals(2, contractStore2.getMyBlockSpace(peer1));
+    contractStore2.addPeerBlockId(peer1, "block1");
+    Assertions.assertThrows(ContractStoreException.class, () -> contractStore2.addPeerBlockId(peer1, "block2"));
+    contractStore2.close();
+  }
+
+  @Test
   void addBothBlockTest() throws Exception {
     ContractStore contractStore = new ContractStore(basePath);
     contractStore.setMyAllowedInequality(peer1, 1);
