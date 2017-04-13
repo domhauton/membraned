@@ -1,8 +1,8 @@
 package com.domhauton.membrane.distributed.block.ledger.file;
 
-import com.domhauton.membrane.distributed.block.ledger.SaltHashPair;
 import org.joda.time.DateTime;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -14,15 +14,15 @@ public class BlockInfoSerializable {
   private String assignedPeer;
   private Set<String> containedShards;
   private long creationTime;
-  private List<SaltHashPair> saltHashPairList;
+  private List<SaltHashPairSerializable> saltHashPairList;
 
   private BlockInfoSerializable() {
   } // Jackson ONLY
 
-  public BlockInfoSerializable(String blockId, String assignedPeer, Set<String> containedShards, DateTime creationTime, List<SaltHashPair> saltHashPairList) {
+  public BlockInfoSerializable(String blockId, String assignedPeer, Set<String> containedShards, DateTime creationTime, List<SaltHashPairSerializable> saltHashPairList) {
     this.blockId = blockId;
     this.assignedPeer = assignedPeer;
-    this.containedShards = containedShards;
+    this.containedShards = new HashSet<>(containedShards);
     this.creationTime = creationTime.getMillis();
     this.saltHashPairList = saltHashPairList;
   }
@@ -43,7 +43,7 @@ public class BlockInfoSerializable {
     return creationTime;
   }
 
-  public List<SaltHashPair> getSaltHashPairList() {
+  public List<SaltHashPairSerializable> getSaltHashPairList() {
     return saltHashPairList;
   }
 }

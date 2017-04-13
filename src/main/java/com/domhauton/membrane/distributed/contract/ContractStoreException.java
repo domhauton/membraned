@@ -9,4 +9,8 @@ public class ContractStoreException extends DistributorException {
   ContractStoreException(String s) {
     super(s);
   }
+
+  ContractStoreException(String s, Throwable throwable) {
+    super(s, throwable);
+  }
 }

@@ -84,7 +84,7 @@ public class PeerConnection {
     } catch (CertificateEncodingException | CertificateException e) {
       logger.error("Invalid certificated received. Could not generate client ID");
       netSocket.close();
-      throw new PeerException("Connection could not toBytes certificate. Dropping.");
+      throw new PeerException("Connection could not toEncryptedBytes certificate. Dropping.");
     }
 
     if (clientID.equalsIgnoreCase(localClientId)) { // You tried to connect to yourself?

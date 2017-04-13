@@ -82,7 +82,7 @@ public class BlockProcessor {
    * @return The block in byte form
    * @throws BlockException if unable to convert to bytes.
    */
-  public byte[] toBytes() throws BlockException {
+  public byte[] toEncryptedBytes() throws BlockException {
     BlockContainer blockContainer = new BlockContainer(salt, new ArrayList<>(localShardDataList.values()));
     return BlockUtils.remoteShardData2Bytes(blockContainer);
   }

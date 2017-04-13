@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.manifest;
+package com.domhauton.membrane.distributed.block.manifest;
 
 /**
  * Created by Dominic Hauton on 03/03/17.

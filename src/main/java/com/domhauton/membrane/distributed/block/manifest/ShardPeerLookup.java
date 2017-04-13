@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.manifest;
+package com.domhauton.membrane.distributed.block.manifest;
 
 import com.domhauton.membrane.distributed.DistributorException;
 import org.apache.logging.log4j.LogManager;
@@ -13,15 +13,15 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class DistributedStore {
+public class ShardPeerLookup {
   private final static Logger LOGGER = LogManager.getLogger();
   private ConcurrentHashMap<String, DistributedShard> distributedShardMap;
 
-  public DistributedStore() {
+  public ShardPeerLookup() {
     this(new ConcurrentHashMap<>());
   }
 
-  private DistributedStore(ConcurrentHashMap<String, DistributedShard> distributedShardMap) {
+  private ShardPeerLookup(ConcurrentHashMap<String, DistributedShard> distributedShardMap) {
     this.distributedShardMap = distributedShardMap;
   }
 
@@ -47,6 +47,11 @@ public class DistributedStore {
 
   public void addStoragePeer(String md5Hash, String peer) throws NoSuchElementException {
     getShard(md5Hash).addPeer(peer);
+  }
+
+  public void addStoragePeerForce(String md5Hash, String peer) {
+    DistributedShard distributedShard = distributedShardMap.computeIfAbsent(md5Hash, shardId -> new DistributedShard(shardId, Priority.Normal));
+    distributedShard.addPeer(peer);
   }
 
   /**
@@ -81,7 +86,7 @@ public class DistributedStore {
         .collect(Collectors.joining("\n"));
   }
 
-  public static DistributedStore unmarshall(List<String> inputData) {
+  public static ShardPeerLookup unmarshall(List<String> inputData) {
     ConcurrentHashMap<String, DistributedShard> newMap = new ConcurrentHashMap<>();
     for (String entry : inputData) {
       try {
@@ -91,6 +96,6 @@ public class DistributedStore {
         LOGGER.error("Unable to decode distributor store entry. IGNORING. {}", e.getMessage());
       }
     }
-    return new DistributedStore(newMap);
+    return new ShardPeerLookup(newMap);
   }
 }

@@ -1,13 +1,12 @@
 package com.domhauton.membrane.distributed;
 
 import com.domhauton.membrane.distributed.appraisal.AppraisalLedger;
-import com.domhauton.membrane.distributed.block.gen.BlockException;
 import com.domhauton.membrane.distributed.block.gen.BlockProcessor;
 import com.domhauton.membrane.distributed.block.ledger.BlockLedger;
+import com.domhauton.membrane.distributed.block.manifest.Priority;
+import com.domhauton.membrane.distributed.block.manifest.ShardPeerLookup;
 import com.domhauton.membrane.distributed.contract.ContractStore;
 import com.domhauton.membrane.distributed.contract.ContractStoreException;
-import com.domhauton.membrane.distributed.manifest.DistributedStore;
-import com.domhauton.membrane.distributed.manifest.Priority;
 import com.domhauton.membrane.distributed.util.RateLimiter;
 import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManager;
@@ -15,8 +14,10 @@ import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 import org.joda.time.Duration;
 
+import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -24,18 +25,20 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class Distributor implements Runnable, ContractManager {
+public class Distributor implements Runnable, Closeable, ContractManager {
   private final static Duration UPLOAD_RATE_LIMIT = Duration.standardSeconds(5);
   private final static long BLOCK_SIZE_BYTES = 16L * 1024L * 1024L * 1024L; //16MB
+  private final static int MAX_BLOCK_LIFETIME = 2;
   private final Logger logger = LogManager.getLogger();
 
   private final ShardStorage shardStorage;
 
-  private final DistributedStore distributedStore;
+  private final ShardPeerLookup shardPeerLookup;
   private final BlockLedger blockLedger;
   private final AppraisalLedger appraisalLedger;
   private final RateLimiter uploadRateLimiter;
   private final ContractStore contractStore;
+
   private NetworkManager networkManager;
 
   private int contractLimit;
@@ -45,15 +48,16 @@ public class Distributor implements Runnable, ContractManager {
     this.networkManager = networkManager;
     this.contractLimit = contractLimit;
 
-    distributedStore = new DistributedStore();
     blockLedger = new BlockLedger(basePath);
     appraisalLedger = new AppraisalLedger(basePath);
+    contractStore = new ContractStore(basePath);
+
+    shardPeerLookup = blockLedger.generateShardPeerLookup();
     uploadRateLimiter = new RateLimiter(this::beginUpload, UPLOAD_RATE_LIMIT);
-    contractStore = new ContractStore();
   }
 
   public void storeShard(String md5Hash, Priority priority) {
-    distributedStore.addDistributedShard(md5Hash, priority);
+    shardPeerLookup.addDistributedShard(md5Hash, priority);
     uploadRateLimiter.schedule();
   }
 
@@ -71,12 +75,13 @@ public class Distributor implements Runnable, ContractManager {
         .sorted(Comparator.comparingDouble(Map.Entry::getValue))
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
+
     // Send all possible shards to top X peers and wait a second and re-prompt upload if shards remain.
 
     Set<String> usedShardSet = new HashSet<>();
     for (String peerId : connectedPeersByRank) {
       // What shards can this peer get?
-      Set<String> shardsToUploadForPeer = distributedStore.undeployedShards(peerId);
+      Set<String> shardsToUploadForPeer = shardPeerLookup.undeployedShards(peerId);
       shardsToUploadForPeer.removeAll(usedShardSet); // Do NOT duplicate upload any shards within one round
 
       // How much will peer store for us?
@@ -93,8 +98,6 @@ public class Distributor implements Runnable, ContractManager {
         // Start uploading them.
         for (int i = 0; i < numberOfShardsToUpload && !shardsToUploadForPeer.isEmpty(); i++) {
           Set<String> uploadedShards = uploadShardsToPeer(peerId, shardsToUploadForPeer);
-          // TODO Record all shards in block uploaded in contract.
-          // TODO Record all shards in block uploaded in distributedStore.
           if (uploadedShards.isEmpty()) { // If upload was useless, there is no more to upload.
             shardsToUploadForPeer.clear();
           } else {
@@ -105,17 +108,20 @@ public class Distributor implements Runnable, ContractManager {
       }
     }
 
-    Set<String> totalUndeployedShards = distributedStore.undeployedShards();
+    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
     // If there exist shards with no potential peers schedule peer search
     if (totalUndeployedShards.size() - usedShardSet.size() > 0) {
       // Schedule new scan
+      //TODO
     }
   }
 
+  @Override
   public void run() {
     appraisalLedger.run();
   }
 
+  @Override
   public void close() {
     appraisalLedger.close();
   }
@@ -152,24 +158,14 @@ public class Distributor implements Runnable, ContractManager {
 
     // Upload the created block
     try {
-      uploadBlock(peerId, blockProcessor);
+      byte[] encryptedBlockData = blockProcessor.toEncryptedBytes();
+      networkManager.uploadBlockToPeer(peerId, encryptedBlockData);
+      blockLedger.addBlock(encryptedBlockData, uploadedSet, peerId, DateTime.now().plusWeeks(MAX_BLOCK_LIFETIME));
+      uploadedSet.forEach(shardId -> shardPeerLookup.addStoragePeer(shardId, peerId));
       return uploadedSet;
-    } catch (DistributorException e) {
+    } catch (DistributorException | NetworkException e) {
       logger.warn("Unable to upload generated block: {}", e.getMessage());
       return Collections.emptySet();
-    }
-  }
-
-  private void uploadBlock(String peerId, BlockProcessor blockProcessor) throws DistributorException {
-    // Send created block to peer.
-    try {
-      byte[] blockData = blockProcessor.toBytes();
-
-      // FIXME encrypt
-
-      networkManager.uploadBlockToPeer(peerId, blockData);
-    } catch (BlockException | NetworkException e) {
-      throw new DistributorException("Unable to upload generated block", e);
     }
   }
 

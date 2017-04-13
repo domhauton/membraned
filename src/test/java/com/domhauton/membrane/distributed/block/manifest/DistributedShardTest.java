@@ -1,4 +1,4 @@
-package com.domhauton.membrane.distributed.manifest;
+package com.domhauton.membrane.distributed.block.manifest;
 
 import com.domhauton.membrane.distributed.DistributorException;
 import com.google.common.collect.ImmutableSet;

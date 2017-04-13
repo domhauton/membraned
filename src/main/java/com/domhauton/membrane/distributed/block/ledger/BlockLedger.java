@@ -2,6 +2,7 @@ package com.domhauton.membrane.distributed.block.ledger;
 
 import com.domhauton.membrane.distributed.block.ledger.file.BlockInfoCollection;
 import com.domhauton.membrane.distributed.block.ledger.file.BlockInfoSerializable;
+import com.domhauton.membrane.distributed.block.manifest.ShardPeerLookup;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.hash.Hashing;
@@ -62,7 +63,7 @@ public class BlockLedger implements Runnable, Closeable {
     blockInfos.forEach(x -> blockMap.put(x.getBlockId(), x));
   }
 
-  String addBlock(byte[] data, Set<String> containedShards, String assignedPeer, DateTime endDateTime) {
+  public String addBlock(byte[] data, Set<String> containedShards, String assignedPeer, DateTime endDateTime) {
     String blockId = generateBlockId(data);
     DateTime startDateTime = DateTime.now().hourOfDay().roundFloorCopy();
     List<SaltHashPair> saltHashPairs = generateEvidencePairs(data, startDateTime, endDateTime);
@@ -98,6 +99,14 @@ public class BlockLedger implements Runnable, Closeable {
         .filter(o -> !blockIds.contains(o))
         .collect(Collectors.toSet());
     removalSet.forEach(this::removeBlock);
+  }
+
+  public ShardPeerLookup generateShardPeerLookup() {
+    ShardPeerLookup shardPeerLookup = new ShardPeerLookup();
+    blockMap.values().stream()
+        .flatMap(x -> x.getContainedShards().stream().map(shardId -> new AbstractMap.SimpleEntry<>(shardId, x.getAssignedPeer())))
+        .forEach(x -> shardPeerLookup.addStoragePeerForce(x.getKey(), x.getValue()));
+    return shardPeerLookup;
   }
 
   private String generateBlockId(byte[] blockData) {

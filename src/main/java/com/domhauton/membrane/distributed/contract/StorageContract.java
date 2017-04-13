@@ -1,5 +1,6 @@
 package com.domhauton.membrane.distributed.contract;
 
+import com.domhauton.membrane.distributed.contract.files.StorageContractSerializable;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 
@@ -11,16 +12,29 @@ import java.util.Set;
  * Created by Dominic Hauton on 11/03/17.
  */
 class StorageContract {
+  private String peerId;
   private LinkedHashSet<String> myBlockIds;
   private LinkedHashSet<String> peerBlockIds;
   private int myBaseAllowedInequality = 0;
   private int peerBaseAllowedInequality = 0;
 
-  StorageContract() {
+  StorageContract(String peerId) {
+    this.peerId = peerId;
     myBlockIds = new LinkedHashSet<>();
     peerBlockIds = new LinkedHashSet<>();
   }
 
+  StorageContract(String peerId, LinkedHashSet<String> myBlockIds, LinkedHashSet<String> peerBlockIds, int myBaseAllowedInequality, int peerBaseAllowedInequality) {
+    this.peerId = peerId;
+    this.myBlockIds = new LinkedHashSet<>(myBlockIds);
+    this.peerBlockIds = new LinkedHashSet<>(peerBlockIds);
+    this.myBaseAllowedInequality = myBaseAllowedInequality;
+    this.peerBaseAllowedInequality = peerBaseAllowedInequality;
+  }
+
+  public String getPeerId() {
+    return peerId;
+  }
 
   synchronized void addMyBlockId(String blockId) throws ContractStoreException {
     if (!myBlockIds.contains(blockId)) {
@@ -100,5 +114,9 @@ class StorageContract {
 
   void setPeerBaseAllowedInequality(int peerBaseAllowedInequality) {
     this.peerBaseAllowedInequality = peerBaseAllowedInequality;
+  }
+
+  StorageContractSerializable serialize() {
+    return new StorageContractSerializable(peerId, myBlockIds, peerBlockIds, myBaseAllowedInequality, peerBaseAllowedInequality);
   }
 }

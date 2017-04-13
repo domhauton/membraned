@@ -1,6 +1,7 @@
 package com.domhauton.membrane.distributed.block.ledger;
 
 import com.domhauton.membrane.distributed.block.ledger.file.BlockInfoSerializable;
+import com.domhauton.membrane.distributed.block.ledger.file.SaltHashPairSerializable;
 import com.google.common.collect.ImmutableList;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
@@ -9,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Created by dominic on 13/04/17.
@@ -28,12 +30,14 @@ class BlockInfo {
     this.saltHashPairList = ImmutableList.copyOf(saltHashPairList);
   }
 
-  BlockInfo(String blockId, String assignedPeer, Set<String> containedShards, long evidenceStartTimeMillis, List<SaltHashPair> saltHashPairList) {
+  BlockInfo(String blockId, String assignedPeer, Set<String> containedShards, long evidenceStartTimeMillis, List<SaltHashPairSerializable> saltHashPairList) {
     this.blockId = blockId;
     this.assignedPeer = assignedPeer;
     this.containedShards = new HashSet<>(containedShards);
     this.evidenceStartTime = new DateTime(Math.max(0, evidenceStartTimeMillis));
-    this.saltHashPairList = ImmutableList.copyOf(saltHashPairList);
+    this.saltHashPairList = saltHashPairList.stream()
+        .map(x -> new SaltHashPair(x.getHashSalt(), x.getHash()))
+        .collect(Collectors.toList());
   }
 
   public String getBlockId() {
@@ -49,7 +53,10 @@ class BlockInfo {
   }
 
   BlockInfoSerializable serialize() {
-    return new BlockInfoSerializable(blockId, assignedPeer, containedShards, evidenceStartTime, saltHashPairList);
+    List<SaltHashPairSerializable> saltHashPairSerialized = saltHashPairList.stream()
+        .map(x -> new SaltHashPairSerializable(x.getHash(), x.getHashSalt()))
+        .collect(Collectors.toList());
+    return new BlockInfoSerializable(blockId, assignedPeer, containedShards, evidenceStartTime, saltHashPairSerialized);
   }
 
   SaltHashPair getBlockConfirmation(DateTime dateTime) throws NoSuchElementException {

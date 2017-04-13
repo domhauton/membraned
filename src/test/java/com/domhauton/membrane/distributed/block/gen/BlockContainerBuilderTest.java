@@ -26,7 +26,7 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
 
@@ -47,7 +47,7 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
 
@@ -65,7 +65,7 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
 
@@ -92,7 +92,7 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
 

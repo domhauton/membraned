@@ -16,7 +16,7 @@ public class SaltHashPair {
     return hashSalt;
   }
 
-  String getHash() {
+  public String getHash() {
     return hash;
   }
 }
