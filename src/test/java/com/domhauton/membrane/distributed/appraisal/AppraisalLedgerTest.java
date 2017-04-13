@@ -1,8 +1,15 @@
 package com.domhauton.membrane.distributed.appraisal;
 
+import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import org.joda.time.DateTime;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 /**
  * Created by dominic on 12/04/17.
@@ -15,9 +22,17 @@ class AppraisalLedgerTest {
   private static final String BLOCK_ID_2 = "Block_2";
   private static final String BLOCK_ID_3 = "Block_3";
 
+  private Path basePath;
+
+  @BeforeEach
+  void setUp() throws Exception {
+    basePath = Paths.get(StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR));
+
+  }
+
   @Test
-  void simpleTest() {
-    AppraisalLedger appraisalLedger = new AppraisalLedger();
+  void simpleTest() throws Exception {
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
     appraisalLedger.run();
 
     appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now(), 1);
@@ -33,8 +48,8 @@ class AppraisalLedgerTest {
   }
 
   @Test
-  void deduplicationTest() {
-    AppraisalLedger appraisalLedger = new AppraisalLedger();
+  void deduplicationTest() throws Exception {
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
     appraisalLedger.run();
 
     appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now(), 1);
@@ -51,8 +66,8 @@ class AppraisalLedgerTest {
   }
 
   @Test
-  void blockDeduplicationTest() {
-    AppraisalLedger appraisalLedger = new AppraisalLedger();
+  void blockDeduplicationTest() throws Exception {
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
     appraisalLedger.run();
 
     appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now().plusMinutes(2), 1);
@@ -73,8 +88,8 @@ class AppraisalLedgerTest {
   }
 
   @Test
-  void incompleteReportPenaltyTest() {
-    AppraisalLedger appraisalLedger = new AppraisalLedger();
+  void incompleteReportPenaltyTest() throws Exception {
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
     appraisalLedger.run();
 
     appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now().plusMinutes(2), 0);
@@ -96,8 +111,8 @@ class AppraisalLedgerTest {
   }
 
   @Test
-  void lostBlockPenaltyTest() {
-    AppraisalLedger appraisalLedger = new AppraisalLedger();
+  void lostBlockPenaltyTest() throws Exception {
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
     appraisalLedger.run();
 
     appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now().plusMinutes(2), 1);
@@ -121,5 +136,34 @@ class AppraisalLedgerTest {
     System.out.println(peerRating1 + " " + peerRating2);
     Assertions.assertTrue(peerRating1 > peerRating2);
     appraisalLedger.close();
+  }
+
+  @Test
+  void simplePersistTest() throws Exception {
+    basePath = Paths.get(basePath.toString() + File.separator + "inner_dir");
+    AppraisalLedger appraisalLedger = new AppraisalLedger(basePath);
+    appraisalLedger.run();
+
+    appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now(), 1);
+    appraisalLedger.registerPeerContact(PEER_ID_1, DateTime.now().plusHours(1), 1);
+
+    appraisalLedger.registerPeerContact(PEER_ID_2, DateTime.now(), 1);
+    appraisalLedger.registerPeerContact(PEER_ID_2, DateTime.now().plusHours(1), 1);
+
+    appraisalLedger.writeAppraisals();
+
+    appraisalLedger.close();
+
+    AppraisalLedger appraisalLedger2 = new AppraisalLedger(basePath);
+
+    double peerRating1 = appraisalLedger2.getPeerRating(PEER_ID_1);
+    double peerRating2 = appraisalLedger2.getPeerRating(PEER_ID_2);
+    Assertions.assertEquals(peerRating1, peerRating2);
+    appraisalLedger2.close();
+  }
+
+  @AfterEach
+  void tearDown() throws Exception {
+    StorageManagerTestUtils.deleteDirectoryRecursively(basePath);
   }
 }

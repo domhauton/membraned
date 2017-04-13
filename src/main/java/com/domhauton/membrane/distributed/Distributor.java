@@ -17,6 +17,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.Duration;
 
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -39,14 +40,14 @@ public class Distributor implements Runnable, ContractManager {
 
   private int contractLimit;
 
-  public Distributor(ShardStorage shardStorage, NetworkManager networkManager, int contractLimit) {
+  public Distributor(Path basePath, ShardStorage shardStorage, NetworkManager networkManager, int contractLimit) throws DistributorException {
     this.shardStorage = shardStorage;
     this.networkManager = networkManager;
     this.contractLimit = contractLimit;
 
     distributedStore = new DistributedStore();
     blockEvidenceLedger = new BlockEvidenceLedger();
-    appraisalLedger = new AppraisalLedger();
+    appraisalLedger = new AppraisalLedger(basePath);
     uploadRateLimiter = new RateLimiter(this::beginUpload, UPLOAD_RATE_LIMIT);
     contractStore = new ContractStore();
   }

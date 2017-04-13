@@ -1,5 +1,6 @@
 package com.domhauton.membrane.distributed.appraisal;
 
+import com.domhauton.membrane.distributed.appraisal.files.PeerAppraisalSerializable;
 import com.google.common.util.concurrent.AtomicDoubleArray;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,6 +35,23 @@ public class PeerAppraisal {
     this.firstInteractionTime = firstInteractionTime;
     timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
     reportsReceived = new HashSet<>();
+  }
+
+  PeerAppraisal(String peerId, long firstInteractionTimeMillis, double[] timesSeenAtHourOfWeek, long incompleteReports, long completeReports, long lostBlocks, long totalLifetimeBlocks, Set<String> reportsReceived, long reportsExpected, long countingForHourMillis) {
+    this.peerId = peerId;
+    this.firstInteractionTime = new DateTime(Math.max(0, firstInteractionTimeMillis));
+    this.timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
+    this.incompleteReports = incompleteReports;
+    this.completeReports = completeReports;
+    this.lostBlocks = lostBlocks;
+    this.totalLifetimeBlocks = totalLifetimeBlocks;
+    this.reportsReceived = new HashSet<>(reportsReceived);
+    this.reportsExpected = reportsExpected;
+    this.countingForHour = new DateTime(Math.max(0, countingForHourMillis));
+
+    for (int i = 0; i < timesSeenAtHourOfWeek.length && i < timesSeenAtHourOfWeek.length; i++) {
+      this.timesSeenAtHourOfWeek.set(i, timesSeenAtHourOfWeek[i]);
+    }
   }
 
   public String getPeerId() {
@@ -193,5 +211,20 @@ public class PeerAppraisal {
     double chanceOfLosingBlocks = totalLifetimeBlocks <= 0 ? 0.0d : (double) lostBlocks / (double) totalLifetimeBlocks;
     // Clamp between 0.0d and 1.0d
     return Math.min(chanceOfLosingBlocks, 1.0d);
+  }
+
+  PeerAppraisalSerializable serialize() {
+    return new PeerAppraisalSerializable(
+        peerId,
+        firstInteractionTime,
+        timesSeenAtHourOfWeek,
+        incompleteReports,
+        completeReports,
+        lostBlocks,
+        totalLifetimeBlocks,
+        reportsReceived,
+        reportsExpected,
+        countingForHour
+    );
   }
 }
