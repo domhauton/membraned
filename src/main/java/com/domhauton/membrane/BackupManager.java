@@ -10,6 +10,8 @@ import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManagerImpl;
 import com.domhauton.membrane.prospector.FileManager;
 import com.domhauton.membrane.prospector.FileManagerException;
+import com.domhauton.membrane.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorageImpl;
 import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -61,6 +63,8 @@ public class BackupManager implements Runnable, Closeable {
     this.startTime = DateTime.now();
     trimExecutor = Executors.newSingleThreadScheduledExecutor();
 
+    Path configDir = configPath.getParent();
+
     try {
 
       // Create the file manager (responsible for monitoring changes)
@@ -69,10 +73,8 @@ public class BackupManager implements Runnable, Closeable {
           config.getWatcher().getChunkSizeMB());
 
       // Create the local storage manager. Responsible for persisting files on the local machine.
-
-      localStorageManager = new StorageManager(
-              Paths.get(config.getLocalStorage().getStorageFolder()),
-              config.getLocalStorage().getHardStorageLimit() * MB);
+      ShardStorage localShardStorage = new ShardStorageImpl(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * MB);
+      localStorageManager = new StorageManager(configDir, localShardStorage);
 
       // If not in monitor mode connect the file manager to the storage manager.
 

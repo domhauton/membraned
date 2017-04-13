@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
@@ -26,7 +27,6 @@ class ContractStoreTest {
   @BeforeEach
   void setUp() throws Exception {
     basePath = Paths.get(StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR));
-
   }
 
   @Test
@@ -69,6 +69,7 @@ class ContractStoreTest {
 
   @Test
   void persistenceTest() throws Exception {
+    basePath = Paths.get(basePath.toString() + File.separator + "test_dir");
     ContractStore contractStore = new ContractStore(basePath);
     contractStore.run();
     Assertions.assertEquals(0, contractStore.getMyBlockSpace(peer1));

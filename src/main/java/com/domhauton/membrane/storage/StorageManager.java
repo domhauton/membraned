@@ -2,7 +2,6 @@ package com.domhauton.membrane.storage;
 
 import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageException;
-import com.domhauton.membrane.shard.ShardStorageImpl;
 import com.domhauton.membrane.storage.catalogue.CatalogueUtils;
 import com.domhauton.membrane.storage.catalogue.FileCatalogue;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
@@ -42,20 +41,15 @@ public class StorageManager {
 
   private OutputStreamWriter journalOutput;
 
-  public StorageManager(Path basePath, int maxStorageSize) throws StorageManagerException {
-    this(
-            Paths.get(basePath.toString() + File.separator + DEFAULT_CATALOGUE_FOLDER),
-            Paths.get(basePath.toString() + File.separator + DEFAULT_STORAGE_FOLDER), maxStorageSize);
-  }
-
-  private StorageManager(Path catalogue, Path data, long maxStorageSize) throws StorageManagerException {
+  public StorageManager(Path basePath, ShardStorage shardStorage) throws StorageManagerException {
     logger = LogManager.getLogger();
     logger.info("Opening storage manager.");
-    shardStorage = new ShardStorageImpl(data, maxStorageSize);
+    this.shardStorage = shardStorage;
     tempProtectedShards = new HashSet<>();
-    journalPath = Paths.get(catalogue.toString() + File.separator + JOURNAL_NAME);
+    Path storageManagerPath = Paths.get(basePath.toString() + File.separator + DEFAULT_CATALOGUE_FOLDER);
+    journalPath = Paths.get(storageManagerPath.toString() + File.separator + JOURNAL_NAME);
     List<JournalEntry> journalEntries = journalPath.toFile().exists() ? readJournal(journalPath) : new LinkedList<>();
-    baseFileMapPath = Paths.get(catalogue.toString() + File.separator + BASE_FILE_MAP_NAME);
+    baseFileMapPath = Paths.get(storageManagerPath.toString() + File.separator + BASE_FILE_MAP_NAME);
     Map<Path, FileVersion> fileMap = baseFileMapPath.toFile().exists() ? readFileMap(baseFileMapPath) : new HashMap<>();
     journalOutput = openJournalOutputStream(journalPath);
     fileCatalogue = new FileCatalogue(fileMap, journalEntries);

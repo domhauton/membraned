@@ -1,5 +1,7 @@
 package com.domhauton.membrane.storage;
 
+import com.domhauton.membrane.shard.ShardStorage;
+import com.domhauton.membrane.shard.ShardStorageImpl;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import com.google.common.hash.Hashing;
@@ -10,8 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -26,21 +26,25 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class StorageManagerTest {
 
   private String testDir;
+  private Path shardStoragePath;
   private Path srcFile;
   private Path tgtFile;
   private Random random;
 
   private final int storageMangerSize = 1024 * 1024 * 1024; //1GB
 
+  private ShardStorage shardStorage;
   private StorageManager storageManager;
 
   @BeforeEach
   void setUp() throws Exception {
     random = new Random(System.currentTimeMillis());
     testDir = StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR);
+    shardStoragePath = Paths.get(StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR));
     srcFile = Paths.get(testDir + File.separator + "src.txt");
     tgtFile = Paths.get(testDir + File.separator + "tgt.txt");
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
   }
 
   @Test
@@ -126,7 +130,9 @@ class StorageManagerTest {
     storageManager.addFile(Arrays.asList(md5HashLengthPair1, md5HashLengthPair2), new DateTime(100L), srcFile);
 
     storageManager.close();
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     storageManager.rebuildFile(srcFile, tgtFile);
 
@@ -172,7 +178,8 @@ class StorageManagerTest {
     // Delete to journal to ensure it doesn't interfere anyway.
     Files.delete(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME));
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
     storageManager.rebuildFile(srcFile, tgtFile);
 
     byte[] reconstructed = Files.readAllBytes(tgtFile);
@@ -216,7 +223,8 @@ class StorageManagerTest {
     int journalSize = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME)).size();
     Assertions.assertEquals(3, journalSize);
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     storageManager.clampStorageToSize(len, new HashSet<>(Collections.singletonList(srcFile.getParent())));
 
@@ -225,7 +233,8 @@ class StorageManagerTest {
     List<String> journal = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME));
     Assertions.assertEquals(0, journal.size());
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     List<JournalEntry> journalEntries = storageManager.getFileHistory(srcFile);
     Assertions.assertEquals(1, journalEntries.size());
@@ -309,7 +318,8 @@ class StorageManagerTest {
     int journalSize = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME)).size();
     Assertions.assertEquals(3, journalSize);
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     storageManager.clampStorageToSize(len * 2, new HashSet<>(Collections.singletonList(srcFile.getParent())));
 
@@ -322,7 +332,8 @@ class StorageManagerTest {
     System.err.println(journal);
     Assertions.assertEquals(1, journal.size());
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     List<JournalEntry> journalEntries = storageManager.getFileHistory(srcFile);
     Assertions.assertEquals(2, journalEntries.size());
@@ -357,7 +368,8 @@ class StorageManagerTest {
     int journalSize = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME)).size();
     Assertions.assertEquals(1, journalSize);
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     storageManager.clampStorageToSize(len - 1, Collections.emptySet());
 
@@ -366,7 +378,8 @@ class StorageManagerTest {
     List<String> journal = Files.readAllLines(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER + File.separator + StorageManager.JOURNAL_NAME));
     Assertions.assertEquals(0, journal.size());
 
-    storageManager = new StorageManager(Paths.get(testDir), storageMangerSize);
+    shardStorage = new ShardStorageImpl(shardStoragePath, storageMangerSize);
+    storageManager = new StorageManager(Paths.get(testDir), shardStorage);
 
     List<JournalEntry> journalEntries = storageManager.getFileHistory(srcFile);
     Assertions.assertEquals(0, journalEntries.size());
@@ -380,24 +393,7 @@ class StorageManagerTest {
   @AfterEach
   void tearDown() throws Exception {
     storageManager.close();
-    Files.delete(Paths.get(testDir + File.separator + StorageManager.DEFAULT_STORAGE_FOLDER));
-
-    Path catPath = Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER);
-
-    String[] backupPaths = catPath.toFile().list();
-    if (backupPaths != null) {
-      Arrays.stream(backupPaths)
-              .map(s -> catPath + File.separator + s)
-              .map(Paths::get)
-              .forEach(x -> {
-                try {
-                  Files.delete(x);
-                } catch (IOException e) {
-                  throw new UncheckedIOException(e);
-                }
-              });
-    }
-    Files.delete(Paths.get(testDir + File.separator + StorageManager.DEFAULT_CATALOGUE_FOLDER));
-    Files.delete(Paths.get(testDir));
+    StorageManagerTestUtils.deleteDirectoryRecursively(Paths.get(testDir));
+    StorageManagerTestUtils.deleteDirectoryRecursively(shardStoragePath);
   }
 }
