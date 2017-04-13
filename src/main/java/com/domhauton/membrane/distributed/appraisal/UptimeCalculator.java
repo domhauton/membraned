@@ -1,5 +1,6 @@
 package com.domhauton.membrane.distributed.appraisal;
 
+import com.domhauton.membrane.distributed.appraisal.files.UptimeSerializable;
 import com.google.common.util.concurrent.AtomicDoubleArray;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
@@ -21,6 +22,16 @@ public class UptimeCalculator {
     this.firstMeasured = firstMeasured;
     this.previousUpdateTime = previousUpdateTime;
     timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
+  }
+
+  UptimeCalculator(long firstMeasuredMillis, long previousUpdateTimeMillis, double[] timesSeenArray) {
+    this.firstMeasured = new DateTime(Math.max(0, firstMeasuredMillis));
+    this.previousUpdateTime = new DateTime(Math.max(0, previousUpdateTimeMillis));
+    timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
+
+    for (int i = 0; i < timesSeenArray.length && i < this.timesSeenAtHourOfWeek.length(); i++) {
+      this.timesSeenAtHourOfWeek.set(i, timesSeenArray[i]);
+    }
   }
 
   synchronized DateTime updateUptime() {
@@ -56,5 +67,9 @@ public class UptimeCalculator {
     }
 
     return retPercentage;
+  }
+
+  UptimeSerializable serialize() {
+    return new UptimeSerializable(firstMeasured, previousUpdateTime, timesSeenAtHourOfWeek);
   }
 }

@@ -1,7 +1,8 @@
 package com.domhauton.membrane.distributed.appraisal;
 
-import com.domhauton.membrane.distributed.appraisal.files.PeerAppraisalCollection;
+import com.domhauton.membrane.distributed.appraisal.files.PeerAppraisalFile;
 import com.domhauton.membrane.distributed.appraisal.files.PeerAppraisalSerializable;
+import com.domhauton.membrane.distributed.appraisal.files.UptimeSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.apache.logging.log4j.LogManager;
@@ -15,7 +16,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -39,7 +39,6 @@ public class AppraisalLedger implements Runnable, Closeable {
   private final Path fullPersistPath;
 
   public AppraisalLedger(Path basePath) throws AppraisalException {
-    uptimeCalculator = new UptimeCalculator();
     appraisalMap = new ConcurrentHashMap<>();
     executorService = Executors.newSingleThreadScheduledExecutor();
 
@@ -56,10 +55,14 @@ public class AppraisalLedger implements Runnable, Closeable {
 
     // Load from File if exists
 
-    List<PeerAppraisal> peerAppraisals = fullPersistPath.toFile().exists() ?
-        readAppraisals(fullPersistPath) : Collections.emptyList();
-
-    peerAppraisals.forEach(x -> appraisalMap.put(x.getPeerId(), x));
+    if (fullPersistPath.toFile().exists()) {
+      PeerAppraisalFile peerAppraisalFile = readAppraisals(fullPersistPath);
+      peerAppraisalFile2Appraisals(peerAppraisalFile)
+          .forEach(x -> appraisalMap.put(x.getPeerId(), x));
+      uptimeCalculator = peerAppraisalFile2Uptime(peerAppraisalFile);
+    } else {
+      uptimeCalculator = new UptimeCalculator();
+    }
   }
 
   public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedShards, String shardId) {
@@ -138,19 +141,27 @@ public class AppraisalLedger implements Runnable, Closeable {
 
   private final static ObjectMapper MAPPER = new ObjectMapper(new YAMLFactory());
 
-  private synchronized List<PeerAppraisal> readAppraisals(Path path) throws AppraisalException {
+  private synchronized PeerAppraisalFile readAppraisals(Path path) throws AppraisalException {
     try {
       logger.info("Reading peer appraisals from file. [{}]", path);
-      List<PeerAppraisalSerializable> peerAppraisals =
-          MAPPER.readValue(path.toFile(), PeerAppraisalCollection.class).getPeerAppraisals();
-      return peerAppraisals.stream()
-          .map(x -> new PeerAppraisal(x.getPeerId(), x.getFirstInteractionTimeMillis(), x.getTimesSeenAtHourOfWeek(), x.getIncompleteReports(), x.getCompleteReports(), x.getLostBlocks(), x.getTotalLifetimeBlocks(), x.getReportsReceived(), x.getReportsExpected(), x.getCountingForHourMillis()))
-          .collect(Collectors.toList());
+      return MAPPER.readValue(path.toFile(), PeerAppraisalFile.class);
     } catch (IOException e) {
       logger.error("Reading peer appraisals from file failed. [{}]", path);
       logger.debug(e);
       throw new AppraisalException("Failed to read appraisals from file. " + e.getMessage());
     }
+  }
+
+  private UptimeCalculator peerAppraisalFile2Uptime(PeerAppraisalFile peerAppraisalFile) {
+    UptimeSerializable uptimeSerializable = peerAppraisalFile.getUptime();
+    return new UptimeCalculator(uptimeSerializable.getFirstInteractionTimeMillis(), uptimeSerializable.getPreviousUpdateTimeMillis(), uptimeSerializable.getTimesSeenAtHourOfWeek());
+  }
+
+  private List<PeerAppraisal> peerAppraisalFile2Appraisals(PeerAppraisalFile peerAppraisalFile) {
+    List<PeerAppraisalSerializable> peerAppraisals = peerAppraisalFile.getPeerAppraisals();
+    return peerAppraisals.stream()
+        .map(x -> new PeerAppraisal(x.getPeerId(), x.getFirstInteractionTimeMillis(), x.getTimesSeenAtHourOfWeek(), x.getIncompleteReports(), x.getCompleteReports(), x.getLostBlocks(), x.getTotalLifetimeBlocks(), x.getReportsReceived(), x.getReportsExpected(), x.getCountingForHourMillis()))
+        .collect(Collectors.toList());
   }
 
   void writeAppraisals() throws AppraisalException {
@@ -161,12 +172,13 @@ public class AppraisalLedger implements Runnable, Closeable {
     List<PeerAppraisalSerializable> peerAppraisals = appraisalMap.values().stream()
         .map(PeerAppraisal::serialize)
         .collect(Collectors.toList());
-    PeerAppraisalCollection peerAppraisalCollection = new PeerAppraisalCollection(peerAppraisals);
+    UptimeSerializable uptimeSerial = uptimeCalculator.serialize();
+    PeerAppraisalFile peerAppraisalFile = new PeerAppraisalFile(peerAppraisals, uptimeSerial);
     try {
       logger.info("Storing {} peer appraisals to file. [{}]", peerAppraisals.size(), path);
       Path tmpPath = Paths.get(fullPersistPath.toString() + ".tmp");
       Files.deleteIfExists(tmpPath);
-      MAPPER.writeValue(tmpPath.toFile(), peerAppraisalCollection);
+      MAPPER.writeValue(tmpPath.toFile(), peerAppraisalFile);
       Files.move(tmpPath, fullPersistPath, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
       logger.error("Failed to store peer appraisals to file. [{}] {}", path, e.getMessage());
