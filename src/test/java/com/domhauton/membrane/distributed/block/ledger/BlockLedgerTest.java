@@ -12,7 +12,10 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 /**
@@ -38,8 +41,8 @@ class BlockLedgerTest {
   @Test
   void testEmpty() throws Exception {
     BlockLedger blockLedger = new BlockLedger(basePath);
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.confirmBlockHash("foobar", DateTime.now(), "fooSalt"));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.confirmBlockHash("foobar", DateTime.now(), "fooSalt"));
   }
 
   @Test
@@ -47,11 +50,11 @@ class BlockLedgerTest {
     BlockLedger blockLedger = new BlockLedger(basePath);
     byte[] shard = BlockUtilsTest.generateRandomShard();
     String reference = blockLedger.addBlock(shard, BASE_SHARD_SET, PEER_1, DateTime.now());
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
 
     assertHash(blockLedger, shard, reference, DateTime.now());
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(1)));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(1)));
   }
 
   @Test
@@ -71,12 +74,12 @@ class BlockLedgerTest {
 
     BlockLedger blockLedger2 = new BlockLedger(basePath);
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger2.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger2.getBlockEvidenceSalt("foobar", DateTime.now()));
 
     assertHash(blockLedger2, block1, reference1, DateTime.now());
     assertHash(blockLedger2, block2, reference2, DateTime.now());
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger2.getBlockEvidenceSalt(reference1, DateTime.now().plusHours(1)));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger2.getBlockEvidenceSalt(reference1, DateTime.now().plusHours(1)));
 
     ShardPeerLookup shardPeerLookup = blockLedger2.generateShardPeerLookup();
     Assertions.assertEquals(blockShards2, shardPeerLookup.undeployedShards(PEER_1));
@@ -109,11 +112,11 @@ class BlockLedgerTest {
     blockLedger3.removeBlock(reference2);
 
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger3.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger3.getBlockEvidenceSalt("foobar", DateTime.now()));
 
     assertHash(blockLedger3, block1, reference1, DateTime.now());
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger3.getBlockEvidenceSalt(reference2, DateTime.now()));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger3.getBlockEvidenceSalt(reference1, DateTime.now().plusHours(1)));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger3.getBlockEvidenceSalt(reference2, DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger3.getBlockEvidenceSalt(reference1, DateTime.now().plusHours(1)));
 
     blockLedger3.addBlock(block2, blockShards2, PEER_1, DateTime.now());
     Set<String> allShards = new HashSet<>(Arrays.asList(SHARD_1, SHARD_2, SHARD_3));
@@ -131,7 +134,7 @@ class BlockLedgerTest {
 
     assertHash(blockLedger, shard, reference, DateTime.now());
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(1)));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(1)));
   }
 
   @Test
@@ -139,12 +142,18 @@ class BlockLedgerTest {
     BlockLedger blockLedger = new BlockLedger(basePath);
     byte[] shard = BlockUtilsTest.generateRandomShard();
     String reference = blockLedger.addBlock(shard, BASE_SHARD_SET, PEER_1, DateTime.now().plusHours(3));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
 
     IntStream.range(0, 4).boxed()
-        .forEach(x -> assertHash(blockLedger, shard, reference, DateTime.now().plusHours(x)));
+        .forEach(x -> {
+          try {
+            assertHash(blockLedger, shard, reference, DateTime.now().plusHours(x));
+          } catch (Exception e) {
+            throw new RuntimeException(e);
+          }
+        });
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(4)));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now().plusHours(4)));
   }
 
   @Test
@@ -152,7 +161,7 @@ class BlockLedgerTest {
     BlockLedger blockLedger = new BlockLedger(basePath);
     byte[] shard = BlockUtilsTest.generateRandomShard();
     String reference = blockLedger.addBlock(shard, BASE_SHARD_SET, PEER_1, DateTime.now().plusHours(3));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
 
     DateTime dateTime = DateTime.now().plusHours(3);
     assertHash(blockLedger, shard, reference, dateTime);
@@ -162,7 +171,7 @@ class BlockLedgerTest {
     Assertions.assertFalse(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash.toUpperCase()));
   }
 
-  private void assertHash(BlockLedger blockLedger, byte[] shard, String reference, DateTime dateTime) {
+  private void assertHash(BlockLedger blockLedger, byte[] shard, String reference, DateTime dateTime) throws Exception {
     byte[] contractSalt = blockLedger.getBlockEvidenceSalt(reference, dateTime);
     String calculatedHash = blockLedger.getHash(contractSalt, shard);
     Assertions.assertTrue(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash));
@@ -171,8 +180,8 @@ class BlockLedgerTest {
   @Test
   void testRemoval() throws Exception {
     BlockLedger blockLedger = new BlockLedger(basePath);
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.confirmBlockHash("foobar", DateTime.now(), "fooSalt"));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt("foobar", DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.confirmBlockHash("foobar", DateTime.now(), "fooSalt"));
 
     byte[] shard = BlockUtilsTest.generateRandomShard();
     String reference = blockLedger.addBlock(shard, BASE_SHARD_SET, PEER_1, DateTime.now());
@@ -180,8 +189,8 @@ class BlockLedgerTest {
 
     blockLedger.removeBlock(reference);
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now()));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.confirmBlockHash(reference, DateTime.now(), "fooSalt"));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.confirmBlockHash(reference, DateTime.now(), "fooSalt"));
 
     blockLedger.addBlock(shard, BASE_SHARD_SET, PEER_1, DateTime.now());
     assertHash(blockLedger, shard, reference, DateTime.now());
@@ -191,8 +200,8 @@ class BlockLedgerTest {
 
     blockLedger.removeAllExcept(Collections.emptySet());
 
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now()));
-    Assertions.assertThrows(NoSuchElementException.class, () -> blockLedger.confirmBlockHash(reference, DateTime.now(), "fooSalt"));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.getBlockEvidenceSalt(reference, DateTime.now()));
+    Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger.confirmBlockHash(reference, DateTime.now(), "fooSalt"));
   }
 
   @AfterEach

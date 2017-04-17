@@ -116,6 +116,10 @@ class StorageContract {
     this.peerBaseAllowedInequality = peerBaseAllowedInequality;
   }
 
+  int getPeerBaseAllowedInequality() {
+    return peerBaseAllowedInequality;
+  }
+
   StorageContractSerializable serialize() {
     return new StorageContractSerializable(peerId, myBlockIds, peerBlockIds, myBaseAllowedInequality, peerBaseAllowedInequality);
   }

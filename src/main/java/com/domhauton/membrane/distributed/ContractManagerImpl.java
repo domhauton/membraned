@@ -1,5 +1,9 @@
 package com.domhauton.membrane.distributed;
 
+import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
+import com.domhauton.membrane.distributed.evidence.EvidenceResponse;
+import org.joda.time.DateTime;
+
 import java.util.Collections;
 import java.util.Set;
 
@@ -23,5 +27,20 @@ public class ContractManagerImpl implements ContractManager {
   @Override
   public void addContractedPeer(String peerID) throws DistributorException {
     throw new DistributorException("Cannot add contract to dummy contract manager");
+  }
+
+  @Override
+  public Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds) {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
+    // Do Nothing
+  }
+
+  @Override
+  public Set<EvidenceResponse> processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
+    return Collections.emptySet();
   }
 }

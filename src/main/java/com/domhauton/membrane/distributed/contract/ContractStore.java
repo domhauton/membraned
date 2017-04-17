@@ -4,7 +4,6 @@ import com.domhauton.membrane.distributed.contract.files.StorageContractCollecti
 import com.domhauton.membrane.distributed.contract.files.StorageContractSerializable;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
-import com.google.common.collect.ImmutableSet;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -15,10 +14,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -72,7 +68,7 @@ public class ContractStore implements Runnable, Closeable {
     getStorageContract(peerId).addPeerBlockId(blockId);
   }
 
-  public void removeMyBlockId(String peerId, String blockId) throws ContractStoreException {
+  public void removeMyBlockId(String peerId, String blockId) {
     getStorageContract(peerId).removeMyBlockId(blockId);
   }
 
@@ -93,7 +89,10 @@ public class ContractStore implements Runnable, Closeable {
   }
 
   public Set<String> getCurrentPeers() {
-    return ImmutableSet.copyOf(contractList.keySet());
+    return contractList.entrySet().stream()
+        .filter(entry -> entry.getValue().getPeerBaseAllowedInequality() > 0)
+        .map(Map.Entry::getKey)
+        .collect(Collectors.toSet());
   }
 
   public Set<String> getMyBlockIds(String peerId) {
@@ -102,6 +101,10 @@ public class ContractStore implements Runnable, Closeable {
 
   public Set<String> getPeerBlockIds(String peerId) {
     return getStorageContract(peerId).getPeerBlockIds();
+  }
+
+  public int getPeerAllowedInequality(String peerId) {
+    return getStorageContract(peerId).getPeerBaseAllowedInequality();
   }
 
   private synchronized List<StorageContract> readContractInfo(Path path) throws ContractStoreException {

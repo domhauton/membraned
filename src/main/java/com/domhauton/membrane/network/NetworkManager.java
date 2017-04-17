@@ -3,6 +3,7 @@ package com.domhauton.membrane.network;
 import com.domhauton.membrane.distributed.ContractManager;
 
 import java.io.Closeable;
+import java.util.Set;
 
 /**
  * Created by dominic on 06/04/17.
@@ -32,6 +33,16 @@ public interface NetworkManager extends Runnable, Closeable {
    * @throws NetworkException   If there was an issue uploading. Peer not connected or buffer full.
    */
   void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException;
+
+  /**
+   * Send a contract update to a contracted peer.
+   *
+   * @param peerId               Peer to send update to
+   * @param permittedBlockOffset Amount of blocks peer can send for storage over the average in the contract.
+   * @param storedBlockIds       All of the peer's blocks currently stored.
+   * @throws NetworkException If there was an issue sending. Peer not connected or buffer full.
+   */
+  void sendContractUpdateToPeer(String peerId, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException;
 
   /**
    * Sets whether the network manager should allow contracts with new peers.

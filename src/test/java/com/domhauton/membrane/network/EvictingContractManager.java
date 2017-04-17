@@ -2,8 +2,12 @@ package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.distributed.ContractManager;
 import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
+import com.domhauton.membrane.distributed.evidence.EvidenceResponse;
 import com.google.common.collect.EvictingQueue;
+import org.joda.time.DateTime;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -39,5 +43,20 @@ class EvictingContractManager implements ContractManager {
         peerQueue.add(peerId);
       }
     }
+  }
+
+  @Override
+  public Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds) {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
+    // Do Nothing
+  }
+
+  @Override
+  public Set<EvidenceResponse> processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
+    return Collections.emptySet();
   }
 }

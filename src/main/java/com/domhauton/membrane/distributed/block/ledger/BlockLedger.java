@@ -72,25 +72,39 @@ public class BlockLedger implements Runnable, Closeable {
     return blockId;
   }
 
-  byte[] getBlockEvidenceSalt(String blockId, DateTime dateTime) throws NoSuchElementException {
+  public byte[] getBlockEvidenceSalt(String blockId, DateTime dateTime) throws BlockLedgerException {
     BlockInfo blockInfo = blockMap.get(blockId);
     if (blockInfo != null) {
       return blockInfo.getBlockConfirmation(dateTime).getHashSalt();
     } else {
-      throw new NoSuchElementException("Block " + blockId + " does not exist.");
+      throw new BlockLedgerException("Block " + blockId + " does not exist.");
     }
   }
 
-  boolean confirmBlockHash(String blockId, DateTime dateTime, String testHash) throws NoSuchElementException {
+  public boolean isBlockExpired(String blockId, DateTime dateTime) throws BlockLedgerException {
+    BlockInfo blockInfo = blockMap.get(blockId);
+    if (blockInfo != null) {
+      try {
+        blockInfo.getBlockConfirmation(dateTime);
+        return false;
+      } catch (NoSuchElementException e) {
+        return true;
+      }
+    } else {
+      throw new BlockLedgerException("Block " + blockId + " does not exist.");
+    }
+  }
+
+  boolean confirmBlockHash(String blockId, DateTime dateTime, String testHash) throws BlockLedgerException {
     BlockInfo blockInfo = blockMap.get(blockId);
     if (blockInfo != null) {
       return blockInfo.getBlockConfirmation(dateTime).getHash().equals(testHash);
     } else {
-      throw new NoSuchElementException("Block " + blockId + " does not exist.");
+      throw new BlockLedgerException("Block " + blockId + " does not exist.");
     }
   }
 
-  boolean removeBlock(String blockId) {
+  public boolean removeBlock(String blockId) {
     return blockMap.remove(blockId) != null;
   }
 

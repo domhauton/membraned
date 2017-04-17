@@ -8,7 +8,6 @@ import org.joda.time.Hours;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -59,10 +58,10 @@ class BlockInfo {
     return new BlockInfoSerializable(blockId, assignedPeer, containedShards, evidenceStartTime, saltHashPairSerialized);
   }
 
-  SaltHashPair getBlockConfirmation(DateTime dateTime) throws NoSuchElementException {
+  SaltHashPair getBlockConfirmation(DateTime dateTime) throws BlockLedgerException {
     int hoursFromStart = Hours.hoursBetween(evidenceStartTime, dateTime).getHours();
     if (hoursFromStart < 0 || hoursFromStart >= saltHashPairList.size()) {
-      throw new NoSuchElementException("There is no block confirmation for time " + dateTime.toString());
+      throw new BlockLedgerException("There is no block confirmation for time " + dateTime.toString());
     } else {
       return saltHashPairList.get(hoursFromStart);
     }

@@ -18,6 +18,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 /**
  * Created by Dominic Hauton on 18/02/17.
@@ -117,8 +118,14 @@ public class NetworkManagerImpl implements NetworkManager {
    */
   @Override
   public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
-    // TODO Implement
+    //FIXME Implement
     throw new NetworkException("Block upload not implemented!");
+  }
+
+  @Override
+  public void sendContractUpdateToPeer(String peerId, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException {
+    //FIXME Implement
+    throw new NetworkException("Contract update not implemented!");
   }
 
   @Override
