@@ -109,8 +109,18 @@ public class ContractStore implements Runnable, Closeable {
     return getStorageContract(peerId).getMyBlockIds();
   }
 
+  public int getMyBlockCount(String peerId) {
+    return getStorageContract(peerId).getMyBlockCount();
+  }
+
   public Set<String> getPeerBlockIds(String peerId) {
     return getStorageContract(peerId).getPeerBlockIds();
+  }
+
+  public Set<String> getPeerBlockIds() {
+    return contractList.values().stream()
+        .flatMap(storageContract -> storageContract.getPeerBlockIds().stream())
+        .collect(Collectors.toSet());
   }
 
   public int getPeerAllowedInequality(String peerId) {
@@ -132,7 +142,7 @@ public class ContractStore implements Runnable, Closeable {
     }
   }
 
-  void writeContracts() throws ContractStoreException {
+  private void writeContracts() throws ContractStoreException {
     writeContracts(fullPersistPath);
   }
 

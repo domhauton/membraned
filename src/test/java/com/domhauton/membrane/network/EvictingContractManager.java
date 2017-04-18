@@ -21,7 +21,7 @@ class EvictingContractManager implements ContractManager {
   private EvictingQueue<String> peerQueue;
   private int size;
 
-  public EvictingContractManager(int size) {
+  EvictingContractManager(int size) {
     this.size = size;
     peerQueue = EvictingQueue.create(size);
   }
@@ -46,7 +46,7 @@ class EvictingContractManager implements ContractManager {
   }
 
   @Override
-  public void receiveBlock(String peerId, byte[] data) {
+  public void receiveBlock(String peerId, String blockId, byte[] data) {
     // Do Nothing
   }
 

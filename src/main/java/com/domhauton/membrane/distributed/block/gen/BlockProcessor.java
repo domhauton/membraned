@@ -4,10 +4,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -54,6 +51,20 @@ public class BlockProcessor {
       localShardDataList.put(hash, localShardData);
       return shardData.length;
     }
+  }
+
+  public Map<String, byte[]> getShardMap() {
+    return localShardDataList.values()
+        .stream()
+        .map((LocalShardData x) -> {
+          try {
+            return new AbstractMap.SimpleEntry<>(x.getLocalId(), x.isCompressed() ? BlockUtils.decompress(x.getShardData()) : x.getShardData());
+          } catch (BlockException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        .collect(Collectors.toMap(AbstractMap.SimpleEntry::getKey, AbstractMap.SimpleEntry::getValue));
   }
 
   /**

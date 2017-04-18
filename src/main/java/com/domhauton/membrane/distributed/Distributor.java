@@ -11,7 +11,6 @@ import com.domhauton.membrane.distributed.contract.ContractStoreException;
 import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
 import com.domhauton.membrane.distributed.evidence.EvidenceResponse;
 import com.domhauton.membrane.distributed.evidence.EvidenceType;
-import com.domhauton.membrane.distributed.util.RateLimiter;
 import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManager;
 import com.domhauton.membrane.shard.ShardStorage;
@@ -20,7 +19,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
-import org.joda.time.Duration;
 import org.joda.time.Minutes;
 
 import java.io.Closeable;
@@ -35,7 +33,6 @@ import java.util.stream.Collectors;
  * Created by Dominic Hauton on 02/03/17.
  */
 public class Distributor implements Runnable, Closeable, ContractManager {
-  private final static Duration UPLOAD_RATE_LIMIT = Duration.standardSeconds(5);
   private final static long BLOCK_SIZE_BYTES = 16L * 1024L * 1024L * 1024L; //16MB
   private final static int MAX_BLOCK_LIFETIME_WEEKS = 2;
   private final static int TIME_BEFORE_FIRST_BROADCAST_MINS = 10;
@@ -48,7 +45,6 @@ public class Distributor implements Runnable, Closeable, ContractManager {
 
   private final BlockLedger blockLedger;
   private final AppraisalLedger appraisalLedger;
-  private final RateLimiter uploadRateLimiter;
   private final ContractStore contractStore;
 
   private NetworkManager networkManager;
@@ -70,26 +66,42 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     blockLedger = new BlockLedger(basePath);
     appraisalLedger = new AppraisalLedger(basePath);
     contractStore = new ContractStore(basePath);
-
-    uploadRateLimiter = new RateLimiter(this::distributeShards, UPLOAD_RATE_LIMIT);
   }
 
-  void distributeShards() {
+  private void distributeShards() {
     // Generate a temporary shard -> peer lookup table.
     ShardPeerLookup shardPeerLookup = blockLedger.generateShardPeerLookup();
+    List<String> connectedPeersByRank = getAvailablePeersSortedByRank();
+    uploadUndeployedShards(shardPeerLookup, connectedPeersByRank);
+    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
+    logger.info("Shard distribution complete. {} shards remain undistributed.", totalUndeployedShards.size());
+
+    // Remove any disused block Ledgers
+    blockLedger.removeAllExcept(contractStore.getMyBlockIds());
+    // Remove any unnecessaryShard peer blocks.
+    removeUnnecessaryShards();
+  }
+
+  private List<String> getAvailablePeersSortedByRank() {
     // This is expensive. Be careful.
     Map<String, Double> peerReliabilityMap = contractStore.getCurrentPeers().stream()
         .filter(this::isPeerConnected)
         .collect(Collectors.toMap(x -> x, appraisalLedger::getPeerRating));
 
     // Do not chain with above. Memoize reliability score!
-    List<String> connectedPeersByRank = peerReliabilityMap.entrySet().stream()
+    return peerReliabilityMap.entrySet().stream()
         .sorted(Comparator.comparingDouble(Map.Entry::getValue))
         .map(Map.Entry::getKey)
         .collect(Collectors.toList());
+  }
 
-    // Send all possible shards to top X peers and wait a second and re-prompt upload if shards remain.
-
+  /**
+   * Send all possible shards to top X peers and wait a second and re-prompt upload if shards remain.
+   *
+   * @param shardPeerLookup      A lookup object correlating peers and shards.
+   * @param connectedPeersByRank A list of available peers by their rank.
+   */
+  private void uploadUndeployedShards(ShardPeerLookup shardPeerLookup, List<String> connectedPeersByRank) {
     Set<String> usedShardSet = new HashSet<>();
     for (String peerId : connectedPeersByRank) {
       // What shards can this peer get?
@@ -119,12 +131,18 @@ public class Distributor implements Runnable, Closeable, ContractManager {
         usedShardSet.addAll(shardsToUploadForPeer);
       }
     }
+  }
 
-    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
-    logger.info("Shard distribution complete. {} shards remain undistributed.", totalUndeployedShards.size());
-
-    // As the last part of maintenance remove any disused block Ledgers
-    blockLedger.removeAllExcept(contractStore.getMyBlockIds());
+  private void removeUnnecessaryShards() {
+    Set<String> unnecessaryShards = peerShardStorage.listShards();
+    unnecessaryShards.removeAll(contractStore.getPeerBlockIds());
+    for (String unnecessaryShard : unnecessaryShards) {
+      try {
+        peerShardStorage.removeShard(unnecessaryShard);
+      } catch (ShardStorageException e) {
+        logger.debug("Could not remove unnecessary shard during cleanup.");
+      }
+    }
   }
 
   private boolean isPeerConnected(String peerId) {
@@ -217,9 +235,22 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   }
 
   @Override
-  public void receiveBlock(String peerId, byte[] data) {
-    //FIXME Implement
-    throw new RuntimeException("Not implemented yet.");
+  public void receiveBlock(String peerId, String blockId, byte[] data) {
+    String generatedBlockId = BlockLedger.generateBlockId(data);
+    if (generatedBlockId.equals(blockId)) {
+      try {
+        contractStore.addPeerBlockId(peerId, blockId);
+        peerShardStorage.storeShard(blockId, data);
+      } catch (ContractStoreException e) {
+        logger.warn("Insufficient contactable space for peer block. Ignoring. {}", e.getMessage());
+      } catch (ShardStorageException e) {
+        logger.error("Failed to store peer block. Ignoring. {}", e.getMessage());
+      }
+    } else {
+      logger.error("Ignoring corrupt block. PEER[{}] BLOCK[{}]", peerId, blockId);
+    }
+    // Inform peer of new block and trigger evidence building.
+    sendContractUpdateToPeer(peerId);
   }
 
   @Override
@@ -301,32 +332,47 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   public void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
     // Ensure datetime is within the last hour
     if (Math.abs(Minutes.minutesBetween(dateTime, DateTime.now()).getMinutes()) < DateTimeConstants.MINUTES_PER_HOUR) {
-      Set<String> myBlockIds = contractStore.getMyBlockIds(peerId);
-      evidenceResponses.forEach(evidenceResponse -> confirmEvidence(peerId, myBlockIds, dateTime, evidenceResponse));
+      evidenceResponses.forEach(evidenceResponse -> confirmEvidence(peerId, dateTime, evidenceResponse));
     }
   }
 
-  private void confirmEvidence(String peerId, Set<String> expectedMyBlockIds, DateTime dateTime, EvidenceResponse evidenceResponse) {
+  private void confirmEvidence(String peerId, DateTime dt, EvidenceResponse res) {
     try {
-      switch (evidenceResponse.getEvidenceType()) {
+      switch (res.getEvidenceType()) {
         case SEND_BLOCK:
-          BlockProcessor blockProcessor = new BlockProcessor(evidenceResponse.getResponse(), key);
-          String actualHash = BlockLedger.generateBlockId(evidenceResponse.getResponse());
+          BlockProcessor blockProcessor = new BlockProcessor(res.getResponse(), key);
+          String actualHash = BlockLedger.generateBlockId(res.getResponse());
           // Check not corrupted
-          if (actualHash.equals(evidenceResponse.getBlockId())) {
+          if (actualHash.equals(res.getBlockId())) {
             // This block actually exists, so force add it back into the ledger.
-            if (!expectedMyBlockIds.contains(evidenceResponse.getBlockId())) {
-              contractStore.addMyBlockIdForce(peerId, actualHash);
-            }
-
-
+            contractStore.addMyBlockIdForce(peerId, actualHash);
+            blockProcessor.getShardMap().forEach((String shardId, byte[] shardData) -> {
+              try {
+                localShardStorage.storeShard(shardId, shardData);
+              } catch (ShardStorageException e) {
+                logger.error("Failed to store recovered block. Forgetting. {}", e.getMessage());
+              }
+            });
+            appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), res.getBlockId());
           }
           break;
         case COMPUTE_HASH:
-          //FIXME Implement
+          try {
+            boolean correctHash = blockLedger.confirmBlockHash(
+                res.getBlockId(), dt,
+                new String(res.getResponse())
+            );
+            if (correctHash) {
+              appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), res.getBlockId());
+            } else {
+              logger.info("Sent invalid hash for [{}]. {}", res.getBlockId());
+            }
+          } catch (BlockLedgerException e) {
+            logger.error("Failed to verify evidence for [{}]. {}", res.getBlockId(), e.getMessage());
+          }
           break;
         default:
-          //logger.error("Could not find match for Evidence Type: {}. Ignoring.`", evidenceRequest.getEvidenceType());
+          logger.debug("Could not verify evidence type: {}. Ignoring.", res.getEvidenceType());
           break;
       }
     } catch (BlockException e) {

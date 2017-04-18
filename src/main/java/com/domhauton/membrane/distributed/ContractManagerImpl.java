@@ -30,7 +30,7 @@ public class ContractManagerImpl implements ContractManager {
   }
 
   @Override
-  public void receiveBlock(String peerId, byte[] data) {
+  public void receiveBlock(String peerId, String blockId, byte[] data) {
     // Do Nothing
   }
 
