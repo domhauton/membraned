@@ -27,8 +27,8 @@ public class BlockProcessor {
     localShardDataList = new HashMap<>();
   }
 
-  public BlockProcessor(byte[] data) throws BlockException {
-    BlockContainer blockContainer = BlockUtils.bytes2RemoteShardData(data);
+  public BlockProcessor(byte[] data, String key) throws BlockException {
+    BlockContainer blockContainer = BlockUtils.bytes2Block(data, key);
     salt = blockContainer.getSalt();
     localShardDataList = blockContainer.getLocalShardDataList()
             .stream()
@@ -82,9 +82,9 @@ public class BlockProcessor {
    * @return The block in byte form
    * @throws BlockException if unable to convert to bytes.
    */
-  public byte[] toEncryptedBytes() throws BlockException {
+  public byte[] toEncryptedBytes(String key) throws BlockException {
     BlockContainer blockContainer = new BlockContainer(salt, new ArrayList<>(localShardDataList.values()));
-    return BlockUtils.remoteShardData2Bytes(blockContainer);
+    return BlockUtils.block2Bytes(blockContainer, key);
   }
 
   private static byte[] generateRandomSalt() {

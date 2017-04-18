@@ -139,6 +139,11 @@ public class NetworkManagerImpl implements NetworkManager {
     return membraneAuthInfo.getClientId();
   }
 
+  @Override
+  public String getPrivateEncryptionKey() {
+    return membraneAuthInfo.getPrivateKey().getPrivateExponent().toString();
+  }
+
   /**
    * Set the contract manager in all of the network subsystems
    *

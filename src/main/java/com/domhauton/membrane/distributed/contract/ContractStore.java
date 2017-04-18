@@ -64,6 +64,10 @@ public class ContractStore implements Runnable, Closeable {
     getStorageContract(peerId).addMyBlockId(blockId);
   }
 
+  public void addMyBlockIdForce(String peerId, String blockId) {
+    getStorageContract(peerId).addMyBlockIdForce(blockId);
+  }
+
   public void addPeerBlockId(String peerId, String blockId) throws ContractStoreException {
     getStorageContract(peerId).addPeerBlockId(blockId);
   }
@@ -92,6 +96,12 @@ public class ContractStore implements Runnable, Closeable {
     return contractList.entrySet().stream()
         .filter(entry -> entry.getValue().getPeerBaseAllowedInequality() > 0)
         .map(Map.Entry::getKey)
+        .collect(Collectors.toSet());
+  }
+
+  public Set<String> getMyBlockIds() {
+    return contractList.values().stream()
+        .flatMap(storageContract -> storageContract.getMyBlockIds().stream())
         .collect(Collectors.toSet());
   }
 

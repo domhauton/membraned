@@ -22,7 +22,7 @@ public class EvidenceRequest {
     return blockId;
   }
 
-  public EvidenceType getBlock() {
+  public EvidenceType getEvidenceType() {
     return block;
   }
 

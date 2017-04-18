@@ -123,6 +123,12 @@ public class PeerAppraisal {
     }
   }
 
+  synchronized Set<String> getReportsReceived(DateTime dateTime, long reportsExpected) {
+    registerReport(dateTime, reportsExpected);
+    // Return a copy.
+    return new HashSet<>(reportsReceived);
+  }
+
   /**
    * Report (a) new report/s arriving at the given dateTime. Should never report past events.
    *

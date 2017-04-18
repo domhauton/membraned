@@ -95,7 +95,7 @@ public class BlockLedger implements Runnable, Closeable {
     }
   }
 
-  boolean confirmBlockHash(String blockId, DateTime dateTime, String testHash) throws BlockLedgerException {
+  public boolean confirmBlockHash(String blockId, DateTime dateTime, String testHash) throws BlockLedgerException {
     BlockInfo blockInfo = blockMap.get(blockId);
     if (blockInfo != null) {
       return blockInfo.getBlockConfirmation(dateTime).getHash().equals(testHash);
@@ -108,7 +108,7 @@ public class BlockLedger implements Runnable, Closeable {
     return blockMap.remove(blockId) != null;
   }
 
-  void removeAllExcept(Set<String> blockIds) {
+  public void removeAllExcept(Set<String> blockIds) {
     Set<String> removalSet = blockMap.keySet().stream()
         .filter(o -> !blockIds.contains(o))
         .collect(Collectors.toSet());
@@ -123,7 +123,7 @@ public class BlockLedger implements Runnable, Closeable {
     return shardPeerLookup;
   }
 
-  private String generateBlockId(byte[] blockData) {
+  public static String generateBlockId(byte[] blockData) {
     return Hashing.sha512()
         .hashBytes(blockData)
         .toString();
@@ -133,7 +133,7 @@ public class BlockLedger implements Runnable, Closeable {
     int hoursBetween = Math.max(0, Hours.hoursBetween(start, end).getHours());
     return IntStream.range(0, hoursBetween + 1).boxed()
         .map(x -> generateRandomSalt())
-        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, getHash(randSaltBytes, blockData)))
+        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, getSaltedHash(randSaltBytes, blockData)))
         .collect(Collectors.toList());
   }
 
@@ -143,7 +143,7 @@ public class BlockLedger implements Runnable, Closeable {
     return salt;
   }
 
-  String getHash(byte[] salt, byte[] blockData) {
+  public static String getSaltedHash(byte[] salt, byte[] blockData) {
     return Hashing.sha512()
         .newHasher(blockData.length + salt.length)
         .putBytes(salt)

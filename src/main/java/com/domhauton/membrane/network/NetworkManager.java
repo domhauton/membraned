@@ -57,4 +57,11 @@ public interface NetworkManager extends Runnable, Closeable {
    * @return UID generated from the credentials of the Network Manager.
    */
   String getUID();
+
+  /**
+   * Returns the Private Encryption Key used for communication.
+   *
+   * @return UID generated from the credentials of the Network Manager.
+   */
+  String getPrivateEncryptionKey();
 }

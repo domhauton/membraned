@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -14,6 +13,8 @@ import java.util.stream.IntStream;
  * Created by Dominic Hauton on 09/03/17.
  */
 class BlockContainerBuilderTest {
+
+  private final static String ENCRYPTION_KEY = "ThisIs4N3NcrypTiOnKee";
 
   @Test
   void singleLocalDatumShardTest() throws Exception {
@@ -26,9 +27,9 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
-    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
+    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
     shardMap.entrySet()
             .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
@@ -47,9 +48,9 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
-    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
+    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
     shardMap.entrySet()
             .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
@@ -65,21 +66,17 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
-    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
+    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
-    shardMap.entrySet()
-            .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
+    shardMap.forEach((key, value) -> Assertions.assertArrayEquals(value, reproducedBlockProcessor.getBlock(key)));
 
     // Must add 64bits to be compliant with base64 encoding!
 
-    builtRemoteShard = new String(builtRemoteShard).replace("shardData\":\"", "shardData\":\"corr").getBytes();
+    byte[] corruptedRemoteShard = new String(builtRemoteShard).replace("shardData\":\"", "shardData\":\"corr").getBytes();
 
-    BlockProcessor corruptedReproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
-
-    shardMap.entrySet()
-            .forEach(x -> Assertions.assertThrows(NoSuchElementException.class, () -> corruptedReproducedBlockProcessor.getBlock(x.getKey())));
+    Assertions.assertThrows(BlockException.class, () -> new BlockProcessor(corruptedRemoteShard, ENCRYPTION_KEY));
   }
 
   @Test
@@ -92,9 +89,9 @@ class BlockContainerBuilderTest {
 
     shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
 
-    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes();
+    byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
-    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard);
+    BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
     shardMap.entrySet()
             .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
@@ -103,10 +100,10 @@ class BlockContainerBuilderTest {
 
     byte[] corruptedBuiltRemoteShard = new String(builtRemoteShard).replace("shardData\":\"", "shardData\":\"co").getBytes();
 
-    Assertions.assertThrows(BlockException.class, () -> new BlockProcessor(corruptedBuiltRemoteShard));
+    Assertions.assertThrows(BlockException.class, () -> new BlockProcessor(corruptedBuiltRemoteShard, ENCRYPTION_KEY));
 
     byte[] corruptedBuiltRemoteShard2 = new String(builtRemoteShard).replace("shardData\":\"", "shardDaa\":\"").getBytes();
 
-    Assertions.assertThrows(BlockException.class, () -> new BlockProcessor(corruptedBuiltRemoteShard2));
+    Assertions.assertThrows(BlockException.class, () -> new BlockProcessor(corruptedBuiltRemoteShard2, ENCRYPTION_KEY));
   }
 }

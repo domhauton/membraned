@@ -4,6 +4,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.bouncycastle.crypto.engines.TwofishEngine;
+import org.bouncycastle.crypto.modes.CBCBlockCipher;
+import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
+import org.bouncycastle.crypto.params.KeyParameter;
 import org.xerial.snappy.Snappy;
 
 import java.io.IOException;
@@ -12,20 +16,22 @@ import java.io.IOException;
  * Created by Dominic Hauton on 08/03/17.
  */
 abstract class BlockUtils {
-  private static ObjectMapper objectMapper = new ObjectMapper()
-          .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NON_PRIVATE);
+  private static final ObjectMapper objectMapper = new ObjectMapper()
+      .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.NON_PRIVATE);
 
-  static BlockContainer bytes2RemoteShardData(byte[] message) throws BlockException {
+  static BlockContainer bytes2Block(byte[] encryptedBlockData, String key) throws BlockException {
     try {
-      return objectMapper.readValue(message, BlockContainer.class);
+      byte[] plainMessage = decrypt(encryptedBlockData, key);
+      return objectMapper.readValue(plainMessage, BlockContainer.class);
     } catch (IOException e) {
       throw new BlockException("Could not decode shard. Error: " + e.getMessage(), e);
     }
   }
 
-  static byte[] remoteShardData2Bytes(BlockContainer message) throws BlockException {
+  static byte[] block2Bytes(BlockContainer block, String key) throws BlockException {
     try {
-      return objectMapper.writeValueAsString(message).getBytes();
+      byte[] bytes = objectMapper.writeValueAsString(block).getBytes();
+      return encrypt(bytes, key);
     } catch (JsonProcessingException e) { // Should never be spontaneously generated
       throw new BlockException("Could not encode shard. Error: " + e.getMessage(), e);
     }
@@ -49,6 +55,35 @@ abstract class BlockUtils {
       return Snappy.uncompress(compressed);
     } catch (IOException e) {
       throw new BlockException("Decompression not possible.", e);
+    }
+  }
+
+  static byte[] encrypt(byte[] toEncrypt, String key) throws BlockException {
+    PaddedBufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new TwofishEngine()));
+    KeyParameter keyParameter = new KeyParameter(key.getBytes());
+    cipher.init(true, keyParameter);
+    return cipherData(cipher, toEncrypt);
+  }
+
+  static byte[] decrypt(byte[] toDecrypt, String keyString) throws BlockException {
+    PaddedBufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new TwofishEngine()));
+    KeyParameter key = new KeyParameter(keyString.getBytes());
+    cipher.init(false, key);
+    return cipherData(cipher, toDecrypt);
+  }
+
+  private static byte[] cipherData(PaddedBufferedBlockCipher cipher, byte[] data) throws BlockException {
+    int minSize = cipher.getOutputSize(data.length);
+    byte[] outBuf = new byte[minSize];
+    int length1 = cipher.processBytes(data, 0, data.length, outBuf, 0);
+    try {
+      int length2 = cipher.doFinal(outBuf, length1);
+      int actualLength = length1 + length2;
+      byte[] result = new byte[actualLength];
+      System.arraycopy(outBuf, 0, result, 0, result.length);
+      return result;
+    } catch (Exception e) {
+      throw new BlockException("Unable to encrypt/decrypt the block data.", e);
     }
   }
 }

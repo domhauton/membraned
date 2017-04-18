@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -79,15 +80,16 @@ public class AppraisalLedger implements Runnable, Closeable {
     getPeerAppraisal(peerId).addLostBlock(lostDateTime, expectedShards);
   }
 
+  public Set<String> getReportsRecieved(String peerId, DateTime dateTime, long expectedShards) {
+    return getPeerAppraisal(peerId).getReportsReceived(dateTime, expectedShards);
+  }
+
   public double getPeerRating(String peerId) {
     return getPeerRating(peerId, DateTime.now());
   }
 
   /**
    * The uptime overlap with the peer, augmented by fulfillment rate.
-   *
-   * @param peerId
-   * @return
    */
   double getPeerRating(String peerId, DateTime atTime) {
     PeerAppraisal peerAppraisal = getPeerAppraisal(peerId);

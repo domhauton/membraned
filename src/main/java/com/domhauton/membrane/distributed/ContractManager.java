@@ -16,6 +16,8 @@ public interface ContractManager {
 
   void addContractedPeer(String peerId) throws DistributorException;
 
+  void receiveBlock(String peerId, byte[] data);
+
   Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds);
 
   void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses);

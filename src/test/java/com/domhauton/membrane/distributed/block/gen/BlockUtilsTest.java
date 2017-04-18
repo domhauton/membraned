@@ -35,6 +35,34 @@ public class BlockUtilsTest {
     Assertions.assertArrayEquals(LOREM_IPSUM_BYTES, decompressedBytes);
   }
 
+  @Test
+  void encryptDecryptTest() throws Exception {
+    byte[] bytes = generateRandomShard();
+
+    String key = "thisISAKey";
+    byte[] encryptedShard = BlockUtils.encrypt(bytes, key);
+    byte[] decryptedShard = BlockUtils.decrypt(encryptedShard, key);
+    Assertions.assertArrayEquals(bytes, decryptedShard);
+  }
+
+  @Test
+  void encryptDecryptInvalidKeyTest() throws Exception {
+    byte[] bytes = generateRandomShard();
+
+    String key = "thisISAKey";
+    String badKey = "thisISABadKey";
+    byte[] encryptedShard = BlockUtils.encrypt(bytes, key);
+    Assertions.assertThrows(BlockException.class, () -> BlockUtils.decrypt(encryptedShard, badKey));
+  }
+
+  @Test
+  void encryptDecryptInvalidDataTest() throws Exception {
+    byte[] bytes = generateRandomShard();
+
+    String key = "thisISAKey";
+    Assertions.assertThrows(BlockException.class, () -> BlockUtils.decrypt(bytes, key));
+  }
+
   public static byte[] generateRandomShard() {
     byte[] newBytes = new byte[RANDOM_SHARD_LEN];
     RANDOM.nextBytes(newBytes);

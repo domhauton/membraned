@@ -46,6 +46,11 @@ class EvictingContractManager implements ContractManager {
   }
 
   @Override
+  public void receiveBlock(String peerId, byte[] data) {
+    // Do Nothing
+  }
+
+  @Override
   public Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds) {
     return Collections.emptySet();
   }

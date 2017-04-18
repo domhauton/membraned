@@ -46,6 +46,10 @@ class StorageContract {
     }
   }
 
+  synchronized void addMyBlockIdForce(String blockId) {
+    myBlockIds.add(blockId);
+  }
+
   synchronized void addPeerBlockId(String blockId) throws ContractStoreException {
     if (!peerBlockIds.contains(blockId)) {
       if (getRemainingPeerSpace() > 0) {
