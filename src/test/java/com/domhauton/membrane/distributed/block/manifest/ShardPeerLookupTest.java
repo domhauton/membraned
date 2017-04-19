@@ -56,12 +56,9 @@ class ShardPeerLookupTest {
   @Test
   void priorityBumpTest() throws Exception {
     ShardPeerLookup shardPeerLookup = new ShardPeerLookup();
-    shardPeerLookup.addDistributedShard("shard1", Priority.Lax);
+    shardPeerLookup.addDistributedShard("shard1", Priority.Normal);
     shardPeerLookup.addStoragePeer("shard1", "peer1");
     shardPeerLookup.addStoragePeer("shard1", "peer2");
-    Assertions.assertEquals(0, shardPeerLookup.undeployedShards().size());
-
-    shardPeerLookup.addDistributedShard("shard1", Priority.Normal);
     Assertions.assertEquals(1, shardPeerLookup.undeployedShards().size());
 
     shardPeerLookup.addStoragePeer("shard1", "peer3");
@@ -71,6 +68,8 @@ class ShardPeerLookupTest {
     Assertions.assertEquals(1, shardPeerLookup.undeployedShards().size());
 
     shardPeerLookup.addStoragePeer("shard1", "peer4");
+    shardPeerLookup.addStoragePeer("shard1", "peer5");
+    shardPeerLookup.addStoragePeer("shard1", "peer6");
     Assertions.assertEquals(0, shardPeerLookup.undeployedShards().size());
   }
 

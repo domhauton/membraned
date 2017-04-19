@@ -41,6 +41,16 @@ class ShardStorageTest {
   }
 
   @Test
+  void testCreateAndCheck() throws Exception {
+    shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
+    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    Assertions.assertTrue(shardStorage.hasShard(addedFile));
+    shardStorage.removeShard(addedFile);
+    Assertions.assertFalse(shardStorage.hasShard(addedFile));
+    Files.delete(Paths.get(testDir));
+  }
+
+  @Test
   void testCreateAndGetSize() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
     String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
@@ -63,7 +73,7 @@ class ShardStorageTest {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
     String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
     String addedFile2 = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    Set<String> list = shardStorage.listShards();
+    Set<String> list = shardStorage.listShardIds();
     Assertions.assertEquals(2, list.size());
     Assertions.assertTrue(list.contains(addedFile1));
     Assertions.assertTrue(list.contains(addedFile2));
@@ -77,10 +87,10 @@ class ShardStorageTest {
   void testCreateAndRemoval() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
     String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    Assertions.assertEquals(1, shardStorage.listShards().size());
+    Assertions.assertEquals(1, shardStorage.listShardIds().size());
 
     shardStorage.removeShard(addedFile);
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Files.delete(Paths.get(testDir));
   }
 
@@ -90,11 +100,11 @@ class ShardStorageTest {
     String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
     String addedFile2 = StorageManagerTestUtils.addRandFile(random, shardStorage);
     Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandFile(random, shardStorage));
-    Assertions.assertEquals(2, shardStorage.listShards().size());
+    Assertions.assertEquals(2, shardStorage.listShardIds().size());
     shardStorage.removeShard(addedFile1);
-    Assertions.assertEquals(1, shardStorage.listShards().size());
+    Assertions.assertEquals(1, shardStorage.listShardIds().size());
     shardStorage.removeShard(addedFile2);
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Files.delete(Paths.get(testDir));
   }
 
@@ -103,12 +113,12 @@ class ShardStorageTest {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 257);
     Assertions.assertTrue(Paths.get(testDir).toFile().setWritable(false));
     Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandFile(random, shardStorage));
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Assertions.assertTrue(Paths.get(testDir).toFile().setWritable(true));
     String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    Assertions.assertEquals(1, shardStorage.listShards().size());
+    Assertions.assertEquals(1, shardStorage.listShardIds().size());
     shardStorage.removeShard(addedFile1);
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Files.delete(Paths.get(testDir));
   }
 
@@ -118,11 +128,11 @@ class ShardStorageTest {
     String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
     Path shardLocation = shardStorage.getPath(testDir, addedFile1);
     Files.write(shardLocation, " ".getBytes(), StandardOpenOption.APPEND);
-    Assertions.assertEquals(1, shardStorage.listShards().size());
+    Assertions.assertEquals(1, shardStorage.listShardIds().size());
     Assertions.assertThrows(ShardStorageException.class, () -> shardStorage.retrieveShard(addedFile1));
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Assertions.assertThrows(ShardStorageException.class, () -> shardStorage.removeShard(addedFile1));
-    Assertions.assertEquals(0, shardStorage.listShards().size());
+    Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Files.delete(Paths.get(testDir));
   }
 }

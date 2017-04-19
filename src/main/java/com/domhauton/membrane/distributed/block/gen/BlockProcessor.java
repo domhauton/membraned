@@ -74,7 +74,7 @@ public class BlockProcessor {
    * @return data to retrieve
    * @throws NoSuchElementException If block with given hash not inside.
    */
-  public byte[] getBlock(String hash) throws NoSuchElementException {
+  byte[] getBlock(String hash) throws NoSuchElementException {
     LocalShardData localShardData = localShardDataList.get(hash);
     if (localShardData == null) {
       throw new NoSuchElementException("Shard with local hash: [" + hash + "] not found.");

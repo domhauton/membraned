@@ -4,9 +4,8 @@ package com.domhauton.membrane.distributed.block.manifest;
  * Created by Dominic Hauton on 03/03/17.
  */
 public enum Priority {
-  Critical(200, 4),
-  Normal(150, 3),
-  Lax(100, 2);
+  Critical(200, 6),
+  Normal(150, 3);
 
   private final int value;
   private final int requiredCopies;

@@ -17,6 +17,7 @@ import com.domhauton.membrane.storage.StorageManager;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
+import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -65,6 +66,7 @@ public class BackupManager implements Runnable, Closeable {
 
     Path configDir = configPath.getParent();
     ShardStorage localShardStorage = new ShardStorageImpl(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * MB);
+    ShardStorage peerShardStorage = new ShardStorageImpl(Paths.get(config.getDistributedStorage().getStorageFolder()), config.getDistributedStorage().getHardStorageLimit(), Hashing.sha512());
 
     try {
 

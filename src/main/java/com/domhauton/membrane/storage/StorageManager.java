@@ -179,7 +179,7 @@ public class StorageManager implements BackupLedger, FileEventLogger {
   long collectGarbage() {
     logger.info("Garbage collection - Start");
     Set<String> requiredShards = fileCatalogue.getReferencedShards();
-    Set<String> garbageShards = shardStorage.listShards();
+    Set<String> garbageShards = shardStorage.listShardIds();
     garbageShards.removeAll(requiredShards);
     garbageShards.removeAll(tempProtectedShards);
     logger.info("Garbage collection - Found {} de-referenced shards", garbageShards.size());

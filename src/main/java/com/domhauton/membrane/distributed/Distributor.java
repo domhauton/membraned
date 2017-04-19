@@ -5,6 +5,7 @@ import com.domhauton.membrane.distributed.block.gen.BlockException;
 import com.domhauton.membrane.distributed.block.gen.BlockProcessor;
 import com.domhauton.membrane.distributed.block.ledger.BlockLedger;
 import com.domhauton.membrane.distributed.block.ledger.BlockLedgerException;
+import com.domhauton.membrane.distributed.block.manifest.Priority;
 import com.domhauton.membrane.distributed.block.manifest.ShardPeerLookup;
 import com.domhauton.membrane.distributed.contract.ContractStore;
 import com.domhauton.membrane.distributed.contract.ContractStoreException;
@@ -15,6 +16,7 @@ import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManager;
 import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageException;
+import com.domhauton.membrane.storage.BackupLedger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -46,6 +48,7 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   private final BlockLedger blockLedger;
   private final AppraisalLedger appraisalLedger;
   private final ContractStore contractStore;
+  private final BackupLedger backupLedger;
 
   private NetworkManager networkManager;
   private final String key;
@@ -53,8 +56,9 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   private int contractLimit;
   private final ScheduledExecutorService executorService;
 
-  public Distributor(Path basePath, ShardStorage localShardStorage, ShardStorage peerShardStorage, NetworkManager networkManager, int contractLimit) throws DistributorException {
+  public Distributor(Path basePath, BackupLedger backupLedger, ShardStorage localShardStorage, ShardStorage peerShardStorage, NetworkManager networkManager, int contractLimit) throws DistributorException {
     this.localShardStorage = localShardStorage;
+    this.backupLedger = backupLedger;
     this.peerShardStorage = peerShardStorage;
     this.networkManager = networkManager;
     this.contractLimit = contractLimit;
@@ -69,17 +73,25 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   }
 
   private void distributeShards() {
+    // Expire any old blocks.
+    Set<String> allRequiredShards = backupLedger.getAllRequiredShards();
+    blockLedger.expireAllUselessBlocks(allRequiredShards);
+
     // Generate a temporary shard -> peer lookup table.
     ShardPeerLookup shardPeerLookup = blockLedger.generateShardPeerLookup();
+    allRequiredShards.forEach(x -> shardPeerLookup.addDistributedShard(x, Priority.Normal));
+
+    // Generate a list of ranked peers
     List<String> connectedPeersByRank = getAvailablePeersSortedByRank();
+
+    // Upload shards in lookup table to connected peers.
     uploadUndeployedShards(shardPeerLookup, connectedPeersByRank);
-    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
-    logger.info("Shard distribution complete. {} shards remain undistributed.", totalUndeployedShards.size());
 
     // Remove any disused block Ledgers
     blockLedger.removeAllExcept(contractStore.getMyBlockIds());
+
     // Remove any unnecessaryShard peer blocks.
-    removeUnnecessaryShards();
+    removeUnnecessaryPeerBlocks();
   }
 
   private List<String> getAvailablePeersSortedByRank() {
@@ -131,12 +143,15 @@ public class Distributor implements Runnable, Closeable, ContractManager {
         usedShardSet.addAll(shardsToUploadForPeer);
       }
     }
+
+    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
+    logger.info("Shard distribution complete. {} shards remain undistributed.", totalUndeployedShards.size());
   }
 
-  private void removeUnnecessaryShards() {
-    Set<String> unnecessaryShards = peerShardStorage.listShards();
-    unnecessaryShards.removeAll(contractStore.getPeerBlockIds());
-    for (String unnecessaryShard : unnecessaryShards) {
+  private void removeUnnecessaryPeerBlocks() {
+    Set<String> unnecessaryBlocks = peerShardStorage.listShardIds();
+    unnecessaryBlocks.removeAll(contractStore.getPeerBlockIds());
+    for (String unnecessaryShard : unnecessaryBlocks) {
       try {
         peerShardStorage.removeShard(unnecessaryShard);
       } catch (ShardStorageException e) {
@@ -225,7 +240,10 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     int contractedPeers = getContractedPeers().size();
     if (contractedPeers < contractLimit) {
       // Set to base allowed inequality.
-      contractStore.setPeerAllowedInequality(peerId, 1);
+      int peerAllowedInequality = contractStore.getPeerAllowedInequality(peerId);
+      if (peerAllowedInequality < 1) {
+        contractStore.setPeerAllowedInequality(peerId, 1);
+      }
       sendContractUpdateToPeer(peerId);
     } else {
       logger.warn("Could not add new contract peer. Too many existing contracts. {} of {}. [{}]",
@@ -273,48 +291,23 @@ public class Distributor implements Runnable, Closeable, ContractManager {
         // Second request any blocks they say they have that we don't know about.
         Set<String> unexpectedBlocks = new HashSet<>(blockIds);
         unexpectedBlocks.removeAll(contractStore.getMyBlockIds(peerId));
-        Set<EvidenceRequest> unexpectedBlockRequests = blockIds.stream()
-            .filter(blockId -> !myBlockIds.contains(blockId))
-            .map(blockId -> new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK))
-            .collect(Collectors.toSet());
+        Set<EvidenceRequest> unexpectedBlockRequests = getUnexpectedEvidenceRequests(blockIds, myBlockIds);
 
         // Now deal with the actual expected blocks.
         Set<String> expectedBlocks = blockIds.stream().filter(myBlockIds::contains).collect(Collectors.toSet());
-
-        // Deal with expected expired blocks
-        Set<EvidenceRequest> expiredBlockRequests = expectedBlocks.stream()
-            .filter(blockId -> {
-              try {
-                return blockLedger.isBlockExpired(blockId, dateTime);
-              } catch (BlockLedgerException e) {
-                return false;
-              }
-            })
-            .peek(blockId -> removeMyBlock(peerId, blockId))
-            .map(blockId -> new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK))
-            .collect(Collectors.toSet());
-
+        Set<EvidenceRequest> expiredBlockRequests = generateExpiredBlockEvidenceRequests(peerId, dateTime, expectedBlocks);
         Set<String> alreadyConfirmedBlocks = appraisalLedger.getReportsRecieved(peerId, dateTime, myBlockIds.size());
-
-        // Deal with active blocks
-        Set<EvidenceRequest> activeBlockRequests = expectedBlocks.stream()
-            .filter(blockId -> !alreadyConfirmedBlocks.contains(blockId))
-            .map(blockId -> {
-              try {
-                return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockLedger.getBlockEvidenceSalt(blockId, dateTime));
-              } catch (BlockLedgerException e) {
-                return null;
-              }
-            })
-            .filter(Objects::nonNull)
-            .collect(Collectors.toSet());
+        Set<EvidenceRequest> activeBlockRequests = getActiveBlockEvidenceRequests(dateTime, expectedBlocks, alreadyConfirmedBlocks);
 
         // Aggregate all generated evidence requests.
-        Set<EvidenceRequest> returnEvidenceRequests = new HashSet<>(activeBlockRequests.size() + expiredBlockRequests.size() + unexpectedBlockRequests.size());
+        Set<EvidenceRequest> returnEvidenceRequests = new HashSet<>(
+            activeBlockRequests.size() +
+                expiredBlockRequests.size() +
+                unexpectedBlockRequests.size());
+
         returnEvidenceRequests.addAll(activeBlockRequests);
         returnEvidenceRequests.addAll(expiredBlockRequests);
         returnEvidenceRequests.addAll(unexpectedBlockRequests);
-
         return returnEvidenceRequests;
       } else {
         // Record that the peer was around at this time and nothing else. May be selected for a contract one day.
@@ -326,6 +319,48 @@ public class Distributor implements Runnable, Closeable, ContractManager {
       // Acknowledge that you received the request but don't ask for anything.
       return Collections.emptySet();
     }
+  }
+
+  private Set<EvidenceRequest> getActiveBlockEvidenceRequests(DateTime dateTime, Set<String> expectedBlocks, Set<String> alreadyConfirmedBlocks) {
+    return expectedBlocks.stream()
+        .map(blockId -> {
+          try {
+            // If we are missing a shard from one of the blocks.
+            if (blockLedger.getBlockShardIds(blockId).stream().allMatch(localShardStorage::hasShard)) {
+              return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockLedger.getBlockEvidenceSalt(blockId, dateTime));
+            } else {
+              return new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK);
+            }
+          } catch (BlockLedgerException e) {
+            return null;
+          }
+        })
+        .filter(Objects::nonNull)
+        // Do not resend shard requests for blocks to delete or compute hash for.
+        .filter(evidenceRequest -> evidenceRequest.getEvidenceType() == EvidenceType.SEND_BLOCK ||
+            !alreadyConfirmedBlocks.contains(evidenceRequest.getBlockId()))
+        .collect(Collectors.toSet());
+  }
+
+  private Set<EvidenceRequest> getUnexpectedEvidenceRequests(Set<String> blockIds, Set<String> myBlockIds) {
+    return blockIds.stream()
+        .filter(blockId -> !myBlockIds.contains(blockId))
+        .map(blockId -> new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK))
+        .collect(Collectors.toSet());
+  }
+
+  private Set<EvidenceRequest> generateExpiredBlockEvidenceRequests(String peerId, DateTime dateTime, Set<String> expectedBlocks) {
+    return expectedBlocks.stream()
+        .filter(blockId -> {
+          try {
+            return blockLedger.isBlockExpired(blockId, dateTime);
+          } catch (BlockLedgerException e) {
+            return false;
+          }
+        })
+        .peek(blockId -> removeMyBlock(peerId, blockId))
+        .map(blockId -> new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK))
+        .collect(Collectors.toSet());
   }
 
   @Override
@@ -340,36 +375,10 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     try {
       switch (res.getEvidenceType()) {
         case SEND_BLOCK:
-          BlockProcessor blockProcessor = new BlockProcessor(res.getResponse(), key);
-          String actualHash = BlockLedger.generateBlockId(res.getResponse());
-          // Check not corrupted
-          if (actualHash.equals(res.getBlockId())) {
-            // This block actually exists, so force add it back into the ledger.
-            contractStore.addMyBlockIdForce(peerId, actualHash);
-            blockProcessor.getShardMap().forEach((String shardId, byte[] shardData) -> {
-              try {
-                localShardStorage.storeShard(shardId, shardData);
-              } catch (ShardStorageException e) {
-                logger.error("Failed to store recovered block. Forgetting. {}", e.getMessage());
-              }
-            });
-            appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), res.getBlockId());
-          }
+          processRequestedBlockEvidence(peerId, dt, res.getBlockId(), res.getResponse());
           break;
         case COMPUTE_HASH:
-          try {
-            boolean correctHash = blockLedger.confirmBlockHash(
-                res.getBlockId(), dt,
-                new String(res.getResponse())
-            );
-            if (correctHash) {
-              appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), res.getBlockId());
-            } else {
-              logger.info("Sent invalid hash for [{}]. {}", res.getBlockId());
-            }
-          } catch (BlockLedgerException e) {
-            logger.error("Failed to verify evidence for [{}]. {}", res.getBlockId(), e.getMessage());
-          }
+          processRequestedHashEvidence(peerId, dt, res.getBlockId(), res.getResponse());
           break;
         default:
           logger.debug("Could not verify evidence type: {}. Ignoring.", res.getEvidenceType());
@@ -377,6 +386,37 @@ public class Distributor implements Runnable, Closeable, ContractManager {
       }
     } catch (BlockException e) {
       logger.error("Failed to process evidence. {}", e.getMessage());
+    }
+  }
+
+  private void processRequestedBlockEvidence(String peerId, DateTime dt, String blockId, byte[] data) throws BlockException {
+    BlockProcessor blockProcessor = new BlockProcessor(data, key);
+    String actualHash = BlockLedger.generateBlockId(data);
+    // Check not corrupted
+    if (actualHash.equals(blockId)) {
+      // This block actually exists, so force add it back into the ledger.
+      contractStore.addMyBlockIdForce(peerId, actualHash);
+      blockProcessor.getShardMap().forEach((String shardId, byte[] shardData) -> {
+        try {
+          localShardStorage.storeShard(shardId, shardData);
+        } catch (ShardStorageException e) {
+          logger.error("Failed to store recovered block. Forgetting. {}", e.getMessage());
+        }
+      });
+      appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), blockId);
+    }
+  }
+
+  private void processRequestedHashEvidence(String peerId, DateTime dt, String blockId, byte[] responseData) {
+    try {
+      boolean correctHash = blockLedger.confirmBlockHash(blockId, dt, new String(responseData));
+      if (correctHash) {
+        appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), blockId);
+      } else {
+        logger.info("Sent invalid hash for [{}]. {}", blockId);
+      }
+    } catch (BlockLedgerException e) {
+      logger.error("Failed to verify evidence for [{}]. {}", blockId, e.getMessage());
     }
   }
 

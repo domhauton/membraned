@@ -81,12 +81,21 @@ public class BlockLedger implements Runnable, Closeable {
     }
   }
 
+  public Set<String> getBlockShardIds(String blockId) throws BlockLedgerException {
+    BlockInfo blockInfo = blockMap.get(blockId);
+    if (blockInfo != null) {
+      return blockInfo.getContainedShards();
+    } else {
+      throw new BlockLedgerException("Block " + blockId + " does not exist.");
+    }
+  }
+
   public boolean isBlockExpired(String blockId, DateTime dateTime) throws BlockLedgerException {
     BlockInfo blockInfo = blockMap.get(blockId);
     if (blockInfo != null) {
       try {
         blockInfo.getBlockConfirmation(dateTime);
-        return false;
+        return blockInfo.isForceExpired();
       } catch (NoSuchElementException e) {
         return true;
       }
@@ -104,6 +113,13 @@ public class BlockLedger implements Runnable, Closeable {
     }
   }
 
+  public void expireAllUselessBlocks(Set<String> requiredShardIds) {
+    blockMap.values()
+        .stream()
+        .filter(x -> Collections.disjoint(requiredShardIds, x.getContainedShards()))
+        .forEach(BlockInfo::expire);
+  }
+
   public boolean removeBlock(String blockId) {
     return blockMap.remove(blockId) != null;
   }
@@ -118,6 +134,7 @@ public class BlockLedger implements Runnable, Closeable {
   public ShardPeerLookup generateShardPeerLookup() {
     ShardPeerLookup shardPeerLookup = new ShardPeerLookup();
     blockMap.values().stream()
+        .filter(x -> !x.isForceExpired())
         .flatMap(x -> x.getContainedShards().stream().map(shardId -> new AbstractMap.SimpleEntry<>(shardId, x.getAssignedPeer())))
         .forEach(x -> shardPeerLookup.addStoragePeerForce(x.getKey(), x.getValue()));
     return shardPeerLookup;

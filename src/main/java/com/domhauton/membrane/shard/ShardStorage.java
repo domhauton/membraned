@@ -9,42 +9,50 @@ public interface ShardStorage {
   /**
    * Store the data given give.
    *
-   * @param md5Hash The md5Hash of the data given
+   * @param shardId The md5Hash of the data given
    * @param data    The data to store.
    */
-  void storeShard(String md5Hash, byte[] data) throws ShardStorageException;
+  void storeShard(String shardId, byte[] data) throws ShardStorageException;
 
   /**
    * Retrieves a shard from storage and checks consistency
    *
-   * @param md5Hash md5Hash of requested shard
+   * @param shardId md5Hash of requested shard
    * @return data requested.
    * @throws ShardStorageException If cannot access shard, shard does not exist or file corrupt.
    */
-  byte[] retrieveShard(String md5Hash) throws ShardStorageException;
+  byte[] retrieveShard(String shardId) throws ShardStorageException;
+
+  /**
+   * Retrieves a shard from storage and checks consistency
+   *
+   * @param shardId md5Hash of requested shard
+   * @return true if shard is stored.
+   */
+  boolean hasShard(String shardId);
 
   /**
    * Retrieves the size of a share from storage
    *
-   * @param md5Hash md5Hash of requested shard
+   * @param shardId md5Hash of requested shard
    * @return size of requested shard in bytes. 0L if unknown.
    * @throws ShardStorageException If shard does not exist.
    */
-  long getShardSize(String md5Hash) throws ShardStorageException;
+  long getShardSize(String shardId) throws ShardStorageException;
 
   /**
    * Removes the shard from storage
    *
-   * @param md5Hash the hash of the shard to remove
+   * @param shardId the hash of the shard to remove
    */
-  long removeShard(String md5Hash) throws ShardStorageException;
+  long removeShard(String shardId) throws ShardStorageException;
 
   /**
    * Lists all available shards
    *
    * @return Set of shard md5 hashes available
    */
-  Set<String> listShards();
+  Set<String> listShardIds();
 
   /**
    * Return the current storage size in bytes

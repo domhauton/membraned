@@ -1,5 +1,6 @@
 package com.domhauton.membrane.shard;
 
+import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,39 +21,47 @@ public class ShardStorageImpl implements ShardStorage {
   private static final String FILE_EXTENSION = ".mem";
   private static final int FOLDER_SPLIT_LEN = 5;
 
-  private final Logger logger;
+  private final Logger logger = LogManager.getLogger();
   private final Path basePath;
   private long currentStorageSize;
   private final long maxStorageSize;
+  private final HashFunction hashFunction;
 
   /**
    * @param basePath Directory to store shards.
    */
   public ShardStorageImpl(Path basePath, long maxStorageSize) {
+    this(basePath, maxStorageSize, Hashing.md5());
+  }
+
+  /**
+   * @param basePath Directory to store shards.
+   */
+  public ShardStorageImpl(Path basePath, long maxStorageSize, HashFunction hashFunction) {
     this.basePath = basePath;
-    logger = LogManager.getLogger();
     this.maxStorageSize = maxStorageSize;
+    this.hashFunction = hashFunction;
     currentStorageSize = getStorageSize();
   }
 
   /**
    * Store the data given under the given hash.
    *
-   * @param md5Hash The md5Hash of the data given
+   * @param shardId The id of the data given
    * @param data    The data to store.
    */
-  public void storeShard(String md5Hash, byte[] data) throws ShardStorageException {
-    Path filePath = getPath(basePath.toString(), md5Hash);
+  public void storeShard(String shardId, byte[] data) throws ShardStorageException {
+    Path filePath = getPath(basePath.toString(), shardId);
     if (!filePath.toFile().exists()) {
       if (currentStorageSize + data.length > maxStorageSize) {
         currentStorageSize = getStorageSize(); // Refresh to ensure value is correct
         if (currentStorageSize + data.length > maxStorageSize) {
           logger.warn("Not enough space to store shard [{}] of size {}MB. {}MB of {}MB stored",
-                  md5Hash,
+              shardId,
                   ((float) data.length) / (1024 * 1024),
                   ((float) currentStorageSize) / (1024 * 1024),
                   ((float) maxStorageSize) / (1024 * 1024));
-          throw new ShardStorageException("Not enough space to store shard. " + md5Hash);
+          throw new ShardStorageException("Not enough space to store shard. " + shardId);
         }
       }
       try {
@@ -60,8 +69,8 @@ public class ShardStorageImpl implements ShardStorage {
         Files.write(filePath, data);
         currentStorageSize += data.length;
       } catch (IOException e) {
-        logger.error("Could not store shard [{}] at {}", md5Hash, e.getMessage());
-        throw new ShardStorageException("Could not store shard [" + md5Hash + "]. " + e.getMessage());
+        logger.error("Could not store shard [{}] at {}", shardId, e.getMessage());
+        throw new ShardStorageException("Could not store shard [" + shardId + "]. " + e.getMessage());
       }
     }
   }
@@ -69,51 +78,56 @@ public class ShardStorageImpl implements ShardStorage {
   /**
    * Retrieves a shard from the directory and checks consistency with hash
    *
-   * @param md5Hash md5Hash of requested shard
+   * @param shardId   Hash of requested shard
    * @return data requested.
    * @throws ShardStorageException If cannot access shard, shard does not exist or file corrupt.
    */
-  public byte[] retrieveShard(String md5Hash) throws ShardStorageException {
-    Path filePath = getPath(basePath.toString(), md5Hash);
+  public byte[] retrieveShard(String shardId) throws ShardStorageException {
+    Path filePath = getPath(basePath.toString(), shardId);
     try {
       byte[] bytes = Files.readAllBytes(filePath);
-      if (Hashing.md5().hashBytes(bytes).toString().equalsIgnoreCase(md5Hash)) {
+      if (hashFunction.hashBytes(bytes).toString().equalsIgnoreCase(shardId)) {
         return bytes;
       } else {
-        logger.error("Shard corrupted. Removing [{}]", md5Hash);
-        removeShard(md5Hash);
+        logger.error("Shard corrupted. Removing [{}]", shardId);
+        removeShard(shardId);
         throw new ShardStorageException("Shard corrupted.");
       }
     } catch (IOException e) {
-      logger.error("Could not retrieve shard [{}]. {}", md5Hash, e.getMessage());
-      throw new ShardStorageException("Could not retrieve shard [" + md5Hash + "]. " + e.getMessage());
+      logger.error("Could not retrieve shard [{}]. {}", shardId, e.getMessage());
+      throw new ShardStorageException("Could not retrieve shard [" + shardId + "]. " + e.getMessage());
     }
+  }
+
+  @Override
+  public boolean hasShard(String shardId) {
+    return getPath(basePath.toString(), shardId).toFile().exists();
   }
 
   /**
    * Retrieves the size of a share from storage
    *
-   * @param md5Hash md5Hash of requested shard
+   * @param shardId id of requested shard
    * @return size of requested shard in bytes. 0L if unknown.
    * @throws ShardStorageException If shard does not exist.
    */
-  public long getShardSize(String md5Hash) throws ShardStorageException {
-    File shardFile = getPath(basePath.toString(), md5Hash).toFile();
+  public long getShardSize(String shardId) throws ShardStorageException {
+    File shardFile = getPath(basePath.toString(), shardId).toFile();
     if (shardFile.exists()) {
       return shardFile.length();
     } else {
-      throw new ShardStorageException("Shard " + md5Hash + " not found.");
+      throw new ShardStorageException("Shard " + shardId + " not found.");
     }
   }
 
   /**
    * Removes the shard from the storage shard pool.
    *
-   * @param md5Hash the hash of the shard to remove
+   * @param shardId the hash of the shard to remove
    * @return length of shard removed
    */
-  public long removeShard(String md5Hash) throws ShardStorageException {
-    Path filePath = getPath(basePath.toString(), md5Hash);
+  public long removeShard(String shardId) throws ShardStorageException {
+    Path filePath = getPath(basePath.toString(), shardId);
     try {
       long retLong = filePath.toFile().length();
       Files.delete(filePath);
@@ -128,17 +142,17 @@ public class ShardStorageImpl implements ShardStorage {
       currentStorageSize -= retLong;
       return retLong;
     } catch (IOException e) {
-      logger.error("Failed to remove shard {}. {}", md5Hash, e.getMessage());
-      throw new ShardStorageException("Could not remove shard: " + md5Hash + ". " + e.getMessage());
+      logger.error("Failed to remove shard {}. {}", shardId, e.getMessage());
+      throw new ShardStorageException("Could not remove shard: " + shardId + ". " + e.getMessage());
     }
   }
 
   /**
    * Scans the root folder for shards.
    *
-   * @return List of shard md5 hashes available for reading.
+   * @return List of shard ids available for reading.
    */
-  public Set<String> listShards() {
+  public Set<String> listShardIds() {
     final Set<Path> memFiles = new HashSet<>();
     if (basePath.toFile().exists()) {
       try {
@@ -182,7 +196,7 @@ public class ShardStorageImpl implements ShardStorage {
   /**
    * Scans the root folder for shards.
    *
-   * @return List of shard md5 hashes available for reading.
+   * @return List of shard hashes available for reading.
    */
   public long getStorageSize() {
     final AtomicLong size = new AtomicLong(0);

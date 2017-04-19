@@ -20,6 +20,7 @@ class BlockInfo {
   private final Set<String> containedShards;
   private final DateTime evidenceStartTime;
   private final List<SaltHashPair> saltHashPairList;
+  private boolean forceExpired = false;
 
   BlockInfo(String blockId, String assignedPeer, Set<String> containedShards, DateTime evidenceStartTime, List<SaltHashPair> saltHashPairList) {
     this.blockId = blockId;
@@ -65,5 +66,13 @@ class BlockInfo {
     } else {
       return saltHashPairList.get(hoursFromStart);
     }
+  }
+
+  void expire() {
+    forceExpired = true;
+  }
+
+  public boolean isForceExpired() {
+    return forceExpired;
   }
 }
