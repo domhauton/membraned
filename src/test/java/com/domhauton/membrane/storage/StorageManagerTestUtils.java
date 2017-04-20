@@ -20,10 +20,18 @@ public abstract class StorageManagerTestUtils {
   public static final long RAND_SHARD_SIZE = 128;
   public static final SecureRandom secureRandom = new SecureRandom();
 
-  public static String addRandFile(Random random, ShardStorage shardStorage) throws Exception {
+  public static String addRandShard(Random random, ShardStorage shardStorage) throws Exception {
     byte[] data = new byte[(int) RAND_SHARD_SIZE];
     random.nextBytes(data);
     String hash = Hashing.md5().hashBytes(data).toString();
+    shardStorage.storeShard(hash, data);
+    return hash;
+  }
+
+  public static String addRandBlock(Random random, ShardStorage shardStorage) throws Exception {
+    byte[] data = new byte[(int) RAND_SHARD_SIZE];
+    random.nextBytes(data);
+    String hash = Hashing.sha512().hashBytes(data).toString();
     shardStorage.storeShard(hash, data);
     return hash;
   }

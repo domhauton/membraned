@@ -137,7 +137,7 @@ public class PeerAppraisal {
    * @param newReportsExpected Number of reports expected this hour
    */
   private synchronized boolean countHourlyReports(DateTime dateTime, String blockId, long newReportsExpected) {
-    DateTime reportForHour = dateTime.withTime(dateTime.hourOfDay().get(), 0, 0, 0); // Ceiling to hour
+    DateTime reportForHour = dateTime.hourOfDay().roundFloorCopy();
     if (countingForHour != null && reportForHour.isBefore(countingForHour)) {
       LOGGER.warn("Reported counted too late for [{}]. Ignoring.", peerId);
     } else {

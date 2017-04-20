@@ -40,7 +40,7 @@ public class ContractManagerImpl implements ContractManager {
   }
 
   @Override
-  public void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
+  public void processEvidenceResponses(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
     // Do Nothing
   }
 

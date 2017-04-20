@@ -7,4 +7,8 @@ public class ShardStorageException extends Exception {
   public ShardStorageException(String s) {
     super(s);
   }
+
+  ShardStorageException(String s, Throwable throwable) {
+    super(s, throwable);
+  }
 }

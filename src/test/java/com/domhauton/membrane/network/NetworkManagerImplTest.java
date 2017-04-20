@@ -1,6 +1,5 @@
 package com.domhauton.membrane.network;
 
-import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.Tracker;
 import com.domhauton.membrane.network.tracker.TrackerManager;
@@ -64,7 +63,7 @@ class NetworkManagerImplTest {
   void testConnection() throws Exception {
     // Inject PEX entry for Peer 2 into Peer 1
     // Add Peer2 as a contract to Peer1
-    String peerID2 = extractMembraneAuthInfo(networkManager2).getClientId();
+    String peerID2 = networkManager2.getUID();
     networkManager1.setContractManager(evictingContractManager1);
     evictingContractManager1.addContractedPeer(peerID2);
     extractPexManager(networkManager1).addEntry(peerID2, "127.0.0.1", PORT_INTERNAL_2, false, DateTime.now(), new byte[0]);
@@ -86,8 +85,8 @@ class NetworkManagerImplTest {
   void reconnectFromSelfGeneratedPex() throws Exception {
     // Inject PEX entry for Peer 2 into Peer 1
     // Add Peer2 as a contract to Peer1
-    String peerID1 = extractMembraneAuthInfo(networkManager1).getClientId();
-    String peerID2 = extractMembraneAuthInfo(networkManager2).getClientId();
+    String peerID1 = networkManager1.getUID();
+    String peerID2 = networkManager2.getUID();
     networkManager1.setContractManager(evictingContractManager1);
     evictingContractManager1.addContractedPeer(peerID2);
     extractPexManager(networkManager1).addEntry(peerID2, "127.0.0.1", PORT_INTERNAL_2, false, DateTime.now(), new byte[0]);
@@ -129,7 +128,7 @@ class NetworkManagerImplTest {
   @Test
   void sharingThroughTrackerConnection() throws Exception {
     // Inject new tracker into all of them.
-    String trackerPeerId = extractMembraneAuthInfo(networkManagerTracker).getClientId();
+    String trackerPeerId = networkManagerTracker.getUID();
     Tracker tracker = new Tracker(trackerPeerId, "127.0.0.1", PORT_INTERNAL_TRACKER);
 
     injectNewTracker(networkManager1, tracker, trackerPeerId);
@@ -157,11 +156,11 @@ class NetworkManagerImplTest {
 
     // Wait until the tracker is dialled
 
-    String peerID1 = extractMembraneAuthInfo(networkManager1).getClientId();
-    String peerID2 = extractMembraneAuthInfo(networkManager2).getClientId();
+    String peerID1 = networkManager1.getUID();
+    String peerID2 = networkManager2.getUID();
 
     boolean trackerConnected = false;
-    for (int i = 0; i < 50 && !trackerConnected; i++) {
+    for (int i = 0; i < 100 && !trackerConnected; i++) {
       Thread.sleep(100);
       trackerConnected = networkManagerTracker.peerConnected(peerID2) && networkManagerTracker.peerConnected(peerID1);
     }
@@ -174,7 +173,7 @@ class NetworkManagerImplTest {
     // Give a moment for the tracker to receive the PEX information.
     boolean pexInfoExchanged = false;
     PexManager pexManagerTracker = extractPexManager(networkManagerTracker);
-    for (int i = 0; i < 100 && !pexInfoExchanged; i++) {
+    for (int i = 0; i < 200 && !pexInfoExchanged; i++) {
       Thread.sleep(50);
       // Remember that entries from the same IP overwrite each other
       pexInfoExchanged = !pexManagerTracker.getPublicEntries(10).isEmpty();
@@ -190,14 +189,14 @@ class NetworkManagerImplTest {
 
     // Check if they connect
     boolean peer1and2Connected = false;
-    for (int i = 0; i < 100 && !peer1and2Connected; i++) {
+    for (int i = 0; i < 200 && !peer1and2Connected; i++) {
       Thread.sleep(50);
       peer1and2Connected = networkManager1.peerConnected(peerID2) && networkManager2.peerConnected(peerID1);
     }
     Assertions.assertTrue(peer1and2Connected);
 
     // Give them a moment to exchange PEX info
-    Thread.sleep(500);
+    Thread.sleep(700);
 
     // Shutdown the tracker, should no longer be needed.
     networkManagerTracker.close();
@@ -218,7 +217,7 @@ class NetworkManagerImplTest {
     // Should have reconnected if PEX worked.
 
     peer1and2Connected = false;
-    for (int i = 0; i < 10 && !peer1and2Connected; i++) {
+    for (int i = 0; i < 100 && !peer1and2Connected; i++) {
       Thread.sleep(50);
       peer1and2Connected = networkManager1.peerConnected(peerID2) && networkManager2.peerConnected(peerID1);
     }
@@ -243,13 +242,6 @@ class NetworkManagerImplTest {
     Field pexField = networkManagerImpl.getClass().getDeclaredField("pexManager");
     pexField.setAccessible(true);
     return (PexManager) pexField.get(networkManagerImpl);
-  }
-
-  private MembraneAuthInfo extractMembraneAuthInfo(NetworkManager networkManager) throws Exception {
-    NetworkManagerImpl networkManagerImpl = (NetworkManagerImpl) networkManager;
-    Field pexField = networkManagerImpl.getClass().getDeclaredField("membraneAuthInfo");
-    pexField.setAccessible(true);
-    return (MembraneAuthInfo) pexField.get(networkManagerImpl);
   }
 
   private Gatekeeper extractGatekeeper(NetworkManager networkManager) throws Exception {
