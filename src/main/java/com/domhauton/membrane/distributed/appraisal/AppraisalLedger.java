@@ -66,22 +66,22 @@ public class AppraisalLedger implements Runnable, Closeable {
     }
   }
 
-  public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedShards, String shardId) {
-    getPeerAppraisal(peerId).registerReport(reportDateTime, expectedShards, shardId);
+  public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedBlocks, String BlockId) {
+    getPeerAppraisal(peerId).registerReport(reportDateTime, expectedBlocks, BlockId);
     uptimeCalculator.updateUptime(reportDateTime);
   }
 
-  public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedShards) {
-    getPeerAppraisal(peerId).registerReport(reportDateTime, expectedShards);
+  public void registerPeerContact(String peerId, DateTime reportDateTime, int expectedBlocks) {
+    getPeerAppraisal(peerId).registerReport(reportDateTime, expectedBlocks);
     uptimeCalculator.updateUptime(reportDateTime);
   }
 
-  public void registerLostBlock(String peerId, DateTime lostDateTime, int expectedShards) {
-    getPeerAppraisal(peerId).addLostBlock(lostDateTime, expectedShards);
+  public void registerLostBlock(String peerId, DateTime lostDateTime, int expectedBlocks) {
+    getPeerAppraisal(peerId).addLostBlock(lostDateTime, expectedBlocks);
   }
 
-  public Set<String> getReportsRecieved(String peerId, DateTime dateTime, long expectedShards) {
-    return getPeerAppraisal(peerId).getReportsReceived(dateTime, expectedShards);
+  public Set<String> getReportsRecieved(String peerId, DateTime dateTime, long expectedBlocks) {
+    return getPeerAppraisal(peerId).getReportsReceived(dateTime, expectedBlocks);
   }
 
   public double getPeerRating(String peerId) {

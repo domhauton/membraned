@@ -1,6 +1,7 @@
 package com.domhauton.membrane.distributed;
 
 import com.domhauton.membrane.MockitoExtension;
+import com.domhauton.membrane.distributed.appraisal.AppraisalLedger;
 import com.domhauton.membrane.distributed.block.ledger.BlockLedger;
 import com.domhauton.membrane.distributed.contract.ContractStore;
 import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
@@ -13,6 +14,7 @@ import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageImpl;
 import com.domhauton.membrane.storage.BackupLedger;
 import com.domhauton.membrane.storage.StorageManagerTestUtils;
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
 import org.joda.time.DateTime;
@@ -22,7 +24,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.Mockito;
 
 import java.io.File;
@@ -30,6 +31,7 @@ import java.lang.reflect.Field;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
@@ -54,6 +56,7 @@ class DistributorTest {
   private NetworkManager networkManagerMock1;
   private BlockLedger blockLedgerInner1;
   private ContractStore contractStoreInner1;
+  private AppraisalLedger appraisalLedgerInner1;
   private MembraneAuthInfo membraneAuthInfo1;
 
   private Distributor distributor2;
@@ -64,10 +67,8 @@ class DistributorTest {
   private NetworkManager networkManagerMock2;
   private BlockLedger blockLedgerInner2;
   private ContractStore contractStoreInner2;
+  private AppraisalLedger appraisalLedgerInner2;
   private MembraneAuthInfo membraneAuthInfo2;
-
-  @Captor
-  private ArgumentCaptor<Set<String>> stringSetCaptor;
 
   @BeforeEach
   void setUp() throws Exception {
@@ -87,6 +88,7 @@ class DistributorTest {
     distributor1 = new Distributor(basePath1, backupLedgerMock1, localShardStorage1, peerBlockStorage1, networkManagerMock1, CONTRACT_LIMIT);
     blockLedgerInner1 = extractBlockLedger(distributor1);
     contractStoreInner1 = extractContractStore(distributor1);
+    appraisalLedgerInner1 = extractAppraisalLedger(distributor1);
 
     basePath2 = Paths.get(StorageManagerTestUtils.createRandomFolder(StorageManagerTestUtils.BASE_DIR));
     backupLedgerMock2 = Mockito.mock(BackupLedger.class);
@@ -102,11 +104,13 @@ class DistributorTest {
     distributor2 = new Distributor(basePath2, backupLedgerMock2, localShardStorage2, peerBlockStorage2, networkManagerMock2, CONTRACT_LIMIT);
     blockLedgerInner2 = extractBlockLedger(distributor2);
     contractStoreInner2 = extractContractStore(distributor2);
+    appraisalLedgerInner2 = extractAppraisalLedger(distributor2);
   }
 
   @Test
   void startStopTest() throws Exception {
     distributor1.run();
+    Assertions.assertEquals(CONTRACT_LIMIT, distributor1.getContractCountTarget());
     Thread.sleep(1000);
     distributor1.close();
   }
@@ -179,7 +183,8 @@ class DistributorTest {
 
     // Send Update
 
-    distributor1.sendContractUpdateToPeer(PEER_2);
+    setupConnection();
+    distributor1.sendUpdateToAllContractedPeers();
     Mockito.verify(networkManagerMock1, Mockito.times(1)).sendContractUpdateToPeer(PEER_2, baseDateTime, 1, Collections.singleton(block1Id));
 
     // Ensure requests are as expected
@@ -278,6 +283,10 @@ class DistributorTest {
     String shard1Id = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
     String shard2Id = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
     Mockito.when(backupLedgerMock2.getAllRequiredShards()).thenReturn(ImmutableSet.of(shard1Id, shard2Id));
+    List<String> relatedEntries1 = ImmutableList.of("journalEntry1", "journalEntry1a");
+    List<String> relatedEntries2 = ImmutableList.of("journalEntry2", "journalEntry2a");
+    Mockito.when(backupLedgerMock2.getAllRelatedJournalEntries(shard1Id)).thenReturn(relatedEntries1);
+    Mockito.when(backupLedgerMock2.getAllRelatedJournalEntries(shard2Id)).thenReturn(relatedEntries2);
 
     distributor2.distributeShards();
 
@@ -302,6 +311,10 @@ class DistributorTest {
     String shardId1 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
     String shardId2 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
     Mockito.doAnswer(invocation -> localShardStorage2.listShardIds()).when(backupLedgerMock2).getAllRequiredShards();
+    List<String> relatedEntries1 = ImmutableList.of("journalEntry1", "journalEntry1a");
+    List<String> relatedEntries2 = ImmutableList.of("journalEntry2", "journalEntry2a");
+    Mockito.when(backupLedgerMock2.getAllRelatedJournalEntries(shardId1)).thenReturn(relatedEntries1);
+    Mockito.when(backupLedgerMock2.getAllRelatedJournalEntries(shardId2)).thenReturn(relatedEntries2);
 
     distributor2.distributeShards();
 
@@ -347,6 +360,185 @@ class DistributorTest {
     // Shards should be fully recovered now.
 
     Assertions.assertEquals(ImmutableSet.of(shardId1, shardId2), localShardStorage2.listShardIds());
+
+    for (String x : relatedEntries1) {
+      Mockito.verify(backupLedgerMock2, Mockito.times(1)).insertJournalEntry(x);
+    }
+
+    for (String x : relatedEntries2) {
+      Mockito.verify(backupLedgerMock2, Mockito.times(1)).insertJournalEntry(x);
+    }
+  }
+
+  @Test
+  void recoverShardsFromExpectedBlockTest() throws Exception {
+    setupAllowedInequality();
+    setupConnection();
+
+    String shardId1 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    String shardId2 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    Mockito.doAnswer(invocation -> localShardStorage2.listShardIds()).when(backupLedgerMock2).getAllRequiredShards();
+
+    distributor2.distributeShards();
+
+    ArgumentCaptor<String> peerArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> blockIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<byte[]> blockByteCaptor = ArgumentCaptor.forClass(byte[].class);
+    Mockito.verify(networkManagerMock2, Mockito.times(1))
+        .uploadBlockToPeer(peerArgumentCaptor.capture(), blockIdArgumentCaptor.capture(), blockByteCaptor.capture());
+
+    Assertions.assertEquals(PEER_1, peerArgumentCaptor.getValue());
+    byte[] block1Bytes = blockByteCaptor.getValue();
+    String blockId = blockIdArgumentCaptor.getValue();
+
+    Assertions.assertEquals(contractStoreInner2.getMyBlockIds(), Collections.singleton(blockId));
+
+    // Completely forget about block
+    contractStoreInner2.removeMyBlockId(PEER_1, blockId);
+    localShardStorage2.removeShard(shardId1);
+    Assertions.assertTrue(contractStoreInner2.getMyBlockIds().isEmpty());
+
+    // Insert block into peer1
+    DateTime baseDateTime = DateTime.now().hourOfDay().roundFloorCopy();
+
+    distributor1.receiveBlock(PEER_2, blockId, block1Bytes);
+
+    Mockito.verify(networkManagerMock1, Mockito.times(1))
+        .sendContractUpdateToPeer(PEER_2, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(Collections.singleton(blockId), peerBlockStorage1.listShardIds());
+    Assertions.assertEquals(Collections.singleton(blockId), contractStoreInner1.getPeerBlockIds(PEER_2));
+
+    // Assert that only one shard is currently in peer 2
+    Assertions.assertEquals(ImmutableSet.of(shardId2), localShardStorage2.listShardIds());
+
+    // Send to peer2
+    Set<EvidenceRequest> evidenceRequests = distributor2.processPeerContractUpdate(PEER_1, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(1, evidenceRequests.size());
+    Assertions.assertEquals(EvidenceType.SEND_BLOCK, evidenceRequests.iterator().next().getEvidenceType());
+    // Receive requests
+    Set<EvidenceResponse> evidenceResponses = distributor1.processEvidenceRequests(PEER_2, baseDateTime, evidenceRequests);
+    Assertions.assertEquals(1, evidenceResponses.size());
+    Assertions.assertEquals(EvidenceType.SEND_BLOCK, evidenceResponses.iterator().next().getEvidenceType());
+    // Receive response
+    distributor2.processEvidenceResponses(PEER_1, baseDateTime, evidenceResponses);
+    // Shards should be fully recovered now.
+
+    Assertions.assertEquals(ImmutableSet.of(shardId1, shardId2), localShardStorage2.listShardIds());
+  }
+
+  @Test
+  void unnecessaryBlockRemovalTest() throws Exception {
+    setupAllowedInequality();
+    setupConnection();
+
+    String shardId1 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    String shardId2 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    Mockito.doAnswer(invocation -> localShardStorage2.listShardIds()).when(backupLedgerMock2).getAllRequiredShards();
+
+    distributor2.distributeShards();
+
+    ArgumentCaptor<String> peerArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> blockIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<byte[]> blockByteCaptor = ArgumentCaptor.forClass(byte[].class);
+    Mockito.verify(networkManagerMock2, Mockito.times(1))
+        .uploadBlockToPeer(peerArgumentCaptor.capture(), blockIdArgumentCaptor.capture(), blockByteCaptor.capture());
+
+    Assertions.assertEquals(PEER_1, peerArgumentCaptor.getValue());
+    byte[] block1Bytes = blockByteCaptor.getValue();
+    String blockId = blockIdArgumentCaptor.getValue();
+
+    Assertions.assertEquals(contractStoreInner2.getMyBlockIds(), Collections.singleton(blockId));
+
+    // Remove shards
+    localShardStorage2.removeShard(shardId1);
+    localShardStorage2.removeShard(shardId2);
+
+    // Insert block into peer1
+    DateTime baseDateTime = DateTime.now().hourOfDay().roundFloorCopy();
+
+    distributor1.receiveBlock(PEER_2, blockId, block1Bytes);
+
+    Mockito.verify(networkManagerMock1, Mockito.times(1))
+        .sendContractUpdateToPeer(PEER_2, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(Collections.singleton(blockId), peerBlockStorage1.listShardIds());
+    Assertions.assertEquals(Collections.singleton(blockId), contractStoreInner1.getPeerBlockIds(PEER_2));
+
+    // Shards should be marked for deletion in peer 2. Nothing should be sent out.
+    distributor2.distributeShards();
+    Mockito.verify(networkManagerMock2, Mockito.times(1))
+        .uploadBlockToPeer(Mockito.anyString(), Mockito.anyString(), Mockito.any(byte[].class));
+
+    // Assert that only one shard is currently in peer 2
+    Assertions.assertTrue(localShardStorage2.listShardIds().isEmpty());
+
+    // Send to peer2
+    Set<EvidenceRequest> evidenceRequests = distributor2.processPeerContractUpdate(PEER_1, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(1, evidenceRequests.size());
+    Assertions.assertEquals(EvidenceType.DELETE_BLOCK, evidenceRequests.iterator().next().getEvidenceType());
+    // Receive requests
+    Set<EvidenceResponse> evidenceResponses = distributor1.processEvidenceRequests(PEER_2, baseDateTime, evidenceRequests);
+    Assertions.assertEquals(0, evidenceResponses.size());
+    // Receive response
+    distributor2.processEvidenceResponses(PEER_1, baseDateTime, evidenceResponses);
+    // Shards should be fully removed now.
+
+    Assertions.assertTrue(peerBlockStorage1.listShardIds().isEmpty());
+    Assertions.assertTrue(peerBlockStorage2.listShardIds().isEmpty());
+    Assertions.assertTrue(localShardStorage1.listShardIds().isEmpty());
+    Assertions.assertTrue(localShardStorage2.listShardIds().isEmpty());
+  }
+
+  @Test
+  void blockSaltedHashTest() throws Exception {
+    setupAllowedInequality();
+    setupConnection();
+
+    String shardId1 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    String shardId2 = StorageManagerTestUtils.addRandShard(RANDOM, localShardStorage2);
+    Mockito.doAnswer(invocation -> localShardStorage2.listShardIds()).when(backupLedgerMock2).getAllRequiredShards();
+
+    distributor2.distributeShards();
+
+    ArgumentCaptor<String> peerArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> blockIdArgumentCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<byte[]> blockByteCaptor = ArgumentCaptor.forClass(byte[].class);
+    Mockito.verify(networkManagerMock2, Mockito.times(1))
+        .uploadBlockToPeer(peerArgumentCaptor.capture(), blockIdArgumentCaptor.capture(), blockByteCaptor.capture());
+
+    Assertions.assertEquals(PEER_1, peerArgumentCaptor.getValue());
+    byte[] block1Bytes = blockByteCaptor.getValue();
+    String blockId = blockIdArgumentCaptor.getValue();
+
+    Assertions.assertEquals(contractStoreInner2.getMyBlockIds(), Collections.singleton(blockId));
+
+    // Insert block into peer1
+    DateTime baseDateTime = DateTime.now().hourOfDay().roundFloorCopy();
+
+    distributor1.receiveBlock(PEER_2, blockId, block1Bytes);
+
+    Mockito.verify(networkManagerMock1, Mockito.times(1))
+        .sendContractUpdateToPeer(PEER_2, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(Collections.singleton(blockId), peerBlockStorage1.listShardIds());
+    Assertions.assertEquals(Collections.singleton(blockId), contractStoreInner1.getPeerBlockIds(PEER_2));
+
+    // Nothing else should be sent out. Nothing should be sent out.
+    distributor2.distributeShards();
+    Mockito.verify(networkManagerMock2, Mockito.times(1))
+        .uploadBlockToPeer(Mockito.anyString(), Mockito.anyString(), Mockito.any(byte[].class));
+
+
+    // Send to peer2
+    Set<EvidenceRequest> evidenceRequests = distributor2.processPeerContractUpdate(PEER_1, baseDateTime, 1, Collections.singleton(blockId));
+    Assertions.assertEquals(1, evidenceRequests.size());
+    Assertions.assertEquals(EvidenceType.COMPUTE_HASH, evidenceRequests.iterator().next().getEvidenceType());
+    // Receive requests
+    Set<EvidenceResponse> evidenceResponses = distributor1.processEvidenceRequests(PEER_2, baseDateTime, evidenceRequests);
+    Assertions.assertEquals(1, evidenceResponses.size());
+    Assertions.assertEquals(EvidenceType.COMPUTE_HASH, evidenceResponses.iterator().next().getEvidenceType());
+    // Receive response
+    distributor2.processEvidenceResponses(PEER_1, baseDateTime, evidenceResponses);
+
+    Assertions.assertEquals(Collections.singleton(blockId), appraisalLedgerInner2.getReportsRecieved(PEER_1, baseDateTime, 1));
   }
 
   private void setupConnection() {
@@ -354,10 +546,12 @@ class DistributorTest {
     Mockito.when(networkManagerMock2.peerConnected(PEER_1)).thenReturn(true);
   }
 
-  private void setupAllowedInequality() {
-    contractStoreInner2.setPeerAllowedInequality(PEER_1, 1);
+  private void setupAllowedInequality() throws Exception {
+    distributor2.addContractedPeer(PEER_1);
+    // Twice to try and break it.
+    distributor2.addContractedPeer(PEER_1);
     contractStoreInner2.setMyAllowedInequality(PEER_1, 1);
-    contractStoreInner1.setPeerAllowedInequality(PEER_2, 1);
+    distributor1.addContractedPeer(PEER_2);
     contractStoreInner1.setMyAllowedInequality(PEER_2, 1);
   }
 
@@ -377,5 +571,11 @@ class DistributorTest {
     Field pexField = distributor.getClass().getDeclaredField("contractStore");
     pexField.setAccessible(true);
     return (ContractStore) pexField.get(distributor);
+  }
+
+  private AppraisalLedger extractAppraisalLedger(Distributor distributor) throws Exception {
+    Field pexField = distributor.getClass().getDeclaredField("appraisalLedger");
+    pexField.setAccessible(true);
+    return (AppraisalLedger) pexField.get(distributor);
   }
 }

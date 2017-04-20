@@ -124,6 +124,10 @@ class StorageContract {
     return peerBaseAllowedInequality;
   }
 
+  int getMyBaseAllowedInequality() {
+    return myBaseAllowedInequality;
+  }
+
   int getMyBlockCount() {
     return myBlockIds.size();
   }

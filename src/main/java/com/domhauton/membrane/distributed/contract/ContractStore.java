@@ -94,9 +94,17 @@ public class ContractStore implements Runnable, Closeable {
 
   public Set<String> getCurrentPeers() {
     return contractList.entrySet().stream()
-        .filter(entry -> entry.getValue().getPeerBaseAllowedInequality() > 0)
+        .filter(entry -> entry.getValue().getPeerBaseAllowedInequality() > 0 || entry.getValue().getMyBaseAllowedInequality() > 1)
         .map(Map.Entry::getKey)
         .collect(Collectors.toSet());
+  }
+
+  public void removeUselessPeers() {
+    Set<String> currentPeers = getCurrentPeers();
+    Set<String> uselessPeers = contractList.entrySet().stream().map(Map.Entry::getKey)
+        .filter(peerId -> !currentPeers.contains(peerId))
+        .collect(Collectors.toSet());
+    uselessPeers.forEach(contractList::remove);
   }
 
   public Set<String> getMyBlockIds() {

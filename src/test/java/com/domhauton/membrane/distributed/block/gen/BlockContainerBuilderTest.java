@@ -1,11 +1,13 @@
 package com.domhauton.membrane.distributed.block.gen;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.hash.Hashing;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -25,14 +27,19 @@ class BlockContainerBuilderTest {
             .map(x -> BlockUtilsTest.generateRandomShard())
             .collect(Collectors.toMap(x -> Hashing.md5().hashBytes(x).toString(), x -> x));
 
-    shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
+    shardMap.forEach(blockProcessor::addLocalShard);
+
+    Set<String> fileHistory = ImmutableSet.of("hist info 1", "info 23");
+
+    blockProcessor.addFileHistory(fileHistory);
 
     byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
-    shardMap.entrySet()
-            .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
+    Assertions.assertEquals(fileHistory, reproducedBlockProcessor.getFileHistory());
+
+    shardMap.forEach((key, value) -> Assertions.assertArrayEquals(value, reproducedBlockProcessor.getBlock(key)));
   }
 
   @Test
@@ -46,14 +53,13 @@ class BlockContainerBuilderTest {
 
     shardMap.put(Hashing.md5().hashBytes(BlockUtilsTest.LOREM_IPSUM_BYTES).toString(), BlockUtilsTest.LOREM_IPSUM_BYTES);
 
-    shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
+    shardMap.forEach(blockProcessor::addLocalShard);
 
     byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
-    shardMap.entrySet()
-            .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
+    shardMap.forEach((key, value) -> Assertions.assertArrayEquals(value, reproducedBlockProcessor.getBlock(key)));
   }
 
   @Test
@@ -64,7 +70,7 @@ class BlockContainerBuilderTest {
 
     shardMap.put(Hashing.md5().hashBytes(BlockUtilsTest.LOREM_IPSUM_BYTES).toString(), BlockUtilsTest.LOREM_IPSUM_BYTES);
 
-    shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
+    shardMap.forEach(blockProcessor::addLocalShard);
 
     byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
@@ -87,14 +93,13 @@ class BlockContainerBuilderTest {
 
     shardMap.put(Hashing.md5().hashBytes(BlockUtilsTest.LOREM_IPSUM_BYTES).toString(), BlockUtilsTest.LOREM_IPSUM_BYTES);
 
-    shardMap.entrySet().forEach(x -> blockProcessor.addLocalShard(x.getKey(), x.getValue()));
+    shardMap.forEach(blockProcessor::addLocalShard);
 
     byte[] builtRemoteShard = blockProcessor.toEncryptedBytes(ENCRYPTION_KEY);
 
     BlockProcessor reproducedBlockProcessor = new BlockProcessor(builtRemoteShard, ENCRYPTION_KEY);
 
-    shardMap.entrySet()
-            .forEach(x -> Assertions.assertArrayEquals(x.getValue(), reproducedBlockProcessor.getBlock(x.getKey())));
+    shardMap.forEach((key, value) -> Assertions.assertArrayEquals(value, reproducedBlockProcessor.getBlock(key)));
 
     // Must add 32bits to be break base64 encoding!
 

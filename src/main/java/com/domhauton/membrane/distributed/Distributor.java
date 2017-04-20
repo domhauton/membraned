@@ -17,6 +17,7 @@ import com.domhauton.membrane.network.NetworkManager;
 import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageException;
 import com.domhauton.membrane.storage.BackupLedger;
+import com.domhauton.membrane.storage.StorageManagerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
@@ -90,6 +91,9 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     // Remove any disused block Ledgers
     blockLedger.removeAllExcept(contractStore.getMyBlockIds());
 
+    // Remove unnecessary peers
+    contractStore.removeUselessPeers();
+
     // Remove any unnecessaryShard peer blocks.
     removeUnnecessaryPeerBlocks();
   }
@@ -97,13 +101,28 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   private List<String> getAvailablePeersSortedByRank() {
     // This is expensive. Be careful.
     Map<String, Double> peerReliabilityMap = contractStore.getCurrentPeers().stream()
-        .filter(this::isPeerConnected)
         .collect(Collectors.toMap(x -> x, appraisalLedger::getPeerRating));
 
+    double mean = peerReliabilityMap.values().stream()
+        .mapToDouble(x -> x)
+        .average()
+        .orElse(0.0d);
+    double var = peerReliabilityMap.values().stream()
+        .mapToDouble(x -> (x - mean))
+        .map(x -> x * x)
+        .average()
+        .orElse(0.0);
+    double sd = Math.sqrt(var);
+    double minPermitted = mean - (1.5 * sd);
+
+    peerReliabilityMap.entrySet().stream()
+        .filter(peerRel -> peerRel.getValue() < minPermitted)
+        .forEach(peerRel -> contractStore.setPeerAllowedInequality(peerRel.getKey(), 0));
+
     // Do not chain with above. Memoize reliability score!
-    return peerReliabilityMap.entrySet().stream()
-        .sorted(Comparator.comparingDouble(Map.Entry::getValue))
-        .map(Map.Entry::getKey)
+    return contractStore.getCurrentPeers().stream()
+        .filter(this::isPeerConnected)
+        .sorted(Comparator.comparingDouble(x -> peerReliabilityMap.getOrDefault(x, 0.0)))
         .collect(Collectors.toList());
   }
 
@@ -178,6 +197,7 @@ public class Distributor implements Runnable, Closeable, ContractManager {
           byte[] shardData = localShardStorage.retrieveShard(shardHash);
           // Use (returned) compressed size for calculation
           long compressedShardSize = blockProcessor.addLocalShard(shardHash, shardData);
+          blockProcessor.addFileHistory(new HashSet<>(backupLedger.getAllRelatedJournalEntries(shardHash)));
           // Update loop variants
           blockSizeRemaining -= compressedShardSize;
           uploadedSet.add(shardHash);
@@ -210,7 +230,7 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   /**
    * Send updates to every contracted peer who is connected.
    */
-  private void sendUpdateToAllContractedPeers() {
+  void sendUpdateToAllContractedPeers() {
     getContractedPeers().stream()
         .filter(networkManager::peerConnected)
         .forEach(this::sendContractUpdateToPeer);
@@ -230,11 +250,6 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     } catch (NetworkException e) {
       logger.warn("Failed to send contract update to contracted peer. [{}]", peerId);
     }
-  }
-
-  private void removeMyBlock(String peer, String blockId) {
-    blockLedger.removeBlock(blockId);
-    contractStore.removeMyBlockId(peer, blockId);
   }
 
   @Override
@@ -267,12 +282,12 @@ public class Distributor implements Runnable, Closeable, ContractManager {
   @Override
   public void receiveBlock(String peerId, String blockId, byte[] data) {
     String generatedBlockId = BlockLedger.generateBlockId(data);
-    if (generatedBlockId.equals(blockId)) {
+    if (generatedBlockId.equals(blockId) || getContractedPeers().contains(peerId)) {
       try {
         contractStore.addPeerBlockId(peerId, blockId);
         peerShardStorage.storeShard(blockId, data);
       } catch (ContractStoreException e) {
-        logger.warn("Insufficient contactable space for peer block. Ignoring. {}", e.getMessage());
+        logger.error("Insufficient contactable space for peer block. Ignoring. {}", e.getMessage());
       } catch (ShardStorageException e) {
         logger.error("Failed to store peer block. Ignoring. {}", e.getMessage());
       }
@@ -285,6 +300,9 @@ public class Distributor implements Runnable, Closeable, ContractManager {
 
   @Override
   public Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds) {
+    permittedInequality = Math.max(0, permittedInequality);
+    logger.info("Received peer contract update from [{}]. {} blocks stored. {} permitted inequality.",
+        peerId, blockIds.size(), permittedInequality);
     // Is the given datetime within the last hour.
     if (Math.abs(Minutes.minutesBetween(dateTime, DateTime.now()).getMinutes()) < DateTimeConstants.MINUTES_PER_HOUR) {
       // Check if actually contracted peer
@@ -308,24 +326,31 @@ public class Distributor implements Runnable, Closeable, ContractManager {
         appraisalLedger.registerPeerContact(peerId, dateTime, myBlockIds.size());
 
         // Now deal with the actual expected blocks.
-        Set<String> expectedBlocks = blockIds.stream().filter(myBlockIds::contains).collect(Collectors.toSet());
-        Set<EvidenceRequest> expiredBlockRequests = generateExpiredBlockEvidenceRequests(dateTime, expectedBlocks);
-        Set<String> alreadyConfirmedBlocks = appraisalLedger.getReportsRecieved(peerId, dateTime, myBlockIds.size());
-        Set<EvidenceRequest> activeBlockRequests = getActiveBlockEvidenceRequests(dateTime, expectedBlocks, alreadyConfirmedBlocks);
+        Set<String> expectedBlocks = blockIds.stream()
+            .filter(myBlockIds::contains)
+            .collect(Collectors.toSet());
+        Set<String> blocksToSkip = appraisalLedger.getReportsRecieved(peerId, dateTime, myBlockIds.size());
+        Set<EvidenceRequest> activeBlockRequests = getActiveBlockEvidenceRequests(dateTime, expectedBlocks, blocksToSkip);
 
         // Aggregate all generated evidence requests.
         Set<EvidenceRequest> returnEvidenceRequests = new HashSet<>(
             activeBlockRequests.size() +
-                expiredBlockRequests.size() +
                 unexpectedBlockRequests.size());
 
         returnEvidenceRequests.addAll(activeBlockRequests);
-        returnEvidenceRequests.addAll(expiredBlockRequests);
         returnEvidenceRequests.addAll(unexpectedBlockRequests);
+
+        logger.info("Contract update complete. {} blocks lost by peer. {} unexpected blocks. {} active blocks. {} evidence requests sent.",
+            lostRecordedBlockIds.size(),
+            unexpectedBlockRequests.size(),
+            expectedBlocks.size(),
+            returnEvidenceRequests.size());
+
         // Remove any blocks deleted!
         returnEvidenceRequests.stream()
             .filter(x -> x.getEvidenceType() == EvidenceType.DELETE_BLOCK)
             .forEach(x -> contractStore.removeMyBlockId(peerId, x.getBlockId()));
+
         return returnEvidenceRequests;
       } else {
         // Record that the peer was around at this time and nothing else. May be selected for a contract one day.
@@ -334,48 +359,41 @@ public class Distributor implements Runnable, Closeable, ContractManager {
         return Collections.emptySet();
       }
     } else {
+      logger.info("Ignoring contract update from [{}]. Not contracted and no blocks!", peerId);
       // Acknowledge that you received the request but don't ask for anything.
       return Collections.emptySet();
     }
   }
 
-  private Set<EvidenceRequest> getActiveBlockEvidenceRequests(DateTime dateTime, Set<String> expectedBlocks, Set<String> alreadyConfirmedBlocks) {
+  private Set<EvidenceRequest> getActiveBlockEvidenceRequests(DateTime dateTime, Set<String> expectedBlocks, Set<String> skipBlocks) {
     return expectedBlocks.stream()
-        .map(blockId -> {
-          try {
-            // If we are missing a shard from one of the blocks.
-            if (blockLedger.getBlockShardIds(blockId).stream().allMatch(localShardStorage::hasShard)) {
-              return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockLedger.getBlockEvidenceSalt(blockId, dateTime));
-            } else {
-              return new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK);
-            }
-          } catch (BlockLedgerException e) {
-            return new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK);
-          }
-        })
-        // Do not resend shard requests for blocks to delete or compute hash for.
+        .map(blockId -> activeBlockId2EvidenceRequest(dateTime, blockId))
         .filter(evidenceRequest -> evidenceRequest.getEvidenceType() == EvidenceType.SEND_BLOCK ||
-            !alreadyConfirmedBlocks.contains(evidenceRequest.getBlockId()))
+            !skipBlocks.contains(evidenceRequest.getBlockId()))
         .collect(Collectors.toSet());
+  }
+
+  private EvidenceRequest activeBlockId2EvidenceRequest(DateTime dateTime, String blockId) {
+    try {
+      if (blockLedger.isBlockExpired(blockId, dateTime)) {
+        return new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK);
+      } else {
+        // If we are missing a shard from one of the blocks.
+        if (blockLedger.getBlockShardIds(blockId).stream().allMatch(localShardStorage::hasShard)) {
+          return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockLedger.getBlockEvidenceSalt(blockId, dateTime));
+        } else {
+          return new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK);
+        }
+      }
+    } catch (BlockLedgerException e) {
+      return new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK);
+    }
   }
 
   private Set<EvidenceRequest> getUnexpectedEvidenceRequests(Set<String> blockIds, Set<String> myBlockIds) {
     return blockIds.stream()
         .filter(blockId -> !myBlockIds.contains(blockId))
         .map(blockId -> new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK))
-        .collect(Collectors.toSet());
-  }
-
-  private Set<EvidenceRequest> generateExpiredBlockEvidenceRequests(DateTime dateTime, Set<String> expectedBlocks) {
-    return expectedBlocks.stream()
-        .filter(blockId -> {
-          try {
-            return blockLedger.isBlockExpired(blockId, dateTime);
-          } catch (BlockLedgerException e) {
-            return false;
-          }
-        })
-        .map(blockId -> new EvidenceRequest(blockId, EvidenceType.DELETE_BLOCK))
         .collect(Collectors.toSet());
   }
 
@@ -422,6 +440,14 @@ public class Distributor implements Runnable, Closeable, ContractManager {
           logger.error("Failed to store recovered block. Forgetting. {}", e.getMessage());
         }
       });
+      for (String fileHistEntry : blockProcessor.getFileHistory()) {
+        try {
+          backupLedger.insertJournalEntry(fileHistEntry);
+        } catch (StorageManagerException e) {
+          logger.error("Failed to insert recovered file history. [{}] Forgetting. {}",
+              fileHistEntry, e.getMessage());
+        }
+      }
       appraisalLedger.registerPeerContact(peerId, dt, contractStore.getMyBlockCount(peerId), blockId);
     } else {
       logger.warn("Received block ID does not match stated block ID! Given: [{}] Actual: [{}]", blockId, actualBlockId);
@@ -443,9 +469,10 @@ public class Distributor implements Runnable, Closeable, ContractManager {
 
   @Override
   public Set<EvidenceResponse> processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
+    logger.info("Received {} evidence requests from [{}] for [{}]", evidenceRequests.size(), peerId, dateTime);
     // Ensure datetime is within the last hour and peer is contracted
-    if (Math.abs(Minutes.minutesBetween(dateTime, DateTime.now()).getMinutes()) < DateTimeConstants.MINUTES_PER_HOUR
-        && getContractedPeers().contains(peerId)) {
+    if (Math.abs(Minutes.minutesBetween(dateTime, DateTime.now()).getMinutes()) < DateTimeConstants.MINUTES_PER_HOUR) {
+      logger.debug("Processing {} evidence requests from [{}]", evidenceRequests.size(), peerId);
       // Work through every request
       Set<String> peerBlockIds = contractStore.getPeerBlockIds(peerId);
       return evidenceRequests.stream()
@@ -454,6 +481,7 @@ public class Distributor implements Runnable, Closeable, ContractManager {
           .filter(Objects::nonNull)
           .collect(Collectors.toSet());
     } else {
+      logger.warn("Ignoring {} evidence requests from [{}]. Too Late.", evidenceRequests.size(), peerId);
       return Collections.emptySet();
     }
   }
@@ -462,18 +490,21 @@ public class Distributor implements Runnable, Closeable, ContractManager {
     try {
       switch (evidenceRequest.getEvidenceType()) {
         case SEND_BLOCK:
+          logger.debug("Processing send block evidence request for block [{}]", evidenceRequest.getBlockId());
           byte[] blockBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());
-          return new EvidenceResponse(evidenceRequest.getBlockId(), EvidenceType.SEND_BLOCK, blockBytes);
+          return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), blockBytes);
         case COMPUTE_HASH:
+          logger.debug("Processing salted hash evidence request for block [{}]", evidenceRequest.getBlockId());
           byte[] hashBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());
           byte[] saltedHash = BlockLedger.getSaltedHash(evidenceRequest.getSalt(), hashBytes).getBytes();
-          return new EvidenceResponse(evidenceRequest.getBlockId(), EvidenceType.SEND_BLOCK, saltedHash);
+          return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), saltedHash);
         case DELETE_BLOCK:
+          logger.debug("Processing delete request for block [{}]", evidenceRequest.getBlockId());
           contractStore.removePeerBlockId(peer, evidenceRequest.getBlockId());
           peerShardStorage.removeShard(evidenceRequest.getBlockId());
           return null;
         default:
-          logger.error("Could not find match for Evidence Type: {}. Ignoring.`", evidenceRequest.getEvidenceType());
+          logger.error("Could not find match for Evidence Type: {}. Ignoring.", evidenceRequest.getEvidenceType());
           return null;
       }
     } catch (ShardStorageException | ContractStoreException e) {

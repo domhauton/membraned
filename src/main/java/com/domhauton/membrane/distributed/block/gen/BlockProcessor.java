@@ -18,10 +18,12 @@ public class BlockProcessor {
 
   private final byte[] salt;
   private final Map<String, LocalShardData> localShardDataList;
+  private final Set<String> fileHistory;
 
   public BlockProcessor() {
     salt = generateRandomSalt();
     localShardDataList = new HashMap<>();
+    fileHistory = new HashSet<>();
   }
 
   public BlockProcessor(byte[] data, String key) throws BlockException {
@@ -30,6 +32,7 @@ public class BlockProcessor {
     localShardDataList = blockContainer.getLocalShardDataList()
             .stream()
             .collect(Collectors.toMap(LocalShardData::getLocalId, Function.identity()));
+    fileHistory = blockContainer.getFileHistory();
   }
 
   /**
@@ -51,6 +54,14 @@ public class BlockProcessor {
       localShardDataList.put(hash, localShardData);
       return shardData.length;
     }
+  }
+
+  public void addFileHistory(Set<String> history) {
+    fileHistory.addAll(history);
+  }
+
+  public Set<String> getFileHistory() {
+    return fileHistory;
   }
 
   public int getShardCount() {
@@ -99,7 +110,7 @@ public class BlockProcessor {
    * @throws BlockException if unable to convert to bytes.
    */
   public byte[] toEncryptedBytes(String key) throws BlockException {
-    BlockContainer blockContainer = new BlockContainer(salt, new ArrayList<>(localShardDataList.values()));
+    BlockContainer blockContainer = new BlockContainer(salt, new ArrayList<>(localShardDataList.values()), fileHistory);
     return BlockUtils.block2Bytes(blockContainer, key);
   }
 
