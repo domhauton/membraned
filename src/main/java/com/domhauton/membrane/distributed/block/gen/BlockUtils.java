@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.hash.Hashing;
 import org.bouncycastle.crypto.engines.TwofishEngine;
 import org.bouncycastle.crypto.modes.CBCBlockCipher;
 import org.bouncycastle.crypto.paddings.PaddedBufferedBlockCipher;
@@ -58,16 +59,16 @@ abstract class BlockUtils {
     }
   }
 
-  static byte[] encrypt(byte[] toEncrypt, String key) throws BlockException {
+  static byte[] encrypt(byte[] toEncrypt, String password) throws BlockException {
     PaddedBufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new TwofishEngine()));
-    KeyParameter keyParameter = new KeyParameter(key.getBytes());
+    KeyParameter keyParameter = new KeyParameter(password2bytes(password));
     cipher.init(true, keyParameter);
     return cipherData(cipher, toEncrypt);
   }
 
-  static byte[] decrypt(byte[] toDecrypt, String keyString) throws BlockException {
+  static byte[] decrypt(byte[] toDecrypt, String password) throws BlockException {
     PaddedBufferedBlockCipher cipher = new PaddedBufferedBlockCipher(new CBCBlockCipher(new TwofishEngine()));
-    KeyParameter key = new KeyParameter(keyString.getBytes());
+    KeyParameter key = new KeyParameter(password2bytes(password));
     cipher.init(false, key);
     return cipherData(cipher, toDecrypt);
   }
@@ -85,5 +86,9 @@ abstract class BlockUtils {
     } catch (Exception e) {
       throw new BlockException("Unable to encrypt/decrypt the block data.", e);
     }
+  }
+
+  private static byte[] password2bytes(String key) {
+    return Hashing.sha256().hashBytes(key.getBytes()).asBytes();
   }
 }

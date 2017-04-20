@@ -20,7 +20,7 @@ public interface ContractManager {
 
   Set<EvidenceRequest> processPeerContractUpdate(String peerId, DateTime dateTime, int permittedInequality, Set<String> blockIds);
 
-  void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses);
+  void processEvidenceResponses(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses);
 
   Set<EvidenceResponse> processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests);
 }

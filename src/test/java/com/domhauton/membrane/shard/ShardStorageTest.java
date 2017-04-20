@@ -30,7 +30,7 @@ class ShardStorageTest {
   @Test
   void testCreateAndRetrieve() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
-    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile = StorageManagerTestUtils.addRandShard(random, shardStorage);
     byte[] loadedData = shardStorage.retrieveShard(addedFile);
     String calculatedHash = Hashing.md5().hashBytes(loadedData).toString();
 
@@ -43,7 +43,7 @@ class ShardStorageTest {
   @Test
   void testCreateAndCheck() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
-    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile = StorageManagerTestUtils.addRandShard(random, shardStorage);
     Assertions.assertTrue(shardStorage.hasShard(addedFile));
     shardStorage.removeShard(addedFile);
     Assertions.assertFalse(shardStorage.hasShard(addedFile));
@@ -53,7 +53,7 @@ class ShardStorageTest {
   @Test
   void testCreateAndGetSize() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
-    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile = StorageManagerTestUtils.addRandShard(random, shardStorage);
     long shardSize = shardStorage.getShardSize(addedFile);
     Assertions.assertEquals(StorageManagerTestUtils.RAND_SHARD_SIZE, shardSize);
 
@@ -71,8 +71,8 @@ class ShardStorageTest {
   @Test
   void testCreateAndList() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
-    String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    String addedFile2 = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile1 = StorageManagerTestUtils.addRandShard(random, shardStorage);
+    String addedFile2 = StorageManagerTestUtils.addRandShard(random, shardStorage);
     Set<String> list = shardStorage.listShardIds();
     Assertions.assertEquals(2, list.size());
     Assertions.assertTrue(list.contains(addedFile1));
@@ -86,7 +86,7 @@ class ShardStorageTest {
   @Test
   void testCreateAndRemoval() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 1024 * 1024 * 1024);
-    String addedFile = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile = StorageManagerTestUtils.addRandShard(random, shardStorage);
     Assertions.assertEquals(1, shardStorage.listShardIds().size());
 
     shardStorage.removeShard(addedFile);
@@ -97,9 +97,9 @@ class ShardStorageTest {
   @Test
   void insufficientStorageTest() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 257);
-    String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    String addedFile2 = StorageManagerTestUtils.addRandFile(random, shardStorage);
-    Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandFile(random, shardStorage));
+    String addedFile1 = StorageManagerTestUtils.addRandShard(random, shardStorage);
+    String addedFile2 = StorageManagerTestUtils.addRandShard(random, shardStorage);
+    Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandShard(random, shardStorage));
     Assertions.assertEquals(2, shardStorage.listShardIds().size());
     shardStorage.removeShard(addedFile1);
     Assertions.assertEquals(1, shardStorage.listShardIds().size());
@@ -112,10 +112,10 @@ class ShardStorageTest {
   void insufficientPermissionsTest() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 257);
     Assertions.assertTrue(Paths.get(testDir).toFile().setWritable(false));
-    Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandFile(random, shardStorage));
+    Assertions.assertThrows(ShardStorageException.class, () -> StorageManagerTestUtils.addRandShard(random, shardStorage));
     Assertions.assertEquals(0, shardStorage.listShardIds().size());
     Assertions.assertTrue(Paths.get(testDir).toFile().setWritable(true));
-    String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile1 = StorageManagerTestUtils.addRandShard(random, shardStorage);
     Assertions.assertEquals(1, shardStorage.listShardIds().size());
     shardStorage.removeShard(addedFile1);
     Assertions.assertEquals(0, shardStorage.listShardIds().size());
@@ -125,7 +125,7 @@ class ShardStorageTest {
   @Test
   void corruptedShardTest() throws Exception {
     shardStorage = new ShardStorageImpl(Paths.get(testDir), 257);
-    String addedFile1 = StorageManagerTestUtils.addRandFile(random, shardStorage);
+    String addedFile1 = StorageManagerTestUtils.addRandShard(random, shardStorage);
     Path shardLocation = shardStorage.getPath(testDir, addedFile1);
     Files.write(shardLocation, " ".getBytes(), StandardOpenOption.APPEND);
     Assertions.assertEquals(1, shardStorage.listShardIds().size());

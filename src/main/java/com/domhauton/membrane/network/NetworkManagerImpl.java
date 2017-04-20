@@ -13,6 +13,7 @@ import com.domhauton.membrane.network.tracker.TrackerManager;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joda.time.DateTime;
 
 import java.io.File;
 import java.io.IOException;
@@ -117,13 +118,13 @@ public class NetworkManagerImpl implements NetworkManager {
    * @throws NetworkException If there was an issue uploading. Peer not connected or buffer full.
    */
   @Override
-  public void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException {
+  public void uploadBlockToPeer(String peerId, String blockId, byte[] blockData) throws NetworkException {
     //FIXME Implement
     throw new NetworkException("Block upload not implemented!");
   }
 
   @Override
-  public void sendContractUpdateToPeer(String peerId, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException {
+  public void sendContractUpdateToPeer(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException {
     //FIXME Implement
     throw new NetworkException("Contract update not implemented!");
   }
@@ -141,7 +142,7 @@ public class NetworkManagerImpl implements NetworkManager {
 
   @Override
   public String getPrivateEncryptionKey() {
-    return membraneAuthInfo.getPrivateKey().getPrivateExponent().toString();
+    return membraneAuthInfo.getPrivateKey().getPrivateExponent().toString(Character.MAX_RADIX);
   }
 
   /**

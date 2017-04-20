@@ -53,6 +53,10 @@ public class BlockProcessor {
     }
   }
 
+  public int getShardCount() {
+    return localShardDataList.size();
+  }
+
   public Map<String, byte[]> getShardMap() {
     return localShardDataList.values()
         .stream()
@@ -60,6 +64,7 @@ public class BlockProcessor {
           try {
             return new AbstractMap.SimpleEntry<>(x.getLocalId(), x.isCompressed() ? BlockUtils.decompress(x.getShardData()) : x.getShardData());
           } catch (BlockException e) {
+            LOGGER.error("Error retrieving block from block processor. {}", e.getMessage());
             return null;
           }
         })

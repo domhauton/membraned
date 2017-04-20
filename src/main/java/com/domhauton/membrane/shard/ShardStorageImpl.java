@@ -95,7 +95,7 @@ public class ShardStorageImpl implements ShardStorage {
       }
     } catch (IOException e) {
       logger.error("Could not retrieve shard [{}]. {}", shardId, e.getMessage());
-      throw new ShardStorageException("Could not retrieve shard [" + shardId + "]. " + e.getMessage());
+      throw new ShardStorageException("Could not retrieve shard [" + shardId + "]. ", e);
     }
   }
 

@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.distributed.ContractManager;
+import org.joda.time.DateTime;
 
 import java.io.Closeable;
 import java.util.Set;
@@ -32,17 +33,18 @@ public interface NetworkManager extends Runnable, Closeable {
    * @param blockData           The bytes inside the block to upload
    * @throws NetworkException   If there was an issue uploading. Peer not connected or buffer full.
    */
-  void uploadBlockToPeer(String peerId, byte[] blockData) throws NetworkException;
+  void uploadBlockToPeer(String peerId, String blockId, byte[] blockData) throws NetworkException;
 
   /**
    * Send a contract update to a contracted peer.
    *
-   * @param peerId               Peer to send update to
-   * @param permittedBlockOffset Amount of blocks peer can send for storage over the average in the contract.
-   * @param storedBlockIds       All of the peer's blocks currently stored.
-   * @throws NetworkException If there was an issue sending. Peer not connected or buffer full.
+   * @param peerId                Peer to send update to
+   * @param permittedBlockOffset  Amount of blocks peer can send for storage over the average in the contract.
+   * @param dateTime              Time of update creation
+   * @param storedBlockIds        All of the peer's blocks currently stored.
+   * @throws NetworkException     If there was an issue sending. Peer not connected or buffer full.
    */
-  void sendContractUpdateToPeer(String peerId, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException;
+  void sendContractUpdateToPeer(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException;
 
   /**
    * Sets whether the network manager should allow contracts with new peers.
