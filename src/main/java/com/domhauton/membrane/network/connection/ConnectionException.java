@@ -5,7 +5,7 @@ import com.domhauton.membrane.network.NetworkException;
 /**
  * Created by dominic on 15/02/17.
  */
-public class ConnectionException extends NetworkException {
+class ConnectionException extends NetworkException {
   ConnectionException(String s) {
     super(s);
   }

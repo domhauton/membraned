@@ -1,6 +1,6 @@
 package com.domhauton.membrane.distributed.block.manifest;
 
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.ContractManagerException;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -52,7 +52,7 @@ class DistributedShard {
     return md5Hash + SEP + priority.toString() + (storedByPeers.isEmpty() ? "" : SEP) + storedByPeers.stream().collect(Collectors.joining(SEP));
   }
 
-  static DistributedShard unmarshall(String inputData) throws DistributorException {
+  static DistributedShard unmarshall(String inputData) throws ContractManagerException {
     String[] splitInput = inputData.split(SEP);
     if (splitInput.length >= 2) {
       String md5hash = splitInput[0];
@@ -64,10 +64,10 @@ class DistributedShard {
         }
         return distributedShard;
       } catch (IllegalArgumentException e) {
-        throw new DistributorException("Unrecognised priority given." + inputData);
+        throw new ContractManagerException("Unrecognised priority given." + inputData);
       }
     } else {
-      throw new DistributorException("Insufficient sections. At least two required. " + inputData);
+      throw new ContractManagerException("Insufficient sections. At least two required. " + inputData);
     }
   }
 

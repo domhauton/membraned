@@ -1,8 +1,8 @@
 package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.distributed.ContractManager;
-import com.domhauton.membrane.distributed.ContractManagerImpl;
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.ContractManagerException;
+import com.domhauton.membrane.distributed.RejectingContractManager;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.connection.peer.Peer;
@@ -56,7 +56,7 @@ public class Gatekeeper implements Runnable {
     this.peerCertManager = peerCertManager;
     this.trackerManager = trackerManager;
 
-    contractManager = new ContractManagerImpl();
+    contractManager = new RejectingContractManager();
     friendPeers = new HashSet<>();
     peerMaintainerExecutor = Executors.newSingleThreadScheduledExecutor();
     startUpDateTime = DateTime.now();
@@ -166,7 +166,7 @@ public class Gatekeeper implements Runnable {
       logger.debug("Sending PEX update to contracted Peer");
       ExternalAddress externalAddress = portForwardingService.getExternalAddress();
       PexManager.sendPexUpdate(externalAddress, Collections.singleton(peer), false);
-    } catch (DistributorException e) {
+    } catch (ContractManagerException e) {
       logger.warn("Unable to contract new peer.");
     }
   }

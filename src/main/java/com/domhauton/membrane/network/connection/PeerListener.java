@@ -27,7 +27,6 @@ class PeerListener {
   private final Logger logger = LogManager.getLogger();
   private final static int RECEIVE_BUFFER_MB = 256;
 
-  private final Vertx vertx;
   private final int port;
   private final NetServer server;
 
@@ -45,7 +44,7 @@ class PeerListener {
    * @param membraneAuthInfo    SSL Auth info to use while dialling.
    */
   PeerListener(int port, Consumer<Peer> peerConsumer, Consumer<PeerMessage> peerMessageConsumer, MembraneAuthInfo membraneAuthInfo) {
-    this.vertx = Vertx.vertx();
+    Vertx vertx = Vertx.vertx();
     this.port = port;
     this.peerConsumer = peerConsumer;
     this.peerMessageConsumer = peerMessageConsumer;

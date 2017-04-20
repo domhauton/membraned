@@ -1,6 +1,6 @@
 package com.domhauton.membrane.distributed.block.manifest;
 
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.ContractManagerException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -92,7 +92,7 @@ public class ShardPeerLookup {
       try {
         DistributedShard distributedShard = DistributedShard.unmarshall(entry);
         newMap.put(distributedShard.getMd5Hash(), distributedShard);
-      } catch (DistributorException e) {
+      } catch (ContractManagerException e) {
         LOGGER.error("Unable to decode distributor store entry. IGNORING. {}", e.getMessage());
       }
     }

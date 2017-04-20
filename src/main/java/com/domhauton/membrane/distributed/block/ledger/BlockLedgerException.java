@@ -1,11 +1,11 @@
 package com.domhauton.membrane.distributed.block.ledger;
 
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.ContractManagerException;
 
 /**
  * Created by dominic on 13/04/17.
  */
-public class BlockLedgerException extends DistributorException {
+public class BlockLedgerException extends ContractManagerException {
   BlockLedgerException(String s) {
     super(s);
   }

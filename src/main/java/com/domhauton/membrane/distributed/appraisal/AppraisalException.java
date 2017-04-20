@@ -1,11 +1,11 @@
 package com.domhauton.membrane.distributed.appraisal;
 
-import com.domhauton.membrane.distributed.DistributorException;
+import com.domhauton.membrane.distributed.ContractManagerException;
 
 /**
  * Created by dominic on 13/04/17.
  */
-public class AppraisalException extends DistributorException {
+public class AppraisalException extends ContractManagerException {
   AppraisalException(String s) {
     super(s);
   }

@@ -1,48 +1,32 @@
-package com.domhauton.membrane.network;
+package com.domhauton.membrane.distributed;
 
-import com.domhauton.membrane.distributed.ContractManager;
-import com.domhauton.membrane.distributed.ContractManagerException;
 import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
 import com.domhauton.membrane.distributed.evidence.EvidenceResponse;
-import com.google.common.collect.EvictingQueue;
 import org.joda.time.DateTime;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Created by dominic on 11/04/17.
+ * Created by dominic on 30/03/17.
  * <p>
- * For use in tests only. Emulates the behaviour of functional contract manager.
+ * A dummy ContractManager Implementation that will return no contracts
  */
-class EvictingContractManager implements ContractManager {
-
-  private EvictingQueue<String> peerQueue;
-  private int size;
-
-  EvictingContractManager(int size) {
-    this.size = size;
-    peerQueue = EvictingQueue.create(size);
-  }
+public class RejectingContractManager implements ContractManager {
 
   @Override
   public Set<String> getContractedPeers() {
-    return new HashSet<>(peerQueue);
+    return Collections.emptySet();
   }
 
   @Override
   public int getContractCountTarget() {
-    return size;
+    return 0;
   }
 
   @Override
-  public void addContractedPeer(String peerId) throws ContractManagerException {
-    synchronized (this) {
-      if (!peerQueue.contains(peerId)) {
-        peerQueue.add(peerId);
-      }
-    }
+  public void addContractedPeer(String peerID) throws ContractManagerException {
+    throw new ContractManagerException("Cannot add contract to dummy contract manager");
   }
 
   @Override

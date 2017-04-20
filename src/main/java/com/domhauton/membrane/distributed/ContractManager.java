@@ -14,7 +14,7 @@ public interface ContractManager {
 
   int getContractCountTarget();
 
-  void addContractedPeer(String peerId) throws DistributorException;
+  void addContractedPeer(String peerId) throws ContractManagerException;
 
   void receiveBlock(String peerId, String blockId, byte[] data);
 
