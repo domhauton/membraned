@@ -1,30 +1,34 @@
 package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
-import com.google.common.collect.ImmutableSet;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Set;
+import java.util.Base64;
 
 /**
  * Created by dominic on 31/03/17.
  */
-public class PexQueryRequest extends PeerMessage {
-  private Set<String> requestedPeers;
-  private boolean requestPublic;
+public class PeerStorageBlock extends PeerMessage {
 
-  private PexQueryRequest() {
+  private String blockId;
+  private byte[] blockData;
+
+  private PeerStorageBlock() {
   } // For Jackson only!
 
-  public PexQueryRequest(Set<String> requestedPeers, boolean requestPublic) {
-    this.requestedPeers = requestedPeers;
-    this.requestPublic = requestPublic;
+  public PeerStorageBlock(String blockId, byte[] blockData) {
+    this.blockId = blockId;
+    this.blockData = blockData;
   }
 
   @Override
   public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
-    peerMessageActionProvider.processPexRequest(getSender(), requestedPeers, requestPublic);
+    if (blockId != null && blockData != null) {
+      peerMessageActionProvider.processNewBlock(getSender(), blockId, blockData);
+    } else {
+      LOGGER.warn("Ignoring block from peer as data is incomplete. Peer: [{}]", getSender());
+    }
   }
 
   @Override
@@ -37,24 +41,24 @@ public class PexQueryRequest extends PeerMessage {
     // No way to sign
   }
 
-  public Set<String> getRequestedPeers() {
-    return ImmutableSet.copyOf(requestedPeers);
+  public String getBlockId() {
+    return blockId;
   }
 
-  public boolean isRequestPublic() {
-    return requestPublic;
+  public byte[] getBlockData() {
+    return blockData;
   }
 
   @Override
   public String toString() {
-    return "PexQueryRequest{" +
+    return "PeerStorageBlock{" +
         "sender='" + sender + '\'' +
         ", recipient='" + recipient + '\'' +
         ", messageId=" + messageId +
         ", responseToMessageId=" + responseToMessageId +
         ", version='" + version + '\'' +
-        ", requestedPeers=" + requestedPeers +
-        ", requestPublic=" + requestPublic +
+        ", blockId='" + blockId + '\'' +
+        ", blockData=" + Base64.getEncoder().encodeToString(blockData) +
         '}';
   }
 }

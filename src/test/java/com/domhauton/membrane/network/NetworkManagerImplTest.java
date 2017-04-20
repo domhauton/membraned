@@ -190,7 +190,7 @@ class NetworkManagerImplTest {
     // Check if they connect
     boolean peer1and2Connected = false;
     for (int i = 0; i < 200 && !peer1and2Connected; i++) {
-      Thread.sleep(50);
+      Thread.sleep(100);
       peer1and2Connected = networkManager1.peerConnected(peerID2) && networkManager2.peerConnected(peerID1);
     }
     Assertions.assertTrue(peer1and2Connected);

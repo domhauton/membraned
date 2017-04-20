@@ -3,11 +3,11 @@ package com.domhauton.membrane.network.messages;
 import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.auth.AuthUtils;
 import com.google.common.net.InetAddresses;
+import org.bouncycastle.util.encoders.Base64;
 import org.joda.time.DateTime;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Arrays;
 
 /**
  * Created by dominic on 31/03/17.
@@ -93,7 +93,7 @@ public class PexAdvertisement extends PeerMessage {
         ", publicInfo=" + publicInfo +
         ", version='" + version + '\'' +
         ", dateTimeMillis=" + dateTimeMillis +
-        ", signature=" + Arrays.toString(signature) +
+        ", signature=" + Base64.toBase64String(signature) +
         '}';
   }
 }

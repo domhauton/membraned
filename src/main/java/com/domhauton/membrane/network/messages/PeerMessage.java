@@ -2,6 +2,8 @@ package com.domhauton.membrane.network.messages;
 
 import com.domhauton.membrane.network.auth.AuthException;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -11,6 +13,7 @@ import java.security.interfaces.RSAPrivateKey;
  */
 @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="messageType")
 public abstract class PeerMessage {
+  protected static Logger LOGGER = LogManager.getLogger(); // Used by children
   String sender;
   String recipient;
   long messageId;

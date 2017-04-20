@@ -6,7 +6,11 @@ import com.domhauton.membrane.network.auth.AuthUtils;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
+import com.domhauton.membrane.network.connection.peer.Peer;
+import com.domhauton.membrane.network.connection.peer.PeerException;
+import com.domhauton.membrane.network.messages.ContractUpdateMessage;
 import com.domhauton.membrane.network.messages.PeerMessageConsumer;
+import com.domhauton.membrane.network.messages.PeerStorageBlock;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.TrackerManager;
@@ -20,6 +24,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Created by Dominic Hauton on 18/02/17.
@@ -35,6 +41,7 @@ public class NetworkManagerImpl implements NetworkManager {
   private final ConnectionManager connectionManager;
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
+  private final PeerMessageConsumer peerMessageConsumer;
 
   // Stored for test reflection.
   private final MembraneAuthInfo membraneAuthInfo;
@@ -63,9 +70,8 @@ public class NetworkManagerImpl implements NetworkManager {
         peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
 
     // Configure message callback to all required network modules
-    PeerMessageConsumer messageConsumer =
-        new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);
-    connectionManager.registerMessageCallback(messageConsumer);
+    peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);
+    connectionManager.registerMessageCallback(peerMessageConsumer);
     connectionManager.registerNewPeerCallback(gatekeeper::processNewPeerConnected);
   }
 
@@ -119,14 +125,28 @@ public class NetworkManagerImpl implements NetworkManager {
    */
   @Override
   public void uploadBlockToPeer(String peerId, String blockId, byte[] blockData) throws NetworkException {
-    //FIXME Implement
-    throw new NetworkException("Block upload not implemented!");
+    try {
+      Peer peerConnection = connectionManager.getPeerConnection(peerId, 100, TimeUnit.MILLISECONDS);
+      PeerStorageBlock peerStorageBlock = new PeerStorageBlock(blockId, blockData);
+      peerConnection.sendPeerMessage(peerStorageBlock);
+    } catch (TimeoutException e) {
+      throw new NetworkException("Peer " + peerId + " unavailable.");
+    } catch (PeerException e) {
+      throw new NetworkException("Unable to send block to peer. [ " + peerId + " ]", e);
+    }
   }
 
   @Override
   public void sendContractUpdateToPeer(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException {
-    //FIXME Implement
-    throw new NetworkException("Contract update not implemented!");
+    try {
+      Peer peerConnection = connectionManager.getPeerConnection(peerId, 100, TimeUnit.MILLISECONDS);
+      ContractUpdateMessage contractUpdateMessage = new ContractUpdateMessage(dateTime, permittedBlockOffset, storedBlockIds);
+      peerConnection.sendPeerMessage(contractUpdateMessage);
+    } catch (TimeoutException e) {
+      throw new NetworkException("Peer " + peerId + " unavailable.");
+    } catch (PeerException e) {
+      throw new NetworkException("Unable to send contract update to peer. [ " + peerId + " ]", e);
+    }
   }
 
   @Override
@@ -152,6 +172,7 @@ public class NetworkManagerImpl implements NetworkManager {
    */
   @Override
   public void setContractManager(ContractManager contractManager) {
+    peerMessageConsumer.setContractManager(contractManager);
     gatekeeper.setContractManager(contractManager);
     peerCertManager.setContractManager(contractManager);
   }

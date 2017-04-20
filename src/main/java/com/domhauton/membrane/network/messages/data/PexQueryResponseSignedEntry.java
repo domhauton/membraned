@@ -1,8 +1,7 @@
 package com.domhauton.membrane.network.messages.data;
 
+import org.bouncycastle.util.encoders.Base64;
 import org.joda.time.DateTime;
-
-import java.util.Arrays;
 
 /**
  * Created by dominic on 01/04/17.
@@ -48,7 +47,7 @@ public class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
         ", userId='" + userId + '\'' +
         ", isPublicInfo=" + isPublic +
         ", dateTime=" + dateTime +
-        ", signature=" + Arrays.toString(signature) +
+        ", signature=" + Base64.toBase64String(signature) +
         '}';
   }
 }

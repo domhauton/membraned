@@ -1,5 +1,8 @@
 package com.domhauton.membrane.network.messages;
 
+import com.domhauton.membrane.distributed.ContractManager;
+import com.domhauton.membrane.distributed.evidence.EvidenceRequest;
+import com.domhauton.membrane.distributed.evidence.EvidenceResponse;
 import com.domhauton.membrane.network.Gatekeeper;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
@@ -31,12 +34,14 @@ class PeerMessageActionProvider {
   private final PexManager pexManager;
   private final Gatekeeper gatekeeper;
   private final PeerCertManager peerCertManager;
+  private ContractManager contractManager; // Replaceable
 
-  PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper, PeerCertManager peerCertManager) {
+  PeerMessageActionProvider(ConnectionManager connectionManager, PexManager pexManager, Gatekeeper gatekeeper, PeerCertManager peerCertManager, ContractManager contractManager) {
     this.connectionManager = connectionManager;
     this.pexManager = pexManager;
     this.gatekeeper = gatekeeper;
     this.peerCertManager = peerCertManager;
+    this.contractManager = contractManager;
     ThreadFactory threadFactory = new ThreadFactoryBuilder()
             .setNameFormat("memb-peer-msg-pool-%d")
             .build();
@@ -105,5 +110,63 @@ class PeerMessageActionProvider {
     } catch (TimeoutException | PeerException e) {
       logger.warn("Unable to send pex response to {}. {}", targetUser, e.getMessage());
     }
+  }
+
+  void processNewBlock(String peerId, String blockId, byte[] blockData) {
+    executorService.submit(() -> processNewBlockBlocking(peerId, blockId, blockData));
+  }
+
+  private void processNewBlockBlocking(String peerId, String blockId, byte[] blockData) {
+    logger.debug("Processing new block message from [{}]", peerId);
+    contractManager.receiveBlock(peerId, blockId, blockData);
+  }
+
+  void processContractUpdate(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) {
+    executorService.submit(() -> processContractUpdateBlocking(peerId, dateTime, permittedBlockOffset, storedBlockIds));
+  }
+
+  private void processContractUpdateBlocking(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) {
+    logger.debug("Processing contract update from [{}]", peerId);
+    Set<EvidenceRequest> evidenceRequests = contractManager.processPeerContractUpdate(peerId, dateTime, permittedBlockOffset, storedBlockIds);
+    EvidenceRequestMessage evidenceRequestMessage = new EvidenceRequestMessage(dateTime, evidenceRequests);
+
+    try {
+      Peer peer = connectionManager.getPeerConnection(peerId, 15, TimeUnit.SECONDS);
+      peer.sendPeerMessage(evidenceRequestMessage);
+    } catch (TimeoutException | PeerException e) {
+      logger.warn("Unable to send evidence request to {}. {}", peerId, e.getMessage());
+    }
+  }
+
+  void processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
+    executorService.submit(() -> processEvidenceRequestsBlocking(peerId, dateTime, evidenceRequests));
+  }
+
+  private void processEvidenceRequestsBlocking(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
+    logger.debug("Processing evidence request from [{}]", peerId);
+    Set<EvidenceResponse> evidenceResponses = contractManager.processEvidenceRequests(peerId, dateTime, evidenceRequests);
+
+    EvidenceResponseMessage evidenceResponseMessage = new EvidenceResponseMessage(dateTime, evidenceResponses);
+
+    try {
+      Peer peer = connectionManager.getPeerConnection(peerId, 15, TimeUnit.SECONDS);
+      peer.sendPeerMessage(evidenceResponseMessage);
+    } catch (TimeoutException | PeerException e) {
+      logger.warn("Unable to send evidence request to {}. {}", peerId, e.getMessage());
+    }
+  }
+
+  void processEvidenceResponse(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
+    executorService.submit(() -> processEvidenceResponseBlocking(peerId, dateTime, evidenceResponses));
+  }
+
+  private void processEvidenceResponseBlocking(String peerId, DateTime dateTime, Set<EvidenceResponse> evidenceResponses) {
+    logger.debug("Processing evidence response from [{}]", peerId);
+    contractManager.processEvidenceResponses(peerId, dateTime, evidenceResponses);
+  }
+
+
+  void setContractManager(ContractManager contractManager) {
+    this.contractManager = contractManager;
   }
 }

@@ -160,7 +160,7 @@ public class WanGateway implements Closeable {
 
     boolean isSuccess = nameValue.get("errorCode") == null;
     if(!isSuccess) {
-      logger.trace("Error. Raw return {}", nameValue.toString());
+      logger.trace("Error. Raw return {}", nameValue.toString().replaceAll("\n", ""));
     }
     return isSuccess;
   }

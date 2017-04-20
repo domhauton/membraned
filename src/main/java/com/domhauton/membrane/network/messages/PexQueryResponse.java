@@ -4,8 +4,6 @@ import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseEntry;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseSignedEntry;
 import com.google.common.net.InetAddresses;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -16,8 +14,6 @@ import java.util.Set;
  * Created by dominic on 31/03/17.
  */
 public class PexQueryResponse extends PeerMessage {
-  private final static Logger LOGGER = LogManager.getLogger();
-
   private Set<PexQueryResponseEntry> pexQueryResponseEntries;
   private Set<PexQueryResponseSignedEntry> pexQueryResponseSignedEntries;
 
