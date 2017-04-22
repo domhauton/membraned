@@ -128,6 +128,21 @@ dependencies{
 
     // https://bintray.com/serce/maven/jnr-fuse
     // compile 'com.github.serceman:jnr-fuse:0.3.1'
+
+
+    // BUMP NETTY VERSION TO FIX BUG FOR VERTX
+
+    // https://mvnrepository.com/artifact/io.netty
+    compile group: 'io.netty', name: 'netty-common', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-buffer', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-transport', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-handler', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-handler-proxy', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-codec-http', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-codec-http2', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-resolver', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-resolver-dns', version: '4.1.9.Final'
+    compile group: 'io.netty', name: 'netty-handler-proxy', version: '4.1.9.Final'
 }
 
 dependencies {

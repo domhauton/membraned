@@ -470,28 +470,21 @@ class NetworkManagerImplTest {
     Assertions.assertArrayEquals(largeBlockData, evictingContractManager2.getReceivedBlock());
   }
 
-//  @Test
-//  void testTrackerAvailability() throws Exception {
-//    // Setup 1 & 2 as peers.
-//
-//    networkManager1.setContractManager(evictingContractManager1);
-//
-//    PexManager pexManager2 = extractPexManager(networkManager2);
-//    pexManager2.addEntry(networkManager1.getUID(), "127.0.0.1", PORT_INTERNAL_1, false, DateTime.now(), new byte[0]);
-//
-//    // Start all of them.
-//
-//    networkManager1.run();
-//
-//    // Check if they connect
-//    boolean trackerConnected = false;
-//    ConnectionManager connectionManager1 = extractConnectionManager(networkManager1);
-//    for (int i = 0; i < 200 && !trackerConnected; i++) {
-//      Thread.sleep(100);
-//      trackerConnected = connectionManager1.getAllConnectedPeerIds().size() > 0;
-//    }
-//    Assertions.assertTrue(trackerConnected);
-//  }
+  @Test
+  void testTrackerAvailability() throws Exception {
+    // Setup Peer.
+    networkManager1.setContractManager(evictingContractManager1);
+    networkManager1.run();
+
+    // Check if they connect to the tracker
+    boolean trackerConnected = false;
+    ConnectionManager connectionManager1 = extractConnectionManager(networkManager1);
+    for (int i = 0; i < 200 && !trackerConnected; i++) {
+      Thread.sleep(100);
+      trackerConnected = connectionManager1.getAllConnectedPeerIds().size() > 0;
+    }
+    Assertions.assertTrue(trackerConnected);
+  }
 
 
   @AfterEach

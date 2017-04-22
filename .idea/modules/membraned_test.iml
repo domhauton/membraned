@@ -40,23 +40,23 @@
     <orderEntry type="library" name="Gradle: org.bouncycastle:bcpkix-jdk15on:1.56" level="project" />
     <orderEntry type="library" name="Gradle: org.bitlet:weupnp:0.1.4" level="project" />
     <orderEntry type="library" name="Gradle: org.xerial.snappy:snappy-java:1.1.4-M3" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-common:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-buffer:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-transport:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-handler:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-handler-proxy:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-codec-http:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-codec-http2:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-resolver:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-resolver-dns:4.1.9.Final" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.jupiter:junit-jupiter-api:5.0.0-M4" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-gradle-plugin:1.0.0-M4" level="project" />
     <orderEntry type="library" name="Gradle: org.mockito:mockito-core:2.7.22" level="project" />
     <orderEntry type="library" name="Gradle: io.vertx:vertx-codegen:3.4.1" level="project" />
     <orderEntry type="library" name="Gradle: org.apache.logging.log4j:log4j-api:2.8.2" level="project" />
     <orderEntry type="library" name="Gradle: org.yaml:snakeyaml:1.17" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-common:4.1.8.Final" level="project" />
-    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.jupiter:junit-jupiter-engine:5.0.0-M4" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-buffer:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-transport:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-handler:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-handler-proxy:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-codec-http:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-codec-http2:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-resolver:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-resolver-dns:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-databind:2.7.4" level="project" />
+    <orderEntry type="library" scope="RUNTIME" name="Gradle: org.junit.jupiter:junit-jupiter-engine:5.0.0-M4" level="project" />
     <orderEntry type="library" name="Gradle: io.vertx:vertx-auth-common:3.4.1" level="project" />
     <orderEntry type="library" name="Gradle: org.opentest4j:opentest4j:1.0.0-M2" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-commons:1.0.0-M4" level="project" />
@@ -66,11 +66,11 @@
     <orderEntry type="library" name="Gradle: net.bytebuddy:byte-buddy-agent:1.6.11" level="project" />
     <orderEntry type="library" name="Gradle: org.objenesis:objenesis:2.5" level="project" />
     <orderEntry type="library" name="Gradle: org.mvel:mvel2:2.2.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-codec:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-codec-socks:4.1.8.Final" level="project" />
-    <orderEntry type="library" name="Gradle: io.netty:netty-codec-dns:4.1.8.Final" level="project" />
     <orderEntry type="library" name="Gradle: com.fasterxml.jackson.core:jackson-annotations:2.7.0" level="project" />
     <orderEntry type="library" name="Gradle: org.junit.platform:junit-platform-engine:1.0.0-M4" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-codec:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-codec-socks:4.1.9.Final" level="project" />
+    <orderEntry type="library" name="Gradle: io.netty:netty-codec-dns:4.1.9.Final" level="project" />
   </component>
   <component name="TestModuleProperties" production-module="membraned_main" />
 </module>

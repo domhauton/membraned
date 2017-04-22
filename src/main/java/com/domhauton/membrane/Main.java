@@ -95,6 +95,8 @@ class Main {
       } else if (verboseLogging >= 2 && !LOGGER.isTraceEnabled()) {
         loggerConfig.setLevel(Level.TRACE);
         ctx.updateLoggers();
+        System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
+        System.setProperty("javax.net.debug", "ssl");
       }
     }
 
@@ -109,7 +111,7 @@ class Main {
         Path trackerPath = Paths.get(configPath.getParent().toString() + File.separator + "tracker");
         LOGGER.info("Running tracker mode with base path [{}]", trackerPath);
         int transportPort = 14200;
-        networkManager = new NetworkManagerImpl(trackerPath, transportPort, -1);
+        networkManager = new NetworkManagerImpl(trackerPath, transportPort, 300);
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
           try {

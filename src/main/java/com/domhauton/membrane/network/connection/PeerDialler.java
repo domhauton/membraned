@@ -56,8 +56,7 @@ class PeerDialler {
         .setConnectTimeout(10000)
         .setReceiveBufferSize(BUFFER_MB * 1024 * 1024)
         .setSendBufferSize(BUFFER_MB * 1024 * 1024)
-        .setReconnectAttempts(10)
-        .setReconnectInterval(60 * 1000);
+        .setReconnectAttempts(0);
 
     client = vertx.createNetClient(options);
     this.peerConsumer = peerConsumer;
