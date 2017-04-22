@@ -33,6 +33,7 @@ import java.util.function.Consumer;
  */
 public class PeerConnection {
   private final static int EVICTING_QUEUE_SIZE = 100;
+  private final static long MAX_RECEIVE_BUFFER_SIZE_BYTES = 96 * 1024 * 1024;
 
   private final Logger logger = LogManager.getLogger();
   private final X509Certificate x509Certificate;
@@ -51,6 +52,8 @@ public class PeerConnection {
   private final AtomicLong currentSendId;
 
   private Boolean isClosed = false;
+
+  private Buffer messageBuffer;
 
   /**
    * Establishes a P2P connection from a TCP connection. Ensures client presented one certificate for identity.
@@ -139,20 +142,43 @@ public class PeerConnection {
   private void messageHandler(Buffer buffer) {
     responseWaitLock.lock();
     try {
-      PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());
-      if (!peerMessage.getSender().equals(clientID)) {
-        logger.warn("Dropping message from peer [{}]. Masquerading as id: [{}]", clientID, peerMessage.getSender());
-      } else {
-        // Will throw if invalid.
-        peerMessage.verify(x509Certificate);
-        mostRecentCommunication.set(System.currentTimeMillis());
-        long responseMessageId = peerMessage.getResponseToMessageId();
-        if (responseMessageId != -1) {
-          mostRecentResponseIds.add(responseMessageId);
-          responseWaitCondition.signalAll();
-          logger.trace("Signalled all about new message. Cached Ids: {}", mostRecentResponseIds);
+      if (buffer.getByte(buffer.length() - 1) != (byte) '}') {
+        if (messageBuffer == null) {
+          messageBuffer = Buffer.buffer(buffer.getByteBuf());
+          logger.debug("Building partial message.");
+        } else if (messageBuffer.length() < MAX_RECEIVE_BUFFER_SIZE_BYTES) {
+          messageBuffer.appendBuffer(buffer);
+          if (messageBuffer.length() % (16 * 1024 * 1024) == 0) {
+            logger.debug("Building partial message. Length {}KB", messageBuffer.length() / 1024);
+          }
         }
-        messageConsumer.accept(peerMessage);
+
+      } else {
+        if (messageBuffer != null) {
+          if (messageBuffer.length() < MAX_RECEIVE_BUFFER_SIZE_BYTES) {
+            messageBuffer.appendBuffer(buffer);
+            buffer = messageBuffer;
+            logger.info("Parsing multi-part message. Size {}KB", messageBuffer.length() / 1024);
+          } else {
+            logger.error("Received message over {}KB. Dropping.", MAX_RECEIVE_BUFFER_SIZE_BYTES / 1024);
+          }
+        }
+        PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());
+        messageBuffer = null;
+        if (!peerMessage.getSender().equals(clientID)) {
+          logger.warn("Dropping message from peer [{}]. Masquerading as id: [{}]", clientID, peerMessage.getSender());
+        } else {
+          // Will throw if invalid.
+          peerMessage.verify(x509Certificate);
+          mostRecentCommunication.set(System.currentTimeMillis());
+          long responseMessageId = peerMessage.getResponseToMessageId();
+          if (responseMessageId != -1) {
+            mostRecentResponseIds.add(responseMessageId);
+            responseWaitCondition.signalAll();
+            logger.trace("Signalled all about new message. Cached Ids: {}", mostRecentResponseIds);
+          }
+          messageConsumer.accept(peerMessage);
+        }
       }
     } catch (PeerMessageException e) {
       logger.error("Invalid message. Ignoring. {}", e.getMessage());

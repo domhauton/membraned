@@ -23,7 +23,7 @@ import java.util.function.Consumer;
 class PeerDialler {
 
   private final Logger logger = LogManager.getLogger();
-  private final static int RECEIVE_BUFFER_MB = 256;
+  private final static int BUFFER_MB = 256;
 
   private final Vertx vertx;
   private final NetClient client;
@@ -52,7 +52,8 @@ class PeerDialler {
             .setTrustOptions(membraneAuthInfo.getTrustOptions())
             .setSsl(true)
             .setConnectTimeout(10000)
-            .setReceiveBufferSize(RECEIVE_BUFFER_MB * 1024 * 1024)
+        .setReceiveBufferSize(BUFFER_MB * 1024 * 1024)
+        .setSendBufferSize(BUFFER_MB * 1024 * 1024)
             .setReconnectAttempts(10)
             .setReconnectInterval(60 * 1000);
 

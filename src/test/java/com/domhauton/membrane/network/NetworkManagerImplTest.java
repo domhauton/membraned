@@ -404,6 +404,59 @@ class NetworkManagerImplTest {
         evictingContractManager1.isFullBlockConfirmed());
   }
 
+  @Test
+  void testSendingLargeDataBlock() throws Exception {
+    // Setup 1 & 2 as peers.
+
+    networkManager1.setContractManager(evictingContractManager1);
+    networkManager2.setContractManager(evictingContractManager2);
+
+    evictingContractManager1.addContractedPeer(networkManager2.getUID());
+    evictingContractManager2.addContractedPeer(networkManager1.getUID());
+    PeerCertManager peerCertManager1 = extractPeerCertManager(networkManager1);
+    PeerCertManager peerCertManager2 = extractPeerCertManager(networkManager2);
+    MembraneAuthInfo membraneAuthInfo1 = extractMembraneAuthInfo(networkManager1);
+    MembraneAuthInfo membraneAuthInfo2 = extractMembraneAuthInfo(networkManager2);
+    peerCertManager1.addCertificate(membraneAuthInfo2.getClientId(), membraneAuthInfo2.getX509Certificate());
+    peerCertManager2.addCertificate(membraneAuthInfo1.getClientId(), membraneAuthInfo1.getX509Certificate());
+
+    PexManager pexManager2 = extractPexManager(networkManager2);
+    pexManager2.addEntry(networkManager1.getUID(), "127.0.0.1", PORT_INTERNAL_1, false, DateTime.now(), new byte[0]);
+
+    // Start all of them.
+
+    networkManager1.run();
+    networkManager2.run();
+
+    // Check if they connect
+    boolean peer1and2Connected = false;
+    for (int i = 0; i < 200 && !peer1and2Connected; i++) {
+      Thread.sleep(100);
+      peer1and2Connected = networkManager1.peerConnected(networkManager2.getUID()) &&
+          networkManager2.peerConnected(networkManager1.getUID());
+    }
+    Assertions.assertTrue(peer1and2Connected);
+
+    // Send contract update
+
+
+    //byte[] largeBlockData = new byte[64*1024*1024]; // 64MB of random data.
+    byte[] largeBlockData = new byte[64 * 1024 * 1024]; // 48MB of random data.
+    RANDOM.nextBytes(largeBlockData);
+
+    String blockId_1 = "blockId_1";
+    networkManager1.uploadBlockToPeer(networkManager2.getUID(), blockId_1, largeBlockData);
+
+    boolean blocksCorrectlyConfirmed = false;
+    for (int i = 0; i < 200 && !blocksCorrectlyConfirmed; i++) {
+      Thread.sleep(100);
+      blocksCorrectlyConfirmed = evictingContractManager2.getReceivedBlockId() != null;
+    }
+    Assertions.assertTrue(blocksCorrectlyConfirmed);
+    Assertions.assertEquals(blockId_1, evictingContractManager2.getReceivedBlockId());
+    Assertions.assertArrayEquals(largeBlockData, evictingContractManager2.getReceivedBlock());
+  }
+
 
   @AfterEach
   void tearDown() throws Exception {

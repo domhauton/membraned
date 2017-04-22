@@ -4,7 +4,6 @@ import com.domhauton.membrane.network.auth.AuthException;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
-import java.util.Base64;
 
 /**
  * Created by dominic on 31/03/17.
@@ -58,7 +57,7 @@ public class PeerStorageBlock extends PeerMessage {
         ", responseToMessageId=" + responseToMessageId +
         ", version='" + version + '\'' +
         ", blockId='" + blockId + '\'' +
-        ", blockData=" + Base64.getEncoder().encodeToString(blockData) +
+        ", blockData (SIZE b)=" + blockData.length +
         '}';
   }
 }

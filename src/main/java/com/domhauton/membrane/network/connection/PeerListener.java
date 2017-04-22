@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  */
 class PeerListener {
   private final Logger logger = LogManager.getLogger();
-  private final static int RECEIVE_BUFFER_MB = 256;
+  private final static int BUFFER_MB = 256;
 
   private final int port;
   private final NetServer server;
@@ -62,7 +62,8 @@ class PeerListener {
             .setSsl(true)
             .setTrustOptions(membraneAuthInfo.getTrustOptions())
             .setPemKeyCertOptions(pemKeyCertOptions)
-            .setReceiveBufferSize(1024 * 1024 * RECEIVE_BUFFER_MB);
+        .setReceiveBufferSize(1024 * 1024 * BUFFER_MB)
+        .setSendBufferSize(1024 * 1024 * BUFFER_MB);
 
     server = vertx.createNetServer(netServerOptions);
     logger.info("TCP listening server set-up complete.");

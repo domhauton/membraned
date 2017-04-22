@@ -45,7 +45,8 @@ class EvictingContractManager implements ContractManager {
   private boolean fullBlockConfirmed = false;
   private boolean blockDeleted = false;
 
-  private byte[] recievedBlock;
+  private byte[] receivedBlock;
+  private String receivedBlockId;
 
   private EvictingQueue<String> peerQueue;
   private int size;
@@ -90,7 +91,8 @@ class EvictingContractManager implements ContractManager {
 
   @Override
   public void receiveBlock(String peerId, String blockId, byte[] data) {
-    recievedBlock = data;
+    receivedBlock = data;
+    receivedBlockId = blockId;
   }
 
   @Override
@@ -170,7 +172,11 @@ class EvictingContractManager implements ContractManager {
     return blockDeleted;
   }
 
-  public byte[] getRecievedBlock() {
-    return recievedBlock;
+  public byte[] getReceivedBlock() {
+    return receivedBlock;
+  }
+
+  public String getReceivedBlockId() {
+    return receivedBlockId;
   }
 }
