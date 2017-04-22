@@ -28,7 +28,7 @@ public class ContractUpdateMessage extends PeerMessage {
 
   @Override
   public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
-    if (storedBlockIds != null) {
+    if (storedBlockIds == null) {
       storedBlockIds = Collections.emptySet();
     }
     DateTime dateTime = new DateTime(Math.max(0, updateTimeMillis));

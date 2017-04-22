@@ -8,18 +8,18 @@ import org.joda.time.DateTime;
  */
 public class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
   private String userId;
-  private boolean isPublic;
-  private DateTime dateTime;
+  private boolean publicEntry;
+  private long dateTimeMillis;
   private byte[] signature;
 
   private PexQueryResponseSignedEntry() {
   } // For Jackson Only
 
-  public PexQueryResponseSignedEntry(String ip, int port, String userId, boolean isPublic, DateTime dateTime, byte[] signature) {
+  public PexQueryResponseSignedEntry(String ip, int port, String userId, boolean publicEntry, DateTime dateTime, byte[] signature) {
     super(ip, port);
     this.userId = userId;
-    this.isPublic = isPublic;
-    this.dateTime = dateTime;
+    this.publicEntry = publicEntry;
+    this.dateTimeMillis = dateTime.getMillis();
     this.signature = signature;
   }
 
@@ -27,12 +27,12 @@ public class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
     return userId;
   }
 
-  public boolean isPublic() {
-    return isPublic;
+  public boolean isPublicEntry() {
+    return publicEntry;
   }
 
-  public DateTime getDateTime() {
-    return dateTime;
+  public long getDateTimeMillis() {
+    return dateTimeMillis;
   }
 
   public byte[] getSignature() {
@@ -45,8 +45,8 @@ public class PexQueryResponseSignedEntry extends PexQueryResponseEntry {
         "ip='" + getIp() + '\'' +
         ", port=" + getPort() +
         ", userId='" + userId + '\'' +
-        ", isPublicInfo=" + isPublic +
-        ", dateTime=" + dateTime +
+        ", isPublicInfo=" + publicEntry +
+        ", dateTimeMillis=" + dateTimeMillis +
         ", signature=" + Base64.toBase64String(signature) +
         '}';
   }

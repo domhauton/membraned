@@ -64,17 +64,19 @@ public class ConnectionManager implements Closeable {
    * Add a new peer when connected. Ensures any previous connection is terminated.
    */
   private synchronized void addPeer(Peer peer) {
-    peerConnectionLock.lock();
-    Peer oldConnection = peerConnections.get(peer.getUid());
-    if (oldConnection != null) {
-      logger.info("Peer Connection - Removing connection to peer [{}]", peer.getUid());
-      oldConnection.close();
+    if (!peer.isClosed()) {
+      peerConnectionLock.lock();
+      Peer oldConnection = peerConnections.get(peer.getUid());
+      if (oldConnection != null && !oldConnection.isClosed()) {
+        logger.info("Peer Connection - Removing connection to peer [{}]", peer.getUid());
+        oldConnection.close();
+      }
+      logger.info("Peer Connection - New Peer Connection Established [{}]", peer.getUid());
+      peerConnections.put(peer.getUid(), peer);
+      peerConnectionChangeOccurred.signalAll();
+      peerConnectionLock.unlock();
+      newPeerJoinedCallbacks.forEach(x -> x.accept(peer));
     }
-    logger.info("Peer Connection - New Peer Connection Established [{}]", peer.getUid());
-    peerConnections.put(peer.getUid(), peer);
-    peerConnectionChangeOccurred.signalAll();
-    peerConnectionLock.unlock();
-    newPeerJoinedCallbacks.forEach(x -> x.accept(peer));
   }
 
   private void receiveMessage(PeerMessage peerMessage) {
@@ -109,8 +111,8 @@ public class ConnectionManager implements Closeable {
         throw new InterruptedException("Interrupted before correct peer retrieved");
       }
     } catch (InterruptedException | ExecutionException | TimeoutException e) {
-      logger.warn("Could not find peer {} in {} {}. Cancelling.", peerId, timeout, timeUnit);
-      throw new TimeoutException("Unable to find peer " + peerId);
+      logger.warn("Could not find peer {} in {} {}. Cancelling. {}", peerId, timeout, timeUnit, e.getMessage());
+      throw new TimeoutException("Unable to find peer " + peerId + e.getMessage());
     }
   }
 

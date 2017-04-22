@@ -50,7 +50,7 @@ public class PeerConnection {
 
   private final AtomicLong currentSendId;
 
-  private final CompletableFuture<Void> isClosed;
+  private Boolean isClosed = false;
 
   /**
    * Establishes a P2P connection from a TCP connection. Ensures client presented one certificate for identity.
@@ -61,10 +61,9 @@ public class PeerConnection {
    */
   PeerConnection(NetSocket netSocket, Consumer<PeerMessage> messageConsumer, String localClientId, RSAPrivateKey messageSigningKey) throws PeerException {
     this.netSocket = netSocket;
-    this.isClosed = new CompletableFuture<>();
     this.messageConsumer = messageConsumer;
     this.netSocket.handler(this::messageHandler);
-    this.netSocket.closeHandler((Void x) -> isClosed.complete(null));
+    this.netSocket.closeHandler(x -> isClosed = true);
     try {
       // n.b.: Certificates in deprecated javax format!
       Certificate[] certificates = netSocket.peerCertificateChain();
@@ -233,10 +232,11 @@ public class PeerConnection {
   }
 
   public boolean isClosed() {
-    return isClosed.isDone();
+    return isClosed;
   }
 
   public synchronized void close() {
+    logger.info("Closing connection to [{}]", clientID);
     netSocket.close();
   }
 }

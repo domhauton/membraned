@@ -31,7 +31,7 @@ public class EvidenceResponseMessage extends PeerMessage {
 
   @Override
   public void executeAction(PeerMessageActionProvider peerMessageActionProvider) {
-    if (evidenceResponseEntries != null) {
+    if (evidenceResponseEntries == null) {
       evidenceResponseEntries = Collections.emptySet();
     }
     DateTime dateTime = new DateTime(Math.max(0, responseTimeMillis));

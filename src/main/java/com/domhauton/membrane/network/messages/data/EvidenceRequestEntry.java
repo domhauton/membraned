@@ -8,15 +8,15 @@ import org.bouncycastle.util.encoders.Base64;
  */
 public class EvidenceRequestEntry {
   private String blockId;
-  private EvidenceType block;
+  private EvidenceType evidenceType;
   private byte[] salt;
 
   private EvidenceRequestEntry() {
   } // Jackson ONLY
 
-  public EvidenceRequestEntry(String blockId, EvidenceType block, byte[] salt) {
+  public EvidenceRequestEntry(String blockId, EvidenceType evidenceType, byte[] salt) {
     this.blockId = blockId;
-    this.block = block;
+    this.evidenceType = evidenceType;
     this.salt = salt;
   }
 
@@ -25,7 +25,7 @@ public class EvidenceRequestEntry {
   }
 
   public EvidenceType getEvidenceType() {
-    return block;
+    return evidenceType;
   }
 
   public byte[] getSalt() {
@@ -36,7 +36,7 @@ public class EvidenceRequestEntry {
   public String toString() {
     return "EvidenceRequestEntry{" +
         "blockId='" + blockId + '\'' +
-        ", block=" + block +
+        ", block=" + evidenceType +
         ", salt=" + Base64.toBase64String(salt) +
         '}';
   }

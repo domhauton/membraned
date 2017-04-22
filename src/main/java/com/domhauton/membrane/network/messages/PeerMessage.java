@@ -13,7 +13,7 @@ import java.security.interfaces.RSAPrivateKey;
  */
 @JsonTypeInfo(use=JsonTypeInfo.Id.CLASS, include=JsonTypeInfo.As.PROPERTY, property="messageType")
 public abstract class PeerMessage {
-  protected static Logger LOGGER = LogManager.getLogger(); // Used by children
+  static Logger LOGGER = LogManager.getLogger(); // Used by children
   String sender;
   String recipient;
   long messageId;

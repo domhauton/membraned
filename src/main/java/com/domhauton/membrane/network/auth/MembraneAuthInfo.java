@@ -126,7 +126,7 @@ public class MembraneAuthInfo {
     return AuthUtils.certToPeerId(x509Certificate);
   }
 
-  X509Certificate getX509Certificate() {
+  public X509Certificate getX509Certificate() {
     return x509Certificate;
   }
 

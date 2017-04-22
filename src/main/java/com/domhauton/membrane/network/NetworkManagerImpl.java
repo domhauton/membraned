@@ -126,7 +126,7 @@ public class NetworkManagerImpl implements NetworkManager {
   @Override
   public void uploadBlockToPeer(String peerId, String blockId, byte[] blockData) throws NetworkException {
     try {
-      Peer peerConnection = connectionManager.getPeerConnection(peerId, 100, TimeUnit.MILLISECONDS);
+      Peer peerConnection = connectionManager.getPeerConnection(peerId, 2, TimeUnit.SECONDS);
       PeerStorageBlock peerStorageBlock = new PeerStorageBlock(blockId, blockData);
       peerConnection.sendPeerMessage(peerStorageBlock);
     } catch (TimeoutException e) {
@@ -139,7 +139,8 @@ public class NetworkManagerImpl implements NetworkManager {
   @Override
   public void sendContractUpdateToPeer(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) throws NetworkException {
     try {
-      Peer peerConnection = connectionManager.getPeerConnection(peerId, 100, TimeUnit.MILLISECONDS);
+      logger.debug("Sending contract update to peer with {} permitted offset and {} stored blocks", permittedBlockOffset, storedBlockIds.size());
+      Peer peerConnection = connectionManager.getPeerConnection(peerId, 2, TimeUnit.SECONDS);
       ContractUpdateMessage contractUpdateMessage = new ContractUpdateMessage(dateTime, permittedBlockOffset, storedBlockIds);
       peerConnection.sendPeerMessage(contractUpdateMessage);
     } catch (TimeoutException e) {

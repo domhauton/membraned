@@ -4,6 +4,7 @@ import com.domhauton.membrane.network.auth.AuthException;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseEntry;
 import com.domhauton.membrane.network.messages.data.PexQueryResponseSignedEntry;
 import com.google.common.net.InetAddresses;
+import org.joda.time.DateTime;
 
 import java.security.cert.X509Certificate;
 import java.security.interfaces.RSAPrivateKey;
@@ -20,7 +21,7 @@ public class PexQueryResponse extends PeerMessage {
   private PexQueryResponse() {
   } // For Jackson only!
 
-  public PexQueryResponse(Set<PexQueryResponseEntry> pexQueryResponseEntries, Set<PexQueryResponseSignedEntry> pexQueryResponseSignedEntries) {
+  PexQueryResponse(Set<PexQueryResponseEntry> pexQueryResponseEntries, Set<PexQueryResponseSignedEntry> pexQueryResponseSignedEntries) {
     this.pexQueryResponseEntries = pexQueryResponseEntries;
     this.pexQueryResponseSignedEntries = pexQueryResponseSignedEntries;
   }
@@ -33,7 +34,7 @@ public class PexQueryResponse extends PeerMessage {
 
   private void processSignedEntries(PeerMessageActionProvider peerMessageActionProvider) {
     for (PexQueryResponseSignedEntry entry : pexQueryResponseSignedEntries) {
-      PexAdvertisement pexAdvertisement = new PexAdvertisement(entry.getIp(), entry.getPort(), entry.isPublic(), entry.getDateTime());
+      PexAdvertisement pexAdvertisement = new PexAdvertisement(entry.getIp(), entry.getPort(), entry.isPublicEntry(), new DateTime(Math.max(0, entry.getDateTimeMillis())));
       pexAdvertisement.setSender(entry.getUserId());
       pexAdvertisement.setSignature(entry.getSignature());
       try {

@@ -128,6 +128,7 @@ class PeerMessageActionProvider {
   private void processContractUpdateBlocking(String peerId, DateTime dateTime, int permittedBlockOffset, Set<String> storedBlockIds) {
     logger.debug("Processing contract update from [{}]", peerId);
     Set<EvidenceRequest> evidenceRequests = contractManager.processPeerContractUpdate(peerId, dateTime, permittedBlockOffset, storedBlockIds);
+    logger.debug("Generated {} evidence requests for [{}]", evidenceRequests.size(), peerId);
     EvidenceRequestMessage evidenceRequestMessage = new EvidenceRequestMessage(dateTime, evidenceRequests);
 
     try {

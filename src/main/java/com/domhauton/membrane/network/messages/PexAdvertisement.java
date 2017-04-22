@@ -24,10 +24,10 @@ public class PexAdvertisement extends PeerMessage {
 
   public PexAdvertisement(String ip, int port, boolean publicInfo, DateTime dateTime) {
     super();
-    this.ip = ip;
+    this.ip = ip != null ? ip : "";
     this.port = port;
     this.publicInfo = publicInfo;
-    this.dateTimeMillis = dateTime.getMillis();
+    this.dateTimeMillis = dateTime != null ? dateTime.getMillis() : System.currentTimeMillis();
   }
 
   @Override
@@ -93,7 +93,7 @@ public class PexAdvertisement extends PeerMessage {
         ", publicInfo=" + publicInfo +
         ", version='" + version + '\'' +
         ", dateTimeMillis=" + dateTimeMillis +
-        ", signature=" + Base64.toBase64String(signature) +
+        ", signature=" + (signature != null ? Base64.toBase64String(signature) : "null_sig") +
         '}';
   }
 }
