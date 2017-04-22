@@ -115,8 +115,9 @@ public class Gatekeeper implements Runnable {
     int contractedPeerTarget = contractManager == null ? 0 : contractManager.getContractCountTarget();
     int connectedPeerCount = connectedPeerSet.size();
     int minutesFromStartup = Minutes.minutesBetween(startUpDateTime, DateTime.now()).getMinutes();
+    boolean hasPexEntries = pexManager.getPexEntryCount() > 0;
 
-    if (trackerManager.shouldConnectToTrackers(contractedPeerTarget, minutesFromStartup, connectedPeerCount)) {
+    if (trackerManager.shouldConnectToTrackers(contractedPeerTarget, hasPexEntries, minutesFromStartup, connectedPeerCount)) {
       logger.debug("Connecting to tracker to assist locating more peers.");
       trackerManager.connectToTrackers(connectionManager);
     }

@@ -21,6 +21,7 @@ import java.util.stream.Collectors;
 public class PortForwardingController {
 
   private static final Logger logger = LogManager.getLogger();
+  private static final int PORT_MAPPING_ATTEMPTS = 20;
 
   private final GatewayDiscover discover;
 
@@ -31,6 +32,7 @@ public class PortForwardingController {
   private final Consumer<ExternalAddress> externalAddressConsumer;
 
   private final Period leaseTime;
+
 
   PortForwardingController(Period leaseTime, Consumer<ExternalAddress> externalAddressConsumer) {
     logger.info("Creating port forwarding controller.");
@@ -78,7 +80,16 @@ public class PortForwardingController {
     if (!gateways.contains(newGateway)) {
       logger.info("Found new gateway: {}", newGateway.getFriendlyName());
       gateways.add(newGateway);
-      mappings.forEach(mapping -> newGateway.addPortMapping(mapping, 20));
+      for (PortForwardingInfo mapping : mappings) {
+        boolean mappingSuccess = newGateway.addPortMapping(mapping, PORT_MAPPING_ATTEMPTS);
+        if (mappingSuccess) {
+          logger.info("Successfully added new port mapping to {} in {} or less attempts",
+              newGateway.getFriendlyName(), PORT_MAPPING_ATTEMPTS);
+        } else {
+          logger.error("Failed to map port for {} after {} attempts",
+              newGateway.getFriendlyName(), PORT_MAPPING_ATTEMPTS);
+        }
+      }
     }
   }
 
@@ -93,6 +104,6 @@ public class PortForwardingController {
   void addNATForwardingEntry(int localListeningPort, int externalListeningPort) {
     PortForwardingInfo portMapping = new PortForwardingInfo(PortForwardingInfo.PortType.TCP, localListeningPort, externalListeningPort, leaseTime);
     mappings.add(portMapping);
-    gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping, 20));
+    gateways.forEach(wanGateway -> wanGateway.addPortMapping(portMapping, PORT_MAPPING_ATTEMPTS));
   }
 }

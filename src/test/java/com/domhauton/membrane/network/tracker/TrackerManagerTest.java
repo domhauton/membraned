@@ -33,23 +33,23 @@ class TrackerManagerTest {
   @Test
   void checkTrackers() {
     // No peers needed
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(-1, 20, 0));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(0, 20, 0));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(0, 20, 10));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(-1, true, 20, 0));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(0, true, 20, 0));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(0, true, 20, 10));
     // Below startup time
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(10, 20, 0));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(10, 4, 0));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(10, true, 20, 0));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(10, true, 4, 0));
 
     // Below curve
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, 5, 0));
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, 10, 0));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, 10, 1));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, true, 5, 0));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, true, 10, 0));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, true, 10, 1));
 
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, 11, 1));
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, 20, 1));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, 20, 2));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, true, 11, 1));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, true, 20, 1));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, true, 20, 2));
 
-    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, 200, 19));
-    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, 200, 20));
+    Assertions.assertTrue(trackerManager.shouldConnectToTrackers(20, true, 200, 19));
+    Assertions.assertFalse(trackerManager.shouldConnectToTrackers(20, true, 200, 20));
   }
 }

@@ -46,6 +46,10 @@ public class PexLedger {
     return pexRecord.entrySet();
   }
 
+  synchronized int getPexEntryCount() {
+    return pexRecord.size();
+  }
+
   synchronized String serialize() {
     return pexRecord.entrySet().stream()
         .map(entry -> entry.getKey() + ENTRY_SEP + entry.getValue().serialize())

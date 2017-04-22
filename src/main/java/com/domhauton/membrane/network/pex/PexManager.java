@@ -104,6 +104,10 @@ public class PexManager {
         .orElseThrow(() -> new PexException("Peer [" + peerId + "] not found in PEX ledger"));
   }
 
+  public int getPexEntryCount() {
+    return pexLedger.getPexEntryCount() + unconfirmedLedger.getPexEntryCount();
+  }
+
   public Set<String> getAvailablePexPeers() {
     return pexLedger.availableHosts();
   }

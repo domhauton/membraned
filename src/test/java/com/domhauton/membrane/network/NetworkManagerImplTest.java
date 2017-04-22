@@ -26,7 +26,7 @@ import java.util.Set;
  * Created by dominic on 11/04/17.
  */
 class NetworkManagerImplTest {
-  public final static Random RANDOM = new SecureRandom();
+  private final static Random RANDOM = new SecureRandom();
 
   private String testFolder1;
   private Path testFolderPath1;

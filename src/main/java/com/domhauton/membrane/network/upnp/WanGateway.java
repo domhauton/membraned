@@ -53,7 +53,7 @@ public class WanGateway implements Closeable {
         throw new IOException("Failed to map port");
       }
     } catch (SAXException | IOException e) {
-      logger.error("Port mapping on {} failed. {}. Error: {}", gatewayDevice.getFriendlyName(), portForwardingInfo, e.getMessage());
+      logger.debug("Port mapping on {} failed. {}. Error: {}", gatewayDevice.getFriendlyName(), portForwardingInfo, e.getMessage());
     } finally {
       if (success || force) {
         mappedPorts.add(portForwardingInfo);

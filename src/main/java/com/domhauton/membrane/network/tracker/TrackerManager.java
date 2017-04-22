@@ -47,9 +47,13 @@ public class TrackerManager {
    * @param connectedPeerCount   Number of peers currently connected
    * @return True if connection to trackers is needed
    */
-  public boolean shouldConnectToTrackers(final int contractedPeerTarget, final int minutesFromStartup, final int connectedPeerCount) {
+  public boolean shouldConnectToTrackers(final int contractedPeerTarget, boolean hasPexEntries, final int minutesFromStartup, final int connectedPeerCount) {
     if (contractedPeerTarget < 1 || minutesFromStartup < WAIT_FROM_STARTUP) {
       return false;
+    }
+
+    if (!hasPexEntries) {
+      return true;
     }
 
     float connectedPeerRatio = (float) connectedPeerCount / (float) contractedPeerTarget;
