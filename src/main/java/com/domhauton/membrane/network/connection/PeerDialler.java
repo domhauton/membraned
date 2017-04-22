@@ -13,6 +13,7 @@ import io.vertx.core.net.NetSocket;
 import io.vertx.core.net.PemKeyCertOptions;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.util.Strings;
 
 import java.security.interfaces.RSAPrivateKey;
 import java.util.function.Consumer;
@@ -48,6 +49,7 @@ class PeerDialler {
 
     NetClientOptions options = new NetClientOptions()
         .setLogActivity(true)
+        .setTrustAll(true)
         .setPemKeyCertOptions(pemKeyCertOptions)
         .setTrustOptions(membraneAuthInfo.getTrustOptions())
         .setSsl(true)
@@ -82,10 +84,15 @@ class PeerDialler {
         PeerConnection peerConnection = new PeerConnection(socket, peerMessageConsumer, localClientId, messageSigningKey);
         peerConsumer.accept(new Peer(peerConnection));
       } catch (PeerException e) {
+        e.printStackTrace();
         logger.warn("Failed to connect: " + e.getMessage());
       }
     } else {
-      logger.warn("Failed to connect! Reason: ", result.cause().getMessage() != null ? result.cause().getMessage() : "n/a");
+      String message = result.cause().getMessage();
+      if (Strings.isBlank(message)) {
+        result.cause().printStackTrace();
+      }
+      logger.warn("Failed to connect! Reason: ", Strings.isBlank(message) ? "n/a" : result.cause().getMessage());
     }
   }
 }

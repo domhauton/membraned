@@ -194,18 +194,19 @@ class GatekeeperTest {
     Mockito.when(pexManager.getEntry(peerMock2.getUid())).thenThrow(new PexException("Mockito Exception"));
 
     gatekeeper.maintainPeerPopulation();
-    Mockito.verify(connectionManager, Mockito.never()).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    // Will try to connect to tracker
+    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
 
     contractedPeers.add(peerMock1.getUid());
     contractedPeers.add(peerMock2.getUid());
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
-    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(3)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
     connectedPeers.add(peerMock1);
 
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
-    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(4)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
   }
 
   @Test
@@ -216,21 +217,22 @@ class GatekeeperTest {
     Mockito.when(pexManager.getEntry(peerMock2.getUid())).thenReturn(pexEntry2);
 
     gatekeeper.maintainPeerPopulation();
-    Mockito.verify(connectionManager, Mockito.never()).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    // Will try to connect to tracker
+    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
 
     contractedPeers.add(peerMock1.getUid());
     contractedPeers.add(peerMock2.getUid());
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_2, PEER_PORT_2);
-    Mockito.verify(connectionManager, Mockito.times(2)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(4)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
     connectedPeers.add(peerMock1);
     connectedPeers.add(peerMock2);
 
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_2, PEER_PORT_2);
-    Mockito.verify(connectionManager, Mockito.times(2)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(5)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
   }
 
   @Test
@@ -240,13 +242,14 @@ class GatekeeperTest {
     Mockito.when(pexManager.getEntry(peerMock2.getUid())).thenThrow(new PexException("Mockito Exception"));
 
     gatekeeper.maintainPeerPopulation();
-    Mockito.verify(connectionManager, Mockito.never()).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    // Will try to connect to tracker
+    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
 
     contractedPeers.add(peerMock1.getUid());
     contractedPeers.add(peerMock2.getUid());
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
-    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(3)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
     connectedPeers.add(peerMock1);
 
     // Check peer messages sent
@@ -277,13 +280,14 @@ class GatekeeperTest {
     Mockito.when(pexManager.getEntry(peerMock2.getUid())).thenThrow(new PexException("Mockito Exception"));
 
     gatekeeper.maintainPeerPopulation();
-    Mockito.verify(connectionManager, Mockito.never()).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    // Will try to connect to tracker
+    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
 
     contractedPeers.add(peerMock1.getUid());
     contractedPeers.add(peerMock2.getUid());
     gatekeeper.maintainPeerPopulation();
     Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(PEER_IP_1, PEER_PORT_1);
-    Mockito.verify(connectionManager, Mockito.times(1)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
+    Mockito.verify(connectionManager, Mockito.times(3)).connectToPeer(Mockito.anyString(), Mockito.anyInt());
     connectedPeers.add(peerMock1);
 
     // Check peer messages sent

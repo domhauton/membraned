@@ -3,6 +3,7 @@ package com.domhauton.membrane;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.items.*;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.StorageManagerTestUtils;
 import org.joda.time.DateTime;
@@ -72,23 +73,18 @@ class BackupManagerTest {
     watchFolder2 = new WatchFolder(fileFolder2.getParent().toString(), true);
 
     config = new Config(
-            new DistributedStorageConfig(
-                    basePath.toString() + File.separator + "storage" + File.separator + "local",
-                    1,
-                    16,
-                    30,
-                    new DistributedStorageConfig().getTransportPort(),
-                    new DistributedStorageConfig().getExternalTransportPort(),
-                    new DistributedStorageConfig().isNatForwardingEnabled()),
-            new LocalStorageConfig(basePath.toString() + File.separator + "storage" + File.separator + "dist",
-                    1,
-                    16,
-                    30),
-            new WatcherConfig(4,
-                    new LinkedList<>(Arrays.asList(watchFolder1, watchFolder2)),
-                    1,
-                    1),
-            new RestConfig(13200));
+        new ContractManagerConfig(true, 10, true),
+        new NetworkConfig(),
+        new StorageConfig(
+            basePath.toString() + File.separator + "storage" + File.separator + "localShard",
+            basePath.toString() + File.separator + "storage" + File.separator + "peerBlock",
+            1,
+            (int) ((19.0d / 0.2d) / 0.8d)),
+        new FileWatcherConfig(4,
+            new LinkedList<>(Arrays.asList(watchFolder1, watchFolder2)),
+            1,
+            1),
+        new RestAPIConfig(13200));
 
     backupManager = new BackupManager(config, configPath);
     backupManager.run();
@@ -233,31 +229,31 @@ class BackupManagerTest {
   @Test
   void addAndRecoverFileVersionOverflowTest() throws Exception {
     createTestFolders();
-    byte[] data5 = new byte[5 * 1024 * 1024];
+    byte[] data5 = new byte[4 * 1024 * 1024];
     random.nextBytes(data5);
     Files.write(testFile2, data5);
     DateTime dateTime5 = DateTime.now();
 
-    byte[] data1 = new byte[5 * 1024 * 1024];
+    byte[] data1 = new byte[4 * 1024 * 1024];
     random.nextBytes(data1);
     Files.write(testFile1, data1);
     DateTime dateTime1 = DateTime.now();
 
     Thread.sleep(1500);
 
-    byte[] data2 = new byte[5 * 1024 * 1024];
+    byte[] data2 = new byte[4 * 1024 * 1024];
     random.nextBytes(data2);
     Files.write(testFile1, data2);
     DateTime dateTime2 = DateTime.now();
 
     Thread.sleep(1500);
 
-    byte[] data3 = new byte[5 * 1024 * 1024];
+    byte[] data3 = new byte[4 * 1024 * 1024];
     random.nextBytes(data3);
     Files.write(testFile1, data3);
     DateTime dateTime3 = DateTime.now();
 
-    byte[] data4 = new byte[5 * 1024 * 1024];
+    byte[] data4 = new byte[4 * 1024 * 1024];
     random.nextBytes(data4);
     Files.write(testFile3, data4);
     DateTime dateTime4 = DateTime.now();
@@ -279,12 +275,17 @@ class BackupManagerTest {
 
     Files.delete(recoveryDest);
 
-    Assertions.assertEquals(5 * 5 * 1024 * 1024, backupManager.getStorageSize());
+    Assertions.assertEquals(5 * 4 * 1024 * 1024, backupManager.getStorageSize());
     backupManager.trimStorage();
-    Assertions.assertEquals(3 * 5 * 1024 * 1024, backupManager.getStorageSize());
+    Assertions.assertEquals(4 * 4 * 1024 * 1024, backupManager.getStorageSize());
 
     assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
-    assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime2));
+
+    backupManager.recoverFile(testFile1, recoveryDest, dateTime2);
+    byte[] recoveredFile2 = Files.readAllBytes(recoveryDest);
+    Assertions.assertArrayEquals(data2, recoveredFile2);
+
+    Files.delete(recoveryDest);
 
     backupManager.recoverFile(testFile1, recoveryDest, dateTime3);
     byte[] recoveredFile3 = Files.readAllBytes(recoveryDest);
@@ -308,8 +309,8 @@ class BackupManagerTest {
     createTestFolders();
     Thread.sleep(1200);
 
-    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
-    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    Assertions.assertTrue(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder2));
     System.out.println(backupManager.getWatchedFolders().toString());
     Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
     Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
@@ -318,8 +319,8 @@ class BackupManagerTest {
 
     Thread.sleep(1200);
 
-    Assertions.assertFalse(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
-    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    Assertions.assertFalse(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder2));
     Assertions.assertFalse(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
     Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
 
@@ -328,8 +329,8 @@ class BackupManagerTest {
 
     Thread.sleep(1200);
 
-    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder1));
-    Assertions.assertTrue(backupManager.getConfig().getWatcher().getFolders().contains(watchFolder2));
+    Assertions.assertTrue(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder1));
+    Assertions.assertTrue(backupManager.getConfig().getFileWatcher().getFolders().contains(watchFolder2));
     Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder1.getDirectory()));
     Assertions.assertTrue(backupManager.getWatchedFolders().contains(watchFolder2.getDirectory()));
 

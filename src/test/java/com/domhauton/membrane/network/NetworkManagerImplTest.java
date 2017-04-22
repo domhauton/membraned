@@ -2,6 +2,7 @@ package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
+import com.domhauton.membrane.network.connection.ConnectionManager;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.Tracker;
 import com.domhauton.membrane.network.tracker.TrackerManager;
@@ -469,6 +470,29 @@ class NetworkManagerImplTest {
     Assertions.assertArrayEquals(largeBlockData, evictingContractManager2.getReceivedBlock());
   }
 
+//  @Test
+//  void testTrackerAvailability() throws Exception {
+//    // Setup 1 & 2 as peers.
+//
+//    networkManager1.setContractManager(evictingContractManager1);
+//
+//    PexManager pexManager2 = extractPexManager(networkManager2);
+//    pexManager2.addEntry(networkManager1.getUID(), "127.0.0.1", PORT_INTERNAL_1, false, DateTime.now(), new byte[0]);
+//
+//    // Start all of them.
+//
+//    networkManager1.run();
+//
+//    // Check if they connect
+//    boolean trackerConnected = false;
+//    ConnectionManager connectionManager1 = extractConnectionManager(networkManager1);
+//    for (int i = 0; i < 200 && !trackerConnected; i++) {
+//      Thread.sleep(100);
+//      trackerConnected = connectionManager1.getAllConnectedPeerIds().size() > 0;
+//    }
+//    Assertions.assertTrue(trackerConnected);
+//  }
+
 
   @AfterEach
   void tearDown() throws Exception {
@@ -506,6 +530,13 @@ class NetworkManagerImplTest {
     Field pexField = networkManagerImpl.getClass().getDeclaredField("membraneAuthInfo");
     pexField.setAccessible(true);
     return (MembraneAuthInfo) pexField.get(networkManagerImpl);
+  }
+
+  private ConnectionManager extractConnectionManager(NetworkManager networkManager) throws Exception {
+    NetworkManagerImpl networkManagerImpl = (NetworkManagerImpl) networkManager;
+    Field pexField = networkManagerImpl.getClass().getDeclaredField("connectionManager");
+    pexField.setAccessible(true);
+    return (ConnectionManager) pexField.get(networkManagerImpl);
   }
 
   private void injectNewStartTime(NetworkManager networkManager, DateTime newStartTime) throws Exception {

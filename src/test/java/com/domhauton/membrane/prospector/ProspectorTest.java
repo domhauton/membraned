@@ -1,6 +1,6 @@
 package com.domhauton.membrane.prospector;
 
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.*;

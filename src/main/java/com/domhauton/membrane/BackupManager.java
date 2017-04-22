@@ -5,7 +5,10 @@ import com.domhauton.membrane.api.RestfulApiManager;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
+import com.domhauton.membrane.distributed.ContractManager;
+import com.domhauton.membrane.distributed.ContractManagerException;
+import com.domhauton.membrane.distributed.ContractManagerImpl;
 import com.domhauton.membrane.network.NetworkException;
 import com.domhauton.membrane.network.NetworkManagerImpl;
 import com.domhauton.membrane.prospector.FileManager;
@@ -23,6 +26,7 @@ import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 
 import java.io.Closeable;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -38,6 +42,8 @@ import java.util.stream.Collectors;
  */
 public class BackupManager implements Runnable, Closeable {
   private final static int MB = 1024 * 1024;
+  private final static double PEER_LOCAL_STORAGE_RATIO = 0.20d;
+  private final static double SOFT_STORAGE_CAP_RATIO = 0.80d;
 
   private final Config config;
   private final Path configPath;
@@ -48,6 +54,7 @@ public class BackupManager implements Runnable, Closeable {
   private StorageManager localStorageManager;
   private RestfulApiManager restfulApiManager;
   private NetworkManagerImpl networkManager;
+  private ContractManager contractManager;
   private final Logger logger;
 
   private final ScheduledExecutorService trimExecutor;
@@ -65,13 +72,21 @@ public class BackupManager implements Runnable, Closeable {
     trimExecutor = Executors.newSingleThreadScheduledExecutor();
 
     Path configDir = configPath.getParent();
-    ShardStorage localShardStorage = new ShardStorageImpl(Paths.get(config.getLocalStorage().getStorageFolder()), config.getLocalStorage().getHardStorageLimit() * MB);
-    ShardStorage peerShardStorage = new ShardStorageImpl(Paths.get(config.getDistributedStorage().getStorageFolder()), config.getDistributedStorage().getHardStorageLimit(), Hashing.sha512());
+    Path localShardStoragePath = Paths.get(config.getStorage().getLocalShardStorageDir());
+    Path peerBlockStoragePath = Paths.get(config.getStorage().getPeerBlockStorageDir());
+    int hardStorageCap = config.getStorage().getStorageCapMB();
+    ShardStorage localShardStorage = new ShardStorageImpl(
+        localShardStoragePath,
+        (long) (hardStorageCap * MB * PEER_LOCAL_STORAGE_RATIO));
+    ShardStorage peerBlockStorage = new ShardStorageImpl(
+        peerBlockStoragePath,
+        (long) (hardStorageCap * MB * (1.0 - PEER_LOCAL_STORAGE_RATIO)),
+        Hashing.sha512());
 
     try {
 
       // Create the file manager (responsible for monitoring changes)
-      fileManager = new FileManager(new FileEventLoggerImpl(), localShardStorage, config.getWatcher().getChunkSizeMB());
+      fileManager = new FileManager(new FileEventLoggerImpl(), localShardStorage, config.getFileWatcher().getChunkSizeMB());
 
       // Create the local storage manager. Responsible for persisting files on the local machine.
       localStorageManager = new StorageManager(configDir, localShardStorage);
@@ -84,16 +99,40 @@ public class BackupManager implements Runnable, Closeable {
 
       // Start the rest API
 
-      restfulApiManager = new RestfulApiManager(config.getRest().getPort(), this);
+      restfulApiManager = new RestfulApiManager(config.getRestApi().getPort(), this);
       restfulApiManager.start();
 
-      // Create in network manager.
+      // Only setup if contract manager is enabled
+      if (config.getContractManager().isActive()) {
+        // Create in network manager.
 
-      networkManager = new NetworkManagerImpl(configDir,
-          config.getDistributedStorage().getTransportPort(),
-          config.getDistributedStorage().getExternalTransportPort());
+        if (config.getNetwork().isUpnpEnabled()) {
+          networkManager = new NetworkManagerImpl(
+              configDir,
+              config.getNetwork().getListeningPort(),
+              config.getNetwork().getMaxConnections(),
+              config.getNetwork().getUpnpForwardedPort());
+        } else {
+          networkManager = new NetworkManagerImpl(
+              configDir,
+              config.getNetwork().getListeningPort(),
+              config.getNetwork().getMaxConnections());
+        }
 
-    } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException e) {
+        Path contractManagerPath = Paths.get(configDir.toString() + File.separator + "contracts");
+
+        contractManager = new ContractManagerImpl(contractManagerPath,
+            localStorageManager,
+            localShardStorage,
+            peerBlockStorage,
+            networkManager,
+            config.getContractManager().getTargetContractCount());
+
+        networkManager.setContractManager(contractManager);
+        networkManager.setSearchForNewPublicPeers(config.getContractManager().isSearchForNewPeers());
+      }
+
+    } catch (FileManagerException | StorageManagerException | RestfulApiException | NetworkException | ContractManagerException e) {
       logger.error("Failed to run membrane backup manager.");
       logger.error(e.getMessage());
       throw new IllegalArgumentException("Error starting up.", e);
@@ -107,14 +146,21 @@ public class BackupManager implements Runnable, Closeable {
     loadStorageMappingToProspector();
     loadWatchFoldersToProspector();
     fileManager.runScanners(
-            config.getWatcher().getFileRescanInterval(),
-            config.getWatcher().getFileRescanInterval());
+        config.getFileWatcher().getFileRescanInterval(),
+        config.getFileWatcher().getFileRescanInterval());
     networkManager.run();
     if (!monitorMode) { // No need to trim storage in Monitor Mode
       trimExecutor.scheduleWithFixedDelay(this::trimStorage,
               1,
-              config.getLocalStorage().getGcInterval(),
+          config.getStorage().getGcIntervalMinutes(),
               TimeUnit.MINUTES);
+    }
+    if (contractManager != null) {
+      contractManager.run();
+    }
+
+    if (networkManager != null) {
+      networkManager.run();
     }
   }
 
@@ -139,17 +185,17 @@ public class BackupManager implements Runnable, Closeable {
     if (monitorMode) {
       logger.warn("Attempted to trim storage in monitor mode!");
     } else {
-      long gcBytes = ((long) config.getLocalStorage().getSoftStorageLimit()) * 1024 * 1024;
+      long gcSoftLimitMB = (long) (config.getStorage().getStorageCapMB() * PEER_LOCAL_STORAGE_RATIO * SOFT_STORAGE_CAP_RATIO);
       Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
-      logger.info("Attempting to trim storage to {}MB.", (float) gcBytes / (1024 * 1024));
+      logger.info("Attempting to trim storage to {}MB.", gcSoftLimitMB);
       logger.debug("Current watched folders: {}", watchedFolders);
-      localStorageManager.clampStorageToSize(gcBytes, watchedFolders);
+      localStorageManager.clampStorageToSize(gcSoftLimitMB * MB, watchedFolders);
       logger.info("Successfully trimmed storage.");
     }
   }
 
   private void loadWatchFoldersToProspector() {
-    List<WatchFolder> watchFolders = config.getWatcher().getFolders();
+    List<WatchFolder> watchFolders = config.getFileWatcher().getFolders();
     logger.info("Adding {} watch folders from config to listener", watchFolders.size());
     watchFolders.forEach(fileManager::addWatchFolder);
     fileManager.fullFileScanSweep();
@@ -171,22 +217,22 @@ public class BackupManager implements Runnable, Closeable {
    */
   public void addWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
     logger.info("Adding new watch folder");
-    if (config.getWatcher().getFolders().contains(watchFolder)) {
+    if (config.getFileWatcher().getFolders().contains(watchFolder)) {
       logger.warn("Attempted to add existing watch folder.");
       throw new IllegalArgumentException("Already watching folder!");
     }
     fileManager.addWatchFolder(watchFolder);
-    config.getWatcher().getFolders().add(watchFolder);
+    config.getFileWatcher().getFolders().add(watchFolder);
     ConfigManager.saveConfig(configPath, config);
   }
 
   public void removeWatchFolder(WatchFolder watchFolder) throws IllegalArgumentException, ConfigException {
     logger.warn("Removing existing watch folder");
-    if (!config.getWatcher().getFolders().remove(watchFolder)) {
+    if (!config.getFileWatcher().getFolders().remove(watchFolder)) {
       throw new IllegalArgumentException("Watch Folder does not exist!");
     }
     fileManager.removeWatchFolder(watchFolder);
-    config.getWatcher().getFolders().remove(watchFolder);
+    config.getFileWatcher().getFolders().remove(watchFolder);
     ConfigManager.saveConfig(configPath, config);
   }
 
@@ -246,8 +292,15 @@ public class BackupManager implements Runnable, Closeable {
       logger.error("Shutdown - Failed to shutdown Local Storage.");
     }
 
-    logger.info("Shutdown - Stopping Distributed Manager");
-    networkManager.close();
+    if (networkManager != null) {
+      logger.info("Shutdown - Stopping Network Manager");
+      networkManager.close();
+    }
+
+    if (contractManager != null) {
+      logger.info("Shutdown - Stopping Contract Manager");
+      contractManager.close();
+    }
 
     logger.info("Shutdown - Stopping Watcher.");
     fileManager.stopScanners();

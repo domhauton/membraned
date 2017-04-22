@@ -1,4 +1,4 @@
-package com.domhauton.membrane.config.items;
+package com.domhauton.membrane.config.items.data;
 
 import com.google.common.base.Objects;
 

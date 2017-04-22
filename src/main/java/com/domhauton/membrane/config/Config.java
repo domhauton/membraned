@@ -1,48 +1,52 @@
 package com.domhauton.membrane.config;
 
-import com.domhauton.membrane.config.items.DistributedStorageConfig;
-import com.domhauton.membrane.config.items.LocalStorageConfig;
-import com.domhauton.membrane.config.items.RestConfig;
-import com.domhauton.membrane.config.items.WatcherConfig;
+import com.domhauton.membrane.config.items.*;
 
 /**
  * Created by dominic on 23/01/17.
  */
 @SuppressWarnings("CanBeFinal")
 public class Config {
-  private DistributedStorageConfig distributedStorage;
-  private LocalStorageConfig localStorage;
-  private WatcherConfig watcher;
-  private RestConfig rest;
+  private ContractManagerConfig contractManager;
+  private NetworkConfig network;
+  private StorageConfig storage;
+  private FileWatcherConfig fileWatcher;
+  private RestAPIConfig restApi;
 
   Config() {
-    localStorage = new LocalStorageConfig();
-    distributedStorage = new DistributedStorageConfig();
-    watcher = new WatcherConfig();
-    rest = new RestConfig();
+    network = new NetworkConfig();
+    storage = new StorageConfig();
+    contractManager = new ContractManagerConfig();
+    fileWatcher = new FileWatcherConfig();
+    restApi = new RestAPIConfig();
   }
 
-  public Config(DistributedStorageConfig distributedStorage, LocalStorageConfig localStorage, WatcherConfig watcher, RestConfig rest) {
-    this.distributedStorage = distributedStorage;
-    this.localStorage = localStorage;
-    this.watcher = watcher;
-    this.rest = rest;
+  public Config(ContractManagerConfig contractManager, NetworkConfig network, StorageConfig storage, FileWatcherConfig fileWatcher, RestAPIConfig restApi) {
+    this.contractManager = contractManager;
+    this.network = network;
+    this.storage = storage;
+    this.fileWatcher = fileWatcher;
+    this.restApi = restApi;
   }
 
-  public DistributedStorageConfig getDistributedStorage() {
-    return distributedStorage;
+  public ContractManagerConfig getContractManager() {
+    return contractManager;
   }
 
-  public LocalStorageConfig getLocalStorage() {
-    return localStorage;
+  public NetworkConfig getNetwork() {
+    return network;
   }
 
-  public WatcherConfig getWatcher() {
-    return watcher;
+  public StorageConfig getStorage() {
+    return storage;
   }
 
-  public RestConfig getRest() {
-    return rest;
+  public FileWatcherConfig getFileWatcher() {
+    return fileWatcher;
+  }
+
+  public RestAPIConfig getRestApi() {
+    return restApi;
   }
 
   @Override
@@ -52,9 +56,10 @@ public class Config {
 
     Config config = (Config) o;
 
-    return (distributedStorage != null ? distributedStorage.equals(config.distributedStorage) : config.distributedStorage == null) &&
-            (localStorage != null ? localStorage.equals(config.localStorage) : config.localStorage == null) &&
-            (watcher != null ? watcher.equals(config.watcher) : config.watcher == null) &&
-            (rest != null ? rest.equals(config.rest) : config.rest == null);
+    return (getContractManager() != null ? getContractManager().equals(config.getContractManager()) : config.getContractManager() == null) &&
+        (getNetwork() != null ? getNetwork().equals(config.getNetwork()) : config.getNetwork() == null) &&
+        (getStorage() != null ? getStorage().equals(config.getStorage()) : config.getStorage() == null) &&
+        (getFileWatcher() != null ? getFileWatcher().equals(config.getFileWatcher()) : config.getFileWatcher() == null) &&
+        (getRestApi() != null ? getRestApi().equals(config.getRestApi()) : config.getRestApi() == null);
   }
 }

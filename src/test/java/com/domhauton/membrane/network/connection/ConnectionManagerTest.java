@@ -41,8 +41,8 @@ class ConnectionManagerTest {
 
   @BeforeEach
   void setUp() throws Exception {
-    // System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
-    // System.setProperty("javax.net.debug", "ssl");
+//     System.setProperty("vertx.logger-delegate-factory-class-name", "io.vertx.core.logging.Log4j2LogDelegateFactory");
+//     System.setProperty("javax.net.debug", "ssl");
     AuthUtils.addProvider();
     membraneAuthInfo1 = AuthUtils.generateAuthenticationInfo();
     membraneAuthInfo2 = AuthUtils.generateAuthenticationInfo();
@@ -82,6 +82,17 @@ class ConnectionManagerTest {
 
     Assertions.assertThrows(TimeoutException.class, () -> con1Callback.get(5, TimeUnit.SECONDS));
   }
+
+//  @Test
+//  void tmpTrackerTest() throws Exception {
+//    CompletableFuture<Boolean> con1Callback = new CompletableFuture<>();
+//
+//    connectionManager1.registerNewPeerCallback(peer -> con1Callback.complete(true));
+//
+//    connectionManager1.connectToPeer("35.187.109.72", 14200);
+//
+//    con1Callback.get(5, TimeUnit.SECONDS);
+//  }
 
   @Test
   void receiveMessage() throws Exception {

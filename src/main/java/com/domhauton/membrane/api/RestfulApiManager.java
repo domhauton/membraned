@@ -5,10 +5,8 @@ import com.domhauton.membrane.MembraneBuild;
 import com.domhauton.membrane.api.requests.FileID;
 import com.domhauton.membrane.api.requests.WatchFolderChange;
 import com.domhauton.membrane.api.responses.*;
-import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
-import com.domhauton.membrane.config.ConfigManager;
-import com.domhauton.membrane.config.items.*;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
@@ -68,17 +66,15 @@ public class RestfulApiManager implements Closeable {
   public void start() throws RestfulApiException {
     router.route().handler(this::hostFilter);
     router.get("/").handler(this::rootHandler);
-    router.get("/status/config").handler(this::getMembraneConfig);
     router.get("/status/watcher").handler(this::getFileWatcherStatus);
     router.get("/status/storage").handler(this::getStorageStatus);
+    router.get("/status/watch_folder").handler(this::getFileWatcherStatus);
 
-    router.post("/configure/config").blockingHandler(this::putNewConfig);
     router.post("/configure/watch_folder").blockingHandler(this::modifyWatchFolder);
-
     router.post("/request/cleanup").blockingHandler(this::putRequestCleanup);
+    router.post("/request/reconstruct").blockingHandler(this::reconstructFile);
 
     router.get("/request/history").blockingHandler(this::getFileHistory);
-    router.post("/request/reconstruct").blockingHandler(this::reconstructFile);
 
     CompletableFuture<Boolean> startUpListener = new CompletableFuture<>();
 
@@ -128,19 +124,19 @@ public class RestfulApiManager implements Closeable {
     sendObject(routingContext, runtimeInfo);
   }
 
-  void getMembraneConfig(RoutingContext routingContext) {
-    Config config = backupManager.getConfig();
-    MembraneRestConfig membraneRestConfig = new MembraneRestConfig(config);
-    logger.info("Sending config status to {}", routingContext.request().remoteAddress().host());
-    sendObject(routingContext, membraneRestConfig);
-  }
-
   void getFileWatcherStatus(RoutingContext routingContext) {
     Set<String> watchedFolders = backupManager.getWatchedFolders();
     Set<String> watchedFiles = backupManager.getWatchedFiles();
     FileManagerStatus fileManagerStatus = new FileManagerStatus(watchedFolders, watchedFiles);
     logger.info("Sending file watcher status to {}", routingContext.request().remoteAddress().host());
     sendObject(routingContext, fileManagerStatus);
+  }
+
+  void getConfiguredWatchFolders(RoutingContext routingContext) {
+    List<WatchFolder> watchedFolders = backupManager.getConfig().getFileWatcher().getFolders();
+    WatchFolderStatus watchFolderStatus = new WatchFolderStatus(watchedFolders);
+    logger.info("Sending current watch folders to {}", routingContext.request().remoteAddress().host());
+    sendObject(routingContext, watchFolderStatus);
   }
 
   void getStorageStatus(RoutingContext routingContext) {
@@ -165,55 +161,6 @@ public class RestfulApiManager implements Closeable {
               .putHeader("content-type", "application/json")
               .setStatusCode(500)
               .end("Unable to generate response. Please check the logs.\n" + e.getMessage());
-    }
-  }
-
-  void putNewConfig(RoutingContext routingContext) {
-    Path configPath = backupManager.getConfigPath();
-    try {
-      MembraneRestConfig membraneRestConfig = Json.decodeValue(routingContext.getBodyAsString(), MembraneRestConfig.class);
-      WatcherConfig watcherConfig = new WatcherConfig(
-              membraneRestConfig.getWatcher().getChunkSize(),
-              membraneRestConfig.getWatcher().getWatchFolders()
-                      .stream()
-                      .map(x -> new WatchFolder(x.getDirectory(), x.isRecursive()))
-                      .collect(Collectors.toList()),
-              membraneRestConfig.getWatcher().getFileRescan(),
-              membraneRestConfig.getWatcher().getFolderRescan());
-
-      LocalStorageConfig localStorageConfig = new LocalStorageConfig(
-              membraneRestConfig.getLocalStorage().getDirectory(),
-              membraneRestConfig.getLocalStorage().getTrimFrequency(),
-              membraneRestConfig.getLocalStorage().getSoftStorageCap(),
-              membraneRestConfig.getLocalStorage().getHardStorageCap());
-
-      DistributedStorageConfig distributedStorageConfig = new DistributedStorageConfig(
-              membraneRestConfig.getDistributedStorage().getDirectory(),
-              membraneRestConfig.getDistributedStorage().getTrimFrequency(),
-              membraneRestConfig.getDistributedStorage().getSoftStorageCap(),
-              membraneRestConfig.getDistributedStorage().getHardStorageCap(),
-              membraneRestConfig.getDistributedStorage().getTransportPort(),
-              membraneRestConfig.getDistributedStorage().getExternalTransportPort(),
-              membraneRestConfig.getDistributedStorage().isNatForwardingEnabled());
-
-      RestConfig restConfig = new RestConfig(membraneRestConfig.getRestAPI().getPort());
-
-      Config config = new Config(
-              distributedStorageConfig,
-              localStorageConfig,
-              watcherConfig,
-              restConfig);
-
-      ConfigManager.saveConfig(configPath, config);
-      logger.info("Successfully wrote new config.");
-      routingContext.response().setStatusCode(200).end("Successfully wrote config to: " + configPath.toString());
-
-    } catch (DecodeException e) {
-      logger.warn("Failed to decode body. {}", e.getMessage());
-      routingContext.response().setStatusCode(400).end("Failed to decode request. Error: " + e.getMessage());
-    } catch (ConfigException e) {
-      logger.warn("Failed to write new config. {}", e.getMessage());
-      routingContext.response().setStatusCode(500).end("Failed to write config to: " + configPath.toString() + "Error: " + e.getMessage());
     }
   }
 

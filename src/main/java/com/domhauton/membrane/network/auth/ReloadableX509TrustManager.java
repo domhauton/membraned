@@ -8,7 +8,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -27,12 +26,10 @@ class ReloadableX509TrustManager implements X509TrustManager {
   private final Logger logger = LogManager.getLogger();
   private static final int CERT_STORE_SIZE = 100;
 
-  private final Path keystorePath;
   private X509TrustManager trustManager;
   private final EvictingQueue<Certificate> tempCertList;
 
-  ReloadableX509TrustManager(Path keyStorePath, Certificate initialCert) throws AuthException {
-    this.keystorePath = keyStorePath;
+  ReloadableX509TrustManager(Certificate initialCert) throws AuthException {
     tempCertList = EvictingQueue.create(CERT_STORE_SIZE);
     tempCertList.add(initialCert);
     reloadTrustManager();

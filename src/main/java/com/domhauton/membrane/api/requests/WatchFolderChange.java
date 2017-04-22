@@ -1,6 +1,6 @@
 package com.domhauton.membrane.api.requests;
 
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 
 /**
  * Created by Dominic Hauton on 17/02/17.

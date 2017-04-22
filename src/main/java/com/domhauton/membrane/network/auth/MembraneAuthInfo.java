@@ -40,7 +40,7 @@ public class MembraneAuthInfo {
     this.x509Certificate = x509Certificate;
     this.publicKey = publicKey;
     this.privateKey = privateKey;
-    trustManager = new ReloadableX509TrustManager(null, x509Certificate);
+    trustManager = new ReloadableX509TrustManager(x509Certificate);
     try {
       trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
       this.x509CertificateEncoded = getEncodedCertificate(x509Certificate);
@@ -64,7 +64,7 @@ public class MembraneAuthInfo {
     this.x509Certificate = AuthFileUtils.loadCertificate(certPath);
     this.privateKey = AuthFileUtils.loadPrivateKey(privPath);
     this.publicKey = AuthFileUtils.loadPublicKey(pubPath);
-    trustManager = new ReloadableX509TrustManager(null, x509Certificate);
+    trustManager = new ReloadableX509TrustManager(x509Certificate);
     try {
       trustOptions = new TrustOptionsImpl(() -> new TrustManager[]{trustManager}, "RSA");
       x509CertificateEncoded = getEncodedCertificate(x509Certificate);

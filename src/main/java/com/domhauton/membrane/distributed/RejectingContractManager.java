@@ -48,4 +48,14 @@ public class RejectingContractManager implements ContractManager {
   public Set<EvidenceResponse> processEvidenceRequests(String peerId, DateTime dateTime, Set<EvidenceRequest> evidenceRequests) {
     return Collections.emptySet();
   }
+
+  @Override
+  public void close() {
+    // Do Nothing
+  }
+
+  @Override
+  public void run() {
+    // Do Nothing
+  }
 }

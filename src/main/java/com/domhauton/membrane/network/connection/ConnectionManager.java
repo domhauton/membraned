@@ -64,6 +64,7 @@ public class ConnectionManager implements Closeable {
    * Add a new peer when connected. Ensures any previous connection is terminated.
    */
   private synchronized void addPeer(Peer peer) {
+    logger.info("New peer connection added. [{}]", peer.getUid());
     if (!peer.isClosed()) {
       peerConnectionLock.lock();
       Peer oldConnection = peerConnections.get(peer.getUid());

@@ -1,6 +1,6 @@
 package com.domhauton.membrane.config;
 
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -90,12 +90,12 @@ class ConfigManagerTest {
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
     Config cfg = ConfigManager.loadDefaultConfig();
-    cfg.getWatcher().getFolders().add(new WatchFolder("foobar", false));
+    cfg.getFileWatcher().getFolders().add(new WatchFolder("foobar", false));
 
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
     Config config = ConfigManager.loadConfig(Paths.get(testCfgLocation));
-    Assertions.assertEquals(1, config.getWatcher().getFolders().size());
-    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getWatcher().getFolders().isEmpty());
+    Assertions.assertEquals(1, config.getFileWatcher().getFolders().size());
+    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getFileWatcher().getFolders().isEmpty());
   }
 
   @Test
@@ -105,13 +105,13 @@ class ConfigManagerTest {
     Assertions.assertFalse(Files.deleteIfExists(Paths.get(testCfgLocation)));
 
     Config cfg = ConfigManager.loadDefaultConfig();
-    cfg.getWatcher().getFolders().add(new WatchFolder("foobar", false));
+    cfg.getFileWatcher().getFolders().add(new WatchFolder("foobar", false));
 
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
-    Assertions.assertFalse(ConfigManager.loadConfig(Paths.get(testCfgLocation)).getWatcher().getFolders().isEmpty());
-    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getWatcher().getFolders().isEmpty());
-    cfg.getWatcher().getFolders().add(new WatchFolder("foobar2", false));
+    Assertions.assertFalse(ConfigManager.loadConfig(Paths.get(testCfgLocation)).getFileWatcher().getFolders().isEmpty());
+    Assertions.assertTrue(ConfigManager.loadDefaultConfig().getFileWatcher().getFolders().isEmpty());
+    cfg.getFileWatcher().getFolders().add(new WatchFolder("foobar2", false));
     ConfigManager.saveConfig(Paths.get(testCfgLocation), cfg);
-    Assertions.assertEquals(2, ConfigManager.loadConfig(Paths.get(testCfgLocation)).getWatcher().getFolders().size());
+    Assertions.assertEquals(2, ConfigManager.loadConfig(Paths.get(testCfgLocation)).getFileWatcher().getFolders().size());
   }
 }

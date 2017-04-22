@@ -4,14 +4,14 @@ package com.domhauton.membrane.config.items;
  * Created by Dominic Hauton on 18/02/17.
  */
 @SuppressWarnings("CanBeFinal")
-public class RestConfig {
+public class RestAPIConfig {
   private int port;
 
-  public RestConfig() {
+  public RestAPIConfig() {
     this(13200);
   }
 
-  public RestConfig(int port) {
+  public RestAPIConfig(int port) {
     this.port = port;
   }
 
@@ -24,7 +24,7 @@ public class RestConfig {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    RestConfig that = (RestConfig) o;
+    RestAPIConfig that = (RestAPIConfig) o;
 
     return port == that.port;
   }

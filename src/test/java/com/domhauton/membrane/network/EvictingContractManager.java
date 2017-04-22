@@ -160,6 +160,11 @@ class EvictingContractManager implements ContractManager {
         .collect(Collectors.toSet());
   }
 
+  @Override
+  public void close() {
+    // Do Nothing
+  }
+
   boolean isHashConfirmed() {
     return hashConfirmed;
   }
@@ -183,5 +188,10 @@ class EvictingContractManager implements ContractManager {
   void clearBlock() {
     receivedBlockId = null;
     receivedBlock = null;
+  }
+
+  @Override
+  public void run() {
+    // Do Nothing
   }
 }

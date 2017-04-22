@@ -48,12 +48,16 @@ public class TrackerManager {
    * @return True if connection to trackers is needed
    */
   public boolean shouldConnectToTrackers(final int contractedPeerTarget, boolean hasPexEntries, final int minutesFromStartup, final int connectedPeerCount) {
-    if (contractedPeerTarget < 1 || minutesFromStartup < WAIT_FROM_STARTUP) {
-      return false;
-    }
 
-    if (!hasPexEntries) {
+    if (contractedPeerTarget < 1) {
+      logger.debug("Contracted peers not required. Not connecting to tracker.");
+      return false;
+    } else if (!hasPexEntries) {
+      logger.debug("No pex entries and peers required. Connecting to tracker.");
       return true;
+    } else if (minutesFromStartup < WAIT_FROM_STARTUP) {
+      logger.debug("To early before launch to connect to tracker. Wait at least {} mins.", WAIT_FROM_STARTUP);
+      return false;
     }
 
     float connectedPeerRatio = (float) connectedPeerCount / (float) contractedPeerTarget;

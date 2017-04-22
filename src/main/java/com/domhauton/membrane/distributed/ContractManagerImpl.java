@@ -24,7 +24,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
 import org.joda.time.Minutes;
 
-import java.io.Closeable;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.Executors;
@@ -35,7 +34,7 @@ import java.util.stream.Collectors;
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
-public class ContractManagerImpl implements Runnable, Closeable, ContractManager {
+public class ContractManagerImpl implements ContractManager {
   private final static long BLOCK_SIZE_BYTES = 24L * 1024L * 1024L * 1024L; //24MB
   private final static int MAX_BLOCK_LIFETIME_WEEKS = 2;
   private final static int TIME_BEFORE_FIRST_BROADCAST_MINS = 10;

@@ -1,40 +1,45 @@
 package com.domhauton.membrane.config.items;
 
+import java.io.File;
+
 /**
  * Created by Dominic Hauton on 18/02/17.
  */
 @SuppressWarnings("CanBeFinal")
-public abstract class StorageConfig {
-  private String storageFolder;
-  private int gcInterval;
-  private int softStorageLimit;
-  private int hardStorageLimit;
+public class StorageConfig {
+  private String localShardStorageDir;
+  private String peerBlockStorageDir;
+  private int gcIntervalMinutes;
+  private int storageCapMB;
 
-  StorageConfig(String storageFolder) {
-    this(storageFolder, 20, 2048, 4096);
+  public StorageConfig() {
+    this.localShardStorageDir = System.getProperty("user.home") + File.separator + ".membrane" + File.separator + "localShards";
+    this.peerBlockStorageDir = System.getProperty("user.home") + File.separator + ".membrane" + File.separator + "peerBlocks";
+    this.gcIntervalMinutes = 20;
+    this.storageCapMB = 4096;
   }
 
-  StorageConfig(String storageFolder, int gcInterval, int softStorageLimit, int hardStorageLimit) {
-    this.storageFolder = storageFolder;
-    this.gcInterval = gcInterval;
-    this.softStorageLimit = softStorageLimit;
-    this.hardStorageLimit = hardStorageLimit;
+  public StorageConfig(String localShardStorageDir, String peerBlockStorageDir, int gcIntervalMinutes, int storageCapMB) {
+    this.localShardStorageDir = localShardStorageDir;
+    this.peerBlockStorageDir = peerBlockStorageDir;
+    this.gcIntervalMinutes = gcIntervalMinutes;
+    this.storageCapMB = storageCapMB;
   }
 
-  public String getStorageFolder() {
-    return storageFolder;
+  public String getLocalShardStorageDir() {
+    return localShardStorageDir;
   }
 
-  public int getGcInterval() {
-    return gcInterval;
+  public String getPeerBlockStorageDir() {
+    return peerBlockStorageDir;
   }
 
-  public int getSoftStorageLimit() {
-    return softStorageLimit;
+  public int getGcIntervalMinutes() {
+    return gcIntervalMinutes;
   }
 
-  public int getHardStorageLimit() {
-    return hardStorageLimit;
+  public int getStorageCapMB() {
+    return storageCapMB;
   }
 
   @Override
@@ -44,9 +49,8 @@ public abstract class StorageConfig {
 
     StorageConfig that = (StorageConfig) o;
 
-    return gcInterval == that.gcInterval &&
-            softStorageLimit == that.softStorageLimit &&
-            hardStorageLimit == that.hardStorageLimit &&
-            (storageFolder != null ? storageFolder.equals(that.storageFolder) : that.storageFolder == null);
+    return gcIntervalMinutes == that.gcIntervalMinutes &&
+        storageCapMB == that.storageCapMB &&
+        (localShardStorageDir != null ? localShardStorageDir.equals(that.localShardStorageDir) : that.localShardStorageDir == null);
   }
 }

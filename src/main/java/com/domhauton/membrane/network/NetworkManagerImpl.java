@@ -34,7 +34,6 @@ public class NetworkManagerImpl implements NetworkManager {
   private final Logger logger = LogManager.getLogger();
 
   private static final int MAX_LEDGER_SIZE = 500;
-  private static final int MAX_SIMULTANEOUS_CONNECTIONS = 100;
 
   private final PortForwardingService portForwardingService;
   private final PeerCertManager peerCertManager;
@@ -48,7 +47,11 @@ public class NetworkManagerImpl implements NetworkManager {
   private final TrackerManager trackerManager;
 
 
-  public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int externalTransportPort) throws NetworkException {
+  public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int maxConnections) throws NetworkException {
+    this(baseNetworkPath, transportPort, maxConnections, -1);
+  }
+
+  public NetworkManagerImpl(Path baseNetworkPath, int transportPort, int maxConnections, int externalTransportPort) throws NetworkException {
     // Setup authentication information
     membraneAuthInfo = loadAuthInfo(baseNetworkPath); // Auto adds inner dir
     Path peerCertFolder = Paths.get(baseNetworkPath.toString() + File.separator + "peer");
@@ -67,7 +70,7 @@ public class NetworkManagerImpl implements NetworkManager {
     // Setup maintenance tasks
     this.pexManager = new PexManager(MAX_LEDGER_SIZE, baseNetworkPath);
     this.gatekeeper = new Gatekeeper(connectionManager, pexManager, portForwardingService,
-        peerCertManager, trackerManager, MAX_SIMULTANEOUS_CONNECTIONS);
+        peerCertManager, trackerManager, maxConnections);
 
     // Configure message callback to all required network modules
     peerMessageConsumer = new PeerMessageConsumer(connectionManager, pexManager, gatekeeper, peerCertManager);

@@ -3,11 +3,10 @@ package com.domhauton.membrane.api;
 import com.domhauton.membrane.BackupManager;
 import com.domhauton.membrane.api.requests.FileID;
 import com.domhauton.membrane.api.requests.WatchFolderChange;
-import com.domhauton.membrane.api.responses.MembraneRestConfig;
 import com.domhauton.membrane.config.Config;
 import com.domhauton.membrane.config.ConfigException;
 import com.domhauton.membrane.config.ConfigManager;
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import com.domhauton.membrane.storage.StorageManagerException;
 import com.domhauton.membrane.storage.catalogue.JournalEntry;
 import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
@@ -23,7 +22,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,7 +43,7 @@ class RestfulApiManagerTest {
     backupManager = mock(BackupManager.class);
     when(backupManager.getConfigPath()).thenReturn(Paths.get("/tmp/membrane/membrane.yaml"));
     Config config =ConfigManager.loadDefaultConfig();
-    config.getWatcher().getFolders().add(new WatchFolder("/tmp/foobar", true));
+    config.getFileWatcher().getFolders().add(new WatchFolder("/tmp/foobar", true));
     when(backupManager.getConfig()).thenReturn(config);
     when(backupManager.getWatchedFiles())
             .thenReturn(new HashSet<>(
@@ -123,14 +121,14 @@ class RestfulApiManagerTest {
   }
 
   @Test
-  void testSuccessfulConfigRequest() throws Exception {
+  void testSuccessfulWatchFoldersRequest() throws Exception {
     RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
     HttpServerResponse httpServerResponse = routingContext.response();
 
     when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
     when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
 
-    restfulApiManager.getMembraneConfig(routingContext);
+    restfulApiManager.getConfiguredWatchFolders(routingContext);
     verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
   }
 
@@ -156,73 +154,6 @@ class RestfulApiManagerTest {
 
     restfulApiManager.getStorageStatus(routingContext);
     verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
-  }
-
-  @Test
-  void testSuccessfulConfigSet() throws Exception {
-    RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
-    HttpServerResponse httpServerResponse = routingContext.response();
-
-    String requestBody = objectMapper.writerWithDefaultPrettyPrinter()
-            .writeValueAsString(new MembraneRestConfig(backupManager.getConfig()));
-
-    when(routingContext.getBodyAsString()).thenReturn(requestBody);
-
-    when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
-    when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
-
-    Files.deleteIfExists(backupManager.getConfigPath());
-    Assertions.assertFalse(backupManager.getConfigPath().toFile().exists());
-    Files.createDirectories(backupManager.getConfigPath().getParent());
-    restfulApiManager.putNewConfig(routingContext);
-    Assertions.assertTrue(backupManager.getConfigPath().toFile().exists());
-    verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
-    Files.deleteIfExists(backupManager.getConfigPath());
-  }
-
-  @Test
-  void testInvalidBodyConfigSet() throws Exception {
-    RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
-    HttpServerResponse httpServerResponse = routingContext.response();
-
-    String requestBody = objectMapper.writeValueAsString(new MembraneRestConfig(backupManager.getConfig()));
-
-    when(routingContext.getBodyAsString()).thenReturn(requestBody.substring(1));
-
-    when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
-    when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
-
-    Files.deleteIfExists(backupManager.getConfigPath());
-    Assertions.assertFalse(backupManager.getConfigPath().toFile().exists());
-    Files.createDirectories(backupManager.getConfigPath().getParent());
-    restfulApiManager.putNewConfig(routingContext);
-    Assertions.assertFalse(backupManager.getConfigPath().toFile().exists());
-    verify(httpServerResponse, atLeastOnce()).setStatusCode(400);
-  }
-
-  @Test
-  void testFailedConfigSetInvalidLocation() throws Exception {
-    RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
-    HttpServerResponse httpServerResponse = routingContext.response();
-
-    String requestBody = objectMapper.writerWithDefaultPrettyPrinter()
-            .writeValueAsString(new MembraneRestConfig(backupManager.getConfig()));
-
-    when(routingContext.getBodyAsString()).thenReturn(requestBody);
-
-    when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
-    when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
-
-    // Write to folder that doesn't exist to make it throw up.
-    when(backupManager.getConfigPath())
-            .thenReturn(Paths.get("/tmp/membrane/stasrt/membrane.yaml"));
-
-    Files.deleteIfExists(backupManager.getConfigPath());
-    Assertions.assertFalse(backupManager.getConfigPath().toFile().exists());
-    restfulApiManager.putNewConfig(routingContext);
-    Assertions.assertFalse(backupManager.getConfigPath().toFile().exists());
-    verify(httpServerResponse, atLeastOnce()).setStatusCode(500);
-    Files.deleteIfExists(backupManager.getConfigPath());
   }
 
   @Test

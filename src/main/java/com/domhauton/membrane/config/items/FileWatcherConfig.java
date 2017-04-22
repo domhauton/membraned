@@ -1,5 +1,7 @@
 package com.domhauton.membrane.config.items;
 
+import com.domhauton.membrane.config.items.data.WatchFolder;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -7,20 +9,20 @@ import java.util.List;
  * Created by Dominic Hauton on 18/02/17.
  */
 @SuppressWarnings("CanBeFinal")
-public class WatcherConfig {
+public class FileWatcherConfig {
   private int chunkSizeMB;
   private List<WatchFolder> folders;
   private int fileRescanInterval;
   private int folderRescanInterval;
 
-  public WatcherConfig(int chunkSizeMB, List<WatchFolder> folders, int fileRescanInterval, int folderRescanInterval) {
+  public FileWatcherConfig(int chunkSizeMB, List<WatchFolder> folders, int fileRescanInterval, int folderRescanInterval) {
     this.chunkSizeMB = chunkSizeMB;
     this.folders = folders;
     this.fileRescanInterval = fileRescanInterval;
     this.folderRescanInterval = folderRescanInterval;
   }
 
-  public WatcherConfig() {
+  public FileWatcherConfig() {
     folders = new ArrayList<>();
     chunkSizeMB = 64;
     fileRescanInterval = 20;
@@ -48,7 +50,7 @@ public class WatcherConfig {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
 
-    WatcherConfig that = (WatcherConfig) o;
+    FileWatcherConfig that = (FileWatcherConfig) o;
 
     return chunkSizeMB == that.chunkSizeMB &&
             fileRescanInterval == that.fileRescanInterval &&

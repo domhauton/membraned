@@ -1,6 +1,6 @@
 package com.domhauton.membrane.prospector;
 
-import com.domhauton.membrane.config.items.WatchFolder;
+import com.domhauton.membrane.config.items.data.WatchFolder;
 import com.domhauton.membrane.shard.ShardStorage;
 import com.domhauton.membrane.shard.ShardStorageException;
 import com.domhauton.membrane.storage.FileEventLogger;
