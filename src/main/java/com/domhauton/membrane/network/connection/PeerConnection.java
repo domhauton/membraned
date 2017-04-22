@@ -33,7 +33,8 @@ import java.util.function.Consumer;
  */
 public class PeerConnection {
   private final static int EVICTING_QUEUE_SIZE = 100;
-  private final static long MAX_RECEIVE_BUFFER_SIZE_BYTES = 96 * 1024 * 1024;
+  private final static long MAX_BLOCK_BUFFER_SIZE_BYTES = 96 * 1024 * 1024;
+  private final int WRITE_QUEUE_MAX_SIZE_BYTES = 256 * 1024 * 1024;
 
   private final Logger logger = LogManager.getLogger();
   private final X509Certificate x509Certificate;
@@ -102,6 +103,7 @@ public class PeerConnection {
 
     logger.info("Successfully Established P2P Link to {}", netSocket.remoteAddress());
 
+    netSocket.setWriteQueueMaxSize(WRITE_QUEUE_MAX_SIZE_BYTES);
     // Will not be able to send signed messages until this step
     this.messageSigningKey = messageSigningKey;
     this.localClientId = localClientId;
@@ -146,7 +148,7 @@ public class PeerConnection {
         if (messageBuffer == null) {
           messageBuffer = Buffer.buffer(buffer.getByteBuf());
           logger.debug("Building partial message.");
-        } else if (messageBuffer.length() < MAX_RECEIVE_BUFFER_SIZE_BYTES) {
+        } else if (messageBuffer.length() < MAX_BLOCK_BUFFER_SIZE_BYTES) {
           messageBuffer.appendBuffer(buffer);
           if (messageBuffer.length() % (16 * 1024 * 1024) == 0) {
             logger.debug("Building partial message. Length {}KB", messageBuffer.length() / 1024);
@@ -155,12 +157,12 @@ public class PeerConnection {
 
       } else {
         if (messageBuffer != null) {
-          if (messageBuffer.length() < MAX_RECEIVE_BUFFER_SIZE_BYTES) {
+          if (messageBuffer.length() < MAX_BLOCK_BUFFER_SIZE_BYTES) {
             messageBuffer.appendBuffer(buffer);
             buffer = messageBuffer;
             logger.info("Parsing multi-part message. Size {}KB", messageBuffer.length() / 1024);
           } else {
-            logger.error("Received message over {}KB. Dropping.", MAX_RECEIVE_BUFFER_SIZE_BYTES / 1024);
+            logger.error("Received message over {}KB. Dropping.", MAX_BLOCK_BUFFER_SIZE_BYTES / 1024);
           }
         }
         PeerMessage peerMessage = PeerMessageUtils.bytes2Message(buffer.getBytes());

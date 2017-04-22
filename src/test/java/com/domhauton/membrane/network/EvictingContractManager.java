@@ -179,4 +179,9 @@ class EvictingContractManager implements ContractManager {
   public String getReceivedBlockId() {
     return receivedBlockId;
   }
+
+  void clearBlock() {
+    receivedBlockId = null;
+    receivedBlock = null;
+  }
 }

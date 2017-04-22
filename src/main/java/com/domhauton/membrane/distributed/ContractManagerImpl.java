@@ -146,6 +146,9 @@ public class ContractManagerImpl implements Runnable, Closeable, ContractManager
       } catch (ContractStoreException e) {
         logger.warn("Peer contract removed mid-upload. Ignoring peer.");
       }
+      // Cannot queue buffer more than 24*6 * 4/3 (base64) = 160MB of data safely
+      // Actual limit 256MB but this leaves headroom for overheads
+      numberOfBlocksToUpload = Math.min(5, numberOfBlocksToUpload);
 
       // If 0 - ignore this peer for now, they can't take more data. Continue onto next one.
 

@@ -446,8 +446,20 @@ class NetworkManagerImplTest {
 
     String blockId_1 = "blockId_1";
     networkManager1.uploadBlockToPeer(networkManager2.getUID(), blockId_1, largeBlockData);
+    networkManager1.uploadBlockToPeer(networkManager2.getUID(), blockId_1, largeBlockData);
 
     boolean blocksCorrectlyConfirmed = false;
+    for (int i = 0; i < 200 && !blocksCorrectlyConfirmed; i++) {
+      Thread.sleep(100);
+      blocksCorrectlyConfirmed = evictingContractManager2.getReceivedBlockId() != null;
+    }
+    Assertions.assertTrue(blocksCorrectlyConfirmed);
+    Assertions.assertEquals(blockId_1, evictingContractManager2.getReceivedBlockId());
+    Assertions.assertArrayEquals(largeBlockData, evictingContractManager2.getReceivedBlock());
+
+    evictingContractManager2.clearBlock();
+
+    blocksCorrectlyConfirmed = false;
     for (int i = 0; i < 200 && !blocksCorrectlyConfirmed; i++) {
       Thread.sleep(100);
       blocksCorrectlyConfirmed = evictingContractManager2.getReceivedBlockId() != null;

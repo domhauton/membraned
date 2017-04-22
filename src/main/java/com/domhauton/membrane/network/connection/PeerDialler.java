@@ -47,15 +47,15 @@ class PeerDialler {
             .setCertValue(Buffer.buffer(membraneAuthInfo.getEncodedCert()));
 
     NetClientOptions options = new NetClientOptions()
-            .setLogActivity(true)
-            .setPemKeyCertOptions(pemKeyCertOptions)
-            .setTrustOptions(membraneAuthInfo.getTrustOptions())
-            .setSsl(true)
-            .setConnectTimeout(10000)
+        .setLogActivity(true)
+        .setPemKeyCertOptions(pemKeyCertOptions)
+        .setTrustOptions(membraneAuthInfo.getTrustOptions())
+        .setSsl(true)
+        .setConnectTimeout(10000)
         .setReceiveBufferSize(BUFFER_MB * 1024 * 1024)
         .setSendBufferSize(BUFFER_MB * 1024 * 1024)
-            .setReconnectAttempts(10)
-            .setReconnectInterval(60 * 1000);
+        .setReconnectAttempts(10)
+        .setReconnectInterval(60 * 1000);
 
     client = vertx.createNetClient(options);
     this.peerConsumer = peerConsumer;
