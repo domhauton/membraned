@@ -81,6 +81,16 @@ class EvictingContractManager implements ContractManager {
   }
 
   @Override
+  public Set<String> getPartiallyDistributedShards() {
+    return null; // Do not need
+  }
+
+  @Override
+  public Set<String> getFullyDistributedShards() {
+    return null; // Do not need
+  }
+
+  @Override
   public void addContractedPeer(String peerId) throws ContractManagerException {
     synchronized (this) {
       if (!peerQueue.contains(peerId)) {

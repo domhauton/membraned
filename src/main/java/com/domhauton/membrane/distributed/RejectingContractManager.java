@@ -25,6 +25,16 @@ public class RejectingContractManager implements ContractManager {
   }
 
   @Override
+  public Set<String> getPartiallyDistributedShards() {
+    return Collections.emptySet();
+  }
+
+  @Override
+  public Set<String> getFullyDistributedShards() {
+    return Collections.emptySet();
+  }
+
+  @Override
   public void addContractedPeer(String peerID) throws ContractManagerException {
     throw new ContractManagerException("Cannot add contract to dummy contract manager");
   }

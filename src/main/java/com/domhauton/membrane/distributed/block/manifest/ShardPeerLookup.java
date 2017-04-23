@@ -1,10 +1,5 @@
 package com.domhauton.membrane.distributed.block.manifest;
 
-import com.domhauton.membrane.distributed.ContractManagerException;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,7 +9,6 @@ import java.util.stream.Collectors;
  * Created by Dominic Hauton on 02/03/17.
  */
 public class ShardPeerLookup {
-  private final static Logger LOGGER = LogManager.getLogger();
   private ConcurrentHashMap<String, DistributedShard> distributedShardMap;
 
   public ShardPeerLookup() {
@@ -49,6 +43,7 @@ public class ShardPeerLookup {
     getShard(md5Hash).addPeer(peer);
   }
 
+
   public void addStoragePeerForce(String md5Hash, String peer) {
     DistributedShard distributedShard = distributedShardMap.computeIfAbsent(md5Hash, shardId -> new DistributedShard(shardId, Priority.Normal));
     distributedShard.addPeer(peer);
@@ -59,11 +54,30 @@ public class ShardPeerLookup {
    *
    * @return Set of shards that could be stored by peers.
    */
-  public Set<String> undeployedShards() {
+  public Set<String> getShardsRequiringPeers() {
     return distributedShardMap.values().stream()
             .filter(distributedShard -> distributedShard.requiredPeers() > 0)
-            .map(DistributedShard::getMd5Hash)
-            .collect(Collectors.toSet());
+        .map(DistributedShard::getShardId)
+        .collect(Collectors.toSet());
+  }
+
+  /**
+   * Returns the set of shards that are partially deployed
+   *
+   * @return Set of shards that could be stored by peers.
+   */
+  public Set<String> partiallyDeployedShards() {
+    return distributedShardMap.values().stream()
+        .filter(DistributedShard::isPartiallyDeployed)
+        .map(DistributedShard::getShardId)
+        .collect(Collectors.toSet());
+  }
+
+  public Set<String> getFullyDeployedShards() {
+    return distributedShardMap.values().stream()
+        .filter(distributedShard -> distributedShard.requiredPeers() == 0)
+        .map(DistributedShard::getShardId)
+        .collect(Collectors.toSet());
   }
 
   /**
@@ -72,30 +86,11 @@ public class ShardPeerLookup {
    * @param peer Peer schedule from
    * @return Set of shards that could be stored by the peer.
    */
-  public Set<String> undeployedShards(String peer) {
+  public Set<String> getShardsRequiringPeers(String peer) {
     return distributedShardMap.values().stream()
             .filter(distributedShard -> distributedShard.requiredPeers() > 0)
             .filter(distributedShard -> !distributedShard.isStoredBy(peer))
-            .map(DistributedShard::getMd5Hash)
+        .map(DistributedShard::getShardId)
             .collect(Collectors.toSet());
-  }
-
-  public String marshall() {
-    return distributedShardMap.values().stream()
-        .map(DistributedShard::marshall)
-        .collect(Collectors.joining("\n"));
-  }
-
-  public static ShardPeerLookup unmarshall(List<String> inputData) {
-    ConcurrentHashMap<String, DistributedShard> newMap = new ConcurrentHashMap<>();
-    for (String entry : inputData) {
-      try {
-        DistributedShard distributedShard = DistributedShard.unmarshall(entry);
-        newMap.put(distributedShard.getMd5Hash(), distributedShard);
-      } catch (ContractManagerException e) {
-        LOGGER.error("Unable to decode distributor store entry. IGNORING. {}", e.getMessage());
-      }
-    }
-    return new ShardPeerLookup(newMap);
   }
 }

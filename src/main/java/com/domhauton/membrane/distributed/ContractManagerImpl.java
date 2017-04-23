@@ -135,7 +135,7 @@ public class ContractManagerImpl implements ContractManager {
     Set<String> usedShardSet = new HashSet<>();
     for (String peerId : connectedPeersByRank) {
       // What shards can this peer get?
-      Set<String> shardsToUploadForPeer = shardPeerLookup.undeployedShards(peerId);
+      Set<String> shardsToUploadForPeer = shardPeerLookup.getShardsRequiringPeers(peerId);
       shardsToUploadForPeer.removeAll(usedShardSet); // Do NOT duplicate upload any shards within one round
 
       // How much will peer store for us?
@@ -165,7 +165,7 @@ public class ContractManagerImpl implements ContractManager {
       }
     }
 
-    Set<String> totalUndeployedShards = shardPeerLookup.undeployedShards();
+    Set<String> totalUndeployedShards = shardPeerLookup.getShardsRequiringPeers();
     logger.info("Shard distribution complete. {} shards remain undistributed.", totalUndeployedShards.size());
   }
 
@@ -262,6 +262,16 @@ public class ContractManagerImpl implements ContractManager {
   @Override
   public int getContractCountTarget() {
     return contractLimit;
+  }
+
+  @Override
+  public Set<String> getPartiallyDistributedShards() {
+    return blockLedger.generateShardPeerLookup().partiallyDeployedShards();
+  }
+
+  @Override
+  public Set<String> getFullyDistributedShards() {
+    return blockLedger.generateShardPeerLookup().getFullyDeployedShards();
   }
 
   @Override
@@ -497,9 +507,13 @@ public class ContractManagerImpl implements ContractManager {
           return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), blockBytes);
         case COMPUTE_HASH:
           logger.debug("Processing salted hash evidence request for block [{}]", evidenceRequest.getBlockId());
-          byte[] hashBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());
-          byte[] saltedHash = BlockLedger.getSaltedHash(evidenceRequest.getSalt(), hashBytes).getBytes();
-          return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), saltedHash);
+          if (evidenceRequest.getSalt().length == 0) {
+            return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), new byte[0]);
+          } else {
+            byte[] hashBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());
+            byte[] saltedHash = BlockLedger.getSaltedHash(evidenceRequest.getSalt(), hashBytes).getBytes();
+            return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), saltedHash);
+          }
         case DELETE_BLOCK:
           logger.debug("Processing delete request for block [{}]", evidenceRequest.getBlockId());
           contractStore.removePeerBlockId(peer, evidenceRequest.getBlockId());

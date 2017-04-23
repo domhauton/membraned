@@ -275,9 +275,9 @@ class BackupManagerTest {
 
     Files.delete(recoveryDest);
 
-    Assertions.assertEquals(5 * 4 * 1024 * 1024, backupManager.getStorageSize());
+    Assertions.assertEquals(5 * 4 * 1024 * 1024, backupManager.getLocalStorageSize());
     backupManager.trimStorage();
-    Assertions.assertEquals(4 * 4 * 1024 * 1024, backupManager.getStorageSize());
+    Assertions.assertEquals(4 * 4 * 1024 * 1024, backupManager.getLocalStorageSize());
 
     assertThrows(StorageManagerException.class, () -> backupManager.recoverFile(testFile1, recoveryDest, dateTime1));
 

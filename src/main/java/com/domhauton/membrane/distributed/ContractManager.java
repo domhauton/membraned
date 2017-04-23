@@ -15,6 +15,10 @@ public interface ContractManager extends Runnable, Closeable {
 
   int getContractCountTarget();
 
+  Set<String> getPartiallyDistributedShards();
+
+  Set<String> getFullyDistributedShards();
+
   void addContractedPeer(String peerId) throws ContractManagerException;
 
   void receiveBlock(String peerId, String blockId, byte[] data);

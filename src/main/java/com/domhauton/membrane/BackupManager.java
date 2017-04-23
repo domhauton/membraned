@@ -29,6 +29,7 @@ import java.io.Closeable;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -58,6 +59,8 @@ public class BackupManager implements Runnable, Closeable {
   private final Logger logger;
 
   private final ScheduledExecutorService trimExecutor;
+  private ShardStorage localShardStorage;
+  private ShardStorage peerBlockStorage;
 
   BackupManager(Config config, Path configFilePath) {
     this(config, configFilePath, false);
@@ -74,13 +77,12 @@ public class BackupManager implements Runnable, Closeable {
     Path configDir = configPath.getParent();
     Path localShardStoragePath = Paths.get(config.getStorage().getLocalShardStorageDir());
     Path peerBlockStoragePath = Paths.get(config.getStorage().getPeerBlockStorageDir());
-    int hardStorageCap = config.getStorage().getStorageCapMB();
-    ShardStorage localShardStorage = new ShardStorageImpl(
+    localShardStorage = new ShardStorageImpl(
         localShardStoragePath,
-        (long) (hardStorageCap * MB * PEER_LOCAL_STORAGE_RATIO));
-    ShardStorage peerBlockStorage = new ShardStorageImpl(
+        getMaxLocalStorageSize());
+    peerBlockStorage = new ShardStorageImpl(
         peerBlockStoragePath,
-        (long) (hardStorageCap * MB * (1.0 - PEER_LOCAL_STORAGE_RATIO)),
+        getMaxBlockStorageSize(),
         Hashing.sha512());
 
     try {
@@ -139,6 +141,14 @@ public class BackupManager implements Runnable, Closeable {
     }
   }
 
+  public long getMaxBlockStorageSize() {
+    return (long) (config.getStorage().getStorageCapMB() * MB * (1.0 - PEER_LOCAL_STORAGE_RATIO));
+  }
+
+  public long getMaxLocalStorageSize() {
+    return (long) (config.getStorage().getStorageCapMB() * MB * PEER_LOCAL_STORAGE_RATIO);
+  }
+
   /**
    * Start backup processes
    */
@@ -185,13 +195,17 @@ public class BackupManager implements Runnable, Closeable {
     if (monitorMode) {
       logger.warn("Attempted to trim storage in monitor mode!");
     } else {
-      long gcSoftLimitMB = (long) (config.getStorage().getStorageCapMB() * PEER_LOCAL_STORAGE_RATIO * SOFT_STORAGE_CAP_RATIO);
+      long gcSoftLimitBytes = getLocalStorageSoftLimit();
       Set<Path> watchedFolders = fileManager.getCurrentlyWatchedFolders();
-      logger.info("Attempting to trim storage to {}MB.", gcSoftLimitMB);
+      logger.info("Attempting to trim storage to {}MB.", gcSoftLimitBytes / MB);
       logger.debug("Current watched folders: {}", watchedFolders);
-      localStorageManager.clampStorageToSize(gcSoftLimitMB * MB, watchedFolders);
+      localStorageManager.clampStorageToSize(gcSoftLimitBytes, watchedFolders);
       logger.info("Successfully trimmed storage.");
     }
+  }
+
+  public long getLocalStorageSoftLimit() {
+    return (long) (getMaxLocalStorageSize() * SOFT_STORAGE_CAP_RATIO);
   }
 
   private void loadWatchFoldersToProspector() {
@@ -244,9 +258,13 @@ public class BackupManager implements Runnable, Closeable {
     return config;
   }
 
+  /* Watcher Info Getters */
+
   public Set<String> getWatchedFolders() {
     return fileManager.getCurrentlyWatchedFolders().stream().map(Path::toString).collect(Collectors.toSet());
   }
+
+  /* Storage Info Getters */
 
   public Set<String> getWatchedFiles() {
     return fileManager.getCurrentlyWatchedFiles();
@@ -259,9 +277,68 @@ public class BackupManager implements Runnable, Closeable {
             .collect(Collectors.toSet());
   }
 
-  public long getStorageSize() {
-    return localStorageManager.getStorageSize();
+  public long getLocalStorageSize() {
+    return localShardStorage.getStorageSize();
   }
+
+  public long getPeerStorageSize() {
+    return peerBlockStorage.getStorageSize();
+  }
+
+  /* Networking Info Getters */
+
+  public boolean isNetworkingEnabled() {
+    return networkManager != null;
+  }
+
+  public long getConnectedPeers() {
+    return networkManager == null ? -1 : networkManager.getConnectedPeers();
+  }
+
+  public String getNetworkUID() {
+    return networkManager == null ? "n/a" : networkManager.getUID();
+  }
+
+  public int getMaxConnectionCount() {
+    return networkManager == null ? 0 : config.getNetwork().getMaxConnections();
+  }
+
+  public int getPeerListeningPort() {
+    return networkManager == null ? 0 : config.getNetwork().getListeningPort();
+  }
+
+  public String getUPnPAddress() {
+    return networkManager == null || !config.getNetwork().isUpnpEnabled() ?
+        "n/a" : networkManager.upnpAddress().toString();
+  }
+
+  /* Contract Info Getters */
+
+  public boolean isContractManagerActive() {
+    return contractManager != null;
+  }
+
+  public int getContractTarget() {
+    return contractManager == null ? 0 : config.getContractManager().getTargetContractCount();
+  }
+
+  public Set<String> getContractedPeers() {
+    return contractManager == null ? Collections.emptySet() : contractManager.getContractedPeers();
+  }
+
+  public Set<String> getAllRequiredShards() {
+    return contractManager == null ? Collections.emptySet() : localShardStorage.listShardIds();
+  }
+
+  public Set<String> getPartiallyDistributedShards() {
+    return contractManager == null ? Collections.emptySet() : contractManager.getPartiallyDistributedShards();
+  }
+
+  public Set<String> getFullyDistributedShards() {
+    return contractManager == null ? Collections.emptySet() : contractManager.getFullyDistributedShards();
+  }
+
+  /* Assorted Getters */
 
   public Set<Path> getReferencedFiles() {
     return localStorageManager.getReferencedFiles();

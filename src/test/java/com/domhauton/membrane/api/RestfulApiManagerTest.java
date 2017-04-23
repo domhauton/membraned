@@ -13,6 +13,7 @@ import com.domhauton.membrane.storage.catalogue.metadata.FileOperation;
 import com.domhauton.membrane.storage.catalogue.metadata.FileVersion;
 import com.domhauton.membrane.storage.catalogue.metadata.MD5HashLengthPair;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableSet;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.impl.RoutingContextImpl;
 import org.joda.time.DateTime;
@@ -42,29 +43,36 @@ class RestfulApiManagerTest {
     objectMapper = new ObjectMapper();
     backupManager = mock(BackupManager.class);
     when(backupManager.getConfigPath()).thenReturn(Paths.get("/tmp/membrane/membrane.yaml"));
-    Config config =ConfigManager.loadDefaultConfig();
+    Config config = ConfigManager.loadDefaultConfig();
     config.getFileWatcher().getFolders().add(new WatchFolder("/tmp/foobar", true));
     when(backupManager.getConfig()).thenReturn(config);
     when(backupManager.getWatchedFiles())
-            .thenReturn(new HashSet<>(
-                    Arrays.asList("/tmp/membrane/watchfolder1/file1.txt",
-                            "/tmp/membrane/watchfolder1/file2.txt",
-                            "/tmp/membrane/watchfolder2/file3.txt")));
+        .thenReturn(new HashSet<>(
+            Arrays.asList("/tmp/membrane/watchfolder1/file1.txt",
+                "/tmp/membrane/watchfolder1/file2.txt",
+                "/tmp/membrane/watchfolder2/file3.txt")));
     when(backupManager.getCurrentFiles())
-            .thenReturn(new HashSet<>(
-                    Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
-                            Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
-                            Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
+        .thenReturn(new HashSet<>(
+            Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
+                Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
+                Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
     when(backupManager.getReferencedFiles())
-            .thenReturn(new HashSet<>(
-                    Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
-                            Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
-                            Paths.get("/tmp/membrane/watchfolder1/file2.txt.bkp"),
-                            Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
+        .thenReturn(new HashSet<>(
+            Arrays.asList(Paths.get("/tmp/membrane/watchfolder1/file1.txt"),
+                Paths.get("/tmp/membrane/watchfolder1/file2.txt"),
+                Paths.get("/tmp/membrane/watchfolder1/file2.txt.bkp"),
+                Paths.get("/tmp/membrane/watchfolder2/file3.txt"))));
     when(backupManager.getWatchedFolders())
-            .thenReturn(new HashSet<>(Arrays.asList("/tmp/membrane/watchfolder1", "/tmp/membrane/watchfolder2")));
-    when(backupManager.getStorageSize())
-            .thenReturn(1024L);
+        .thenReturn(new HashSet<>(Arrays.asList("/tmp/membrane/watchfolder1", "/tmp/membrane/watchfolder2")));
+    when(backupManager.getLocalStorageSize())
+        .thenReturn(1024L);
+
+    when(backupManager.getAllRequiredShards())
+        .thenReturn(ImmutableSet.of("shard1", "shard3", "shard2"));
+    when(backupManager.getPartiallyDistributedShards())
+        .thenReturn(ImmutableSet.of("shard1"));
+    when(backupManager.getFullyDistributedShards())
+        .thenReturn(ImmutableSet.of("shard2"));
     restfulApiManager = new RestfulApiManager(13300, backupManager);
   }
 
@@ -153,6 +161,30 @@ class RestfulApiManagerTest {
     when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
 
     restfulApiManager.getStorageStatus(routingContext);
+    verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
+  }
+
+  @Test
+  void testSuccessfulContractStatusRequest() throws Exception {
+    RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
+    HttpServerResponse httpServerResponse = routingContext.response();
+
+    when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
+    when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
+
+    restfulApiManager.getContractStatus(routingContext);
+    verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
+  }
+
+  @Test
+  void testSuccessfulNetworkStatusRequest() throws Exception {
+    RoutingContextImpl routingContext = mock(RoutingContextImpl.class, RETURNS_DEEP_STUBS);
+    HttpServerResponse httpServerResponse = routingContext.response();
+
+    when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
+    when(routingContext.response().setStatusCode(anyInt())).thenReturn(httpServerResponse);
+
+    restfulApiManager.getNetworkStatus(routingContext);
     verify(httpServerResponse, atLeastOnce()).setStatusCode(200);
   }
 
@@ -301,23 +333,23 @@ class RestfulApiManagerTest {
     when(routingContext.getBodyAsString()).thenReturn(requestBody);
 
     when(backupManager.getFileHistory(Paths.get(fileID.getFilepath())))
-            .thenReturn(Arrays.asList(
-                    new JournalEntry(DateTime.now(),
-                            new FileVersion(
-                                    Arrays.asList(
-                                            new MD5HashLengthPair("statarstarst", 20),
-                                            new MD5HashLengthPair("asrtdatsrdqa", 20)),
-                                    DateTime.now()
-                            ), FileOperation.ADD,
-                            Paths.get(fileID.getFilepath())),
-                    new JournalEntry(DateTime.now(),
-                            new FileVersion(
-                                    Arrays.asList(
-                                            new MD5HashLengthPair("statarstarst", 20),
-                                            new MD5HashLengthPair("arstasrdttsa", 22)),
-                                    DateTime.now()
-                            ), FileOperation.ADD,
-                            Paths.get(fileID.getFilepath()))));
+        .thenReturn(Arrays.asList(
+            new JournalEntry(DateTime.now(),
+                new FileVersion(
+                    Arrays.asList(
+                        new MD5HashLengthPair("statarstarst", 20),
+                        new MD5HashLengthPair("asrtdatsrdqa", 20)),
+                    DateTime.now()
+                ), FileOperation.ADD,
+                Paths.get(fileID.getFilepath())),
+            new JournalEntry(DateTime.now(),
+                new FileVersion(
+                    Arrays.asList(
+                        new MD5HashLengthPair("statarstarst", 20),
+                        new MD5HashLengthPair("arstasrdttsa", 22)),
+                    DateTime.now()
+                ), FileOperation.ADD,
+                Paths.get(fileID.getFilepath()))));
 
     restfulApiManager.getFileHistory(routingContext);
 
@@ -362,10 +394,10 @@ class RestfulApiManagerTest {
     restfulApiManager.reconstructFile(routingContext);
 
     verify(backupManager, atLeastOnce())
-            .recoverFile(
-                    Paths.get(fileID.getFilepath()),
-                    Paths.get(fileID.getTargetFilePath()),
-                    new DateTime(fileID.getDateTimeMillis()));
+        .recoverFile(
+            Paths.get(fileID.getFilepath()),
+            Paths.get(fileID.getTargetFilePath()),
+            new DateTime(fileID.getDateTimeMillis()));
     verify(httpServerResponse, times(1)).setStatusCode(200);
   }
 
@@ -386,7 +418,7 @@ class RestfulApiManagerTest {
     restfulApiManager.reconstructFile(routingContext);
 
     verify(backupManager, atLeastOnce())
-            .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
+        .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
     verify(httpServerResponse, times(1)).setStatusCode(200);
   }
 
@@ -405,13 +437,13 @@ class RestfulApiManagerTest {
     when(routingContext.getBodyAsString()).thenReturn(requestBody);
 
     doThrow(new StorageManagerException("Mockito Forced Recovery Fail"))
-            .when(backupManager)
-            .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
+        .when(backupManager)
+        .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
 
     restfulApiManager.reconstructFile(routingContext);
 
     verify(backupManager, atLeastOnce())
-            .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
+        .recoverFile(Paths.get(fileID.getFilepath()), Paths.get(fileID.getTargetFilePath()));
     verify(httpServerResponse, times(1)).setStatusCode(500);
   }
 

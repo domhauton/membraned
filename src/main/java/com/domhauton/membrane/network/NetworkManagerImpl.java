@@ -14,6 +14,7 @@ import com.domhauton.membrane.network.messages.PeerStorageBlock;
 import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.TrackerManager;
+import com.domhauton.membrane.network.upnp.ExternalAddress;
 import com.domhauton.membrane.network.upnp.PortForwardingService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -167,6 +168,16 @@ public class NetworkManagerImpl implements NetworkManager {
   @Override
   public String getPrivateEncryptionKey() {
     return membraneAuthInfo.getPrivateKey().getPrivateExponent().toString(Character.MAX_RADIX);
+  }
+
+  @Override
+  public int getConnectedPeers() {
+    return connectionManager.getAllConnectedPeers().size();
+  }
+
+  @Override
+  public ExternalAddress upnpAddress() {
+    return portForwardingService.getExternalAddress();
   }
 
   /**

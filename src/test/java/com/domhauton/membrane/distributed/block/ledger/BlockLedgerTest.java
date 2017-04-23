@@ -82,8 +82,8 @@ class BlockLedgerTest {
     Assertions.assertThrows(BlockLedgerException.class, () -> blockLedger2.getBlockEvidenceSalt(reference1, DateTime.now().plusHours(1)));
 
     ShardPeerLookup shardPeerLookup = blockLedger2.generateShardPeerLookup();
-    Assertions.assertEquals(blockShards2, shardPeerLookup.undeployedShards(PEER_1));
-    Assertions.assertEquals(blockShards1, shardPeerLookup.undeployedShards(PEER_2));
+    Assertions.assertEquals(blockShards2, shardPeerLookup.getShardsRequiringPeers(PEER_1));
+    Assertions.assertEquals(blockShards1, shardPeerLookup.getShardsRequiringPeers(PEER_2));
   }
 
   @Test
@@ -121,8 +121,8 @@ class BlockLedgerTest {
     blockLedger3.addBlock(block2, blockShards2, PEER_1, DateTime.now());
     Set<String> allShards = new HashSet<>(Arrays.asList(SHARD_1, SHARD_2, SHARD_3));
     ShardPeerLookup shardPeerLookup = blockLedger3.generateShardPeerLookup();
-    Assertions.assertEquals(Collections.emptySet(), shardPeerLookup.undeployedShards(PEER_1));
-    Assertions.assertEquals(allShards, shardPeerLookup.undeployedShards(PEER_2));
+    Assertions.assertEquals(Collections.emptySet(), shardPeerLookup.getShardsRequiringPeers(PEER_1));
+    Assertions.assertEquals(allShards, shardPeerLookup.getShardsRequiringPeers(PEER_2));
     blockLedger3.close();
   }
 
@@ -173,7 +173,7 @@ class BlockLedgerTest {
 
   private void assertHash(BlockLedger blockLedger, byte[] shard, String reference, DateTime dateTime) throws Exception {
     byte[] contractSalt = blockLedger.getBlockEvidenceSalt(reference, dateTime);
-    String calculatedHash = BlockLedger.getSaltedHash(contractSalt, shard);
+    String calculatedHash = contractSalt.length == 0 ? "" : BlockLedger.getSaltedHash(contractSalt, shard);
     Assertions.assertTrue(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash));
   }
 

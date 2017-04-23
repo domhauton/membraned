@@ -148,9 +148,14 @@ public class BlockLedger implements Runnable, Closeable {
 
   private List<SaltHashPair> generateEvidencePairs(byte[] blockData, DateTime start, DateTime end) {
     int hoursBetween = Math.max(0, Hours.hoursBetween(start, end).getHours());
+    Set<Integer> missingHourSet = IntStream.range(1, hoursBetween)
+        .filter(x -> secureRandom.nextFloat() > 0.5)
+        .limit(hoursBetween / 2)
+        .boxed()
+        .collect(Collectors.toSet());
     return IntStream.range(0, hoursBetween + 1).boxed()
-        .map(x -> generateRandomSalt())
-        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, getSaltedHash(randSaltBytes, blockData)))
+        .map(x -> missingHourSet.contains(x) ? new byte[0] : generateRandomSalt())
+        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, randSaltBytes.length == 0 ? "" : getSaltedHash(randSaltBytes, blockData)))
         .collect(Collectors.toList());
   }
 

@@ -28,6 +28,7 @@ import org.joda.time.DateTime;
 import java.io.Closeable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -45,7 +46,6 @@ public class RestfulApiManager implements Closeable {
 
   private final Logger logger;
   private final int port;
-  private final Vertx vertx;
   private final HttpServer httpServer;
   private final Router router;
   private final ObjectMapper objectMapper;
@@ -56,7 +56,7 @@ public class RestfulApiManager implements Closeable {
     logger = LogManager.getLogger();
     this.port = port;
     this.backupManager = backupManager;
-    vertx = Vertx.vertx();
+    Vertx vertx = Vertx.vertx();
     httpServer = vertx.createHttpServer();
     router = Router.router(vertx);
     router.route().handler(BodyHandler.create().setBodyLimit(BODY_LIMIT));
@@ -68,7 +68,9 @@ public class RestfulApiManager implements Closeable {
     router.get("/").handler(this::rootHandler);
     router.get("/status/watcher").handler(this::getFileWatcherStatus);
     router.get("/status/storage").handler(this::getStorageStatus);
-    router.get("/status/watch_folder").handler(this::getFileWatcherStatus);
+    router.get("/status/contract").handler(this::getContractStatus);
+    router.get("/status/network").handler(this::getNetworkStatus);
+    router.get("/status/watch_folder").handler(this::getConfiguredWatchFolders);
 
     router.post("/configure/watch_folder").blockingHandler(this::modifyWatchFolder);
     router.post("/request/cleanup").blockingHandler(this::putRequestCleanup);
@@ -109,15 +111,15 @@ public class RestfulApiManager implements Closeable {
     } else {
       logger.warn("Connection from {} blocked.", hostIP);
       routingContext.response()
-              .putHeader("content-type", "text/plain")
-              .setStatusCode(403)
-              .end("Access forbidden. Must be " + ALLOWED_HOST);
+          .putHeader("content-type", "text/plain")
+          .setStatusCode(403)
+          .end("Access forbidden. Must be " + ALLOWED_HOST);
     }
   }
 
   void rootHandler(RoutingContext routingContext) {
     MembraneStatus membraneStatus = backupManager.isMonitorMode() ?
-            MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL;
+        MembraneStatus.MONITOR_MODE : MembraneStatus.NORMAL;
     DateTime startTime = backupManager.getStartTime();
 
     MembraneInfo runtimeInfo = new MembraneInfo(port, startTime, MembraneBuild.VERSION, membraneStatus, "Welcome to Membrane!");
@@ -140,27 +142,65 @@ public class RestfulApiManager implements Closeable {
   }
 
   void getStorageStatus(RoutingContext routingContext) {
-    Set<Path> currentFiles = backupManager.getCurrentFiles();
-    Set<Path> referencedFiles = backupManager.getReferencedFiles();
-    long currentStorageSize = backupManager.getStorageSize();
-    StorageManagerStatus storageManagerStatus = new StorageManagerStatus(currentFiles, referencedFiles, currentStorageSize);
+    StorageManagerStatus storageManagerStatus = new StorageManagerStatus(
+        backupManager.getCurrentFiles(),
+        backupManager.getReferencedFiles(),
+        backupManager.getLocalStorageSize(),
+        backupManager.getLocalStorageSoftLimit(),
+        backupManager.getMaxLocalStorageSize(),
+        backupManager.getPeerStorageSize(),
+        backupManager.getMaxBlockStorageSize(),
+        backupManager.getMaxBlockStorageSize());
     logger.info("Sending storage status to {}", routingContext.request().remoteAddress().host());
     sendObject(routingContext, storageManagerStatus);
+  }
+
+  void getContractStatus(RoutingContext routingContext) {
+    Set<String> undistributedShards = new HashSet<>(backupManager.getAllRequiredShards());
+    Set<String> partiallyDistributedShards = backupManager.getPartiallyDistributedShards();
+    Set<String> fullyDistributedShards = backupManager.getFullyDistributedShards();
+
+    undistributedShards.removeAll(partiallyDistributedShards);
+    undistributedShards.removeAll(fullyDistributedShards);
+
+    ContractStatus contractStatus = new ContractStatus(
+        backupManager.isContractManagerActive(),
+        backupManager.getContractTarget(),
+        backupManager.getContractedPeers(),
+        undistributedShards,
+        partiallyDistributedShards,
+        fullyDistributedShards);
+
+    logger.info("Sending contract status to {}", routingContext.request().remoteAddress().host());
+    sendObject(routingContext, contractStatus);
+  }
+
+  void getNetworkStatus(RoutingContext routingContext) {
+    NetworkStatus networkStatus = new NetworkStatus(
+        backupManager.isNetworkingEnabled(),
+        backupManager.getConnectedPeers(),
+        backupManager.getNetworkUID(),
+        backupManager.getMaxConnectionCount(),
+        backupManager.getPeerListeningPort(),
+        backupManager.getUPnPAddress());
+
+    logger.info("Sending network status to {}", routingContext.request().remoteAddress().host());
+    sendObject(routingContext, networkStatus);
   }
 
   private void sendObject(RoutingContext routingContext, MembraneResponse membraneResponse) {
     try {
       String response = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(membraneResponse);
       routingContext.response()
-              .putHeader("content-type", "application/json")
-              .setStatusCode(200)
-              .end(response);
+          .putHeader("content-type", "application/json")
+          .setStatusCode(200)
+          .end(response);
     } catch (JsonProcessingException e) {
       logger.error("Could not generate response. {}", e.getMessage());
       routingContext.response()
-              .putHeader("content-type", "application/json")
-              .setStatusCode(500)
-              .end("Unable to generate response. Please check the logs.\n" + e.getMessage());
+          .putHeader("content-type", "application/json")
+          .setStatusCode(500)
+          .end("Unable to generate response. Please check the logs.\n" + e.getMessage());
     }
   }
 
@@ -205,8 +245,8 @@ public class RestfulApiManager implements Closeable {
       final FileID fileID = Json.decodeValue(routingContext.getBodyAsString(), FileID.class);
       List<JournalEntry> fileHistory = backupManager.getFileHistory(Paths.get(fileID.getFilepath()));
       List<FileHistoryEntry> fileHistoryEntries = fileHistory.stream()
-              .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime().getMillis(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
-              .collect(Collectors.toList());
+          .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime().getMillis(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
+          .collect(Collectors.toList());
       MembraneFileHistory membraneFileHistory = new MembraneFileHistory(fileHistoryEntries, fileID.getFilepath());
       sendObject(routingContext, membraneFileHistory);
     } catch (DecodeException e) {

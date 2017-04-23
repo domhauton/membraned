@@ -27,6 +27,22 @@ Installation
 
 - The project is currently unavailable. Please bear with us.
 
+API
+---
+
+The Rest API is available on port 13200 by default.
+
+Available Calls include:
+
+- GET: / RES: {hostname: string, startTime: dateTime, port: long, version: string, status: string, tagline: string}
+- GET: /status/watcher
+- GET: /status/storage
+- GET: /status/watch_folder RES: {currentFiles: string[], referencedFiles: string[], localShardStorageSize: long, targetLocalShardStorageSize: long, maxLocalShardStorageSize: long, peerBlockStorageSize: long, targetPeerBlockStorageSize: long, maxPeerBlockStorageSize: long
+- POST: /configure/watch_folder  REQ: {type: "string (ADD|REMOVE)", watchFolder: {directory: "string", recursive: bool}}
+- POST: /request/cleanup
+- POST: /request/reconstruct REQ: {filepath: "string"}
+- GET: /request/history REQ: {filepath: "string", targetFilePath: "string", dateTimeMillis: "long"}
+
 Support
 -------
 

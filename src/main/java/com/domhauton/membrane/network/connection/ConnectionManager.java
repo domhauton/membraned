@@ -166,7 +166,7 @@ public class ConnectionManager implements Closeable {
   }
 
   public Collection<Peer> getAllConnectedPeers() {
-    return peerConnections.values();
+    return peerConnections.values().stream().filter(peer -> !peer.isClosed()).collect(Collectors.toSet());
   }
 
   public Set<String> getAllConnectedPeerIds() {

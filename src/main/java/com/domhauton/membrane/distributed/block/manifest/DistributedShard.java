@@ -1,23 +1,18 @@
 package com.domhauton.membrane.distributed.block.manifest;
 
-import com.domhauton.membrane.distributed.ContractManagerException;
-
 import java.util.HashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 /**
  * Created by Dominic Hauton on 02/03/17.
  */
 class DistributedShard {
-  private final static String SEP = ",";
-
-  private final String md5Hash;
+  private final String shardId;
   private Priority priority;
   private Set<String> storedByPeers;
 
-  DistributedShard(String md5Hash, Priority priority) {
-    this.md5Hash = md5Hash;
+  DistributedShard(String shardId, Priority priority) {
+    this.shardId = shardId;
     this.priority = priority;
     storedByPeers = new HashSet<>();
   }
@@ -44,31 +39,12 @@ class DistributedShard {
     return storedByPeers.contains(peer);
   }
 
-  public String getMd5Hash() {
-    return md5Hash;
+  String getShardId() {
+    return shardId;
   }
 
-  String marshall() {
-    return md5Hash + SEP + priority.toString() + (storedByPeers.isEmpty() ? "" : SEP) + storedByPeers.stream().collect(Collectors.joining(SEP));
-  }
-
-  static DistributedShard unmarshall(String inputData) throws ContractManagerException {
-    String[] splitInput = inputData.split(SEP);
-    if (splitInput.length >= 2) {
-      String md5hash = splitInput[0];
-      try {
-        Priority priority = Priority.valueOf(splitInput[1]);
-        DistributedShard distributedShard = new DistributedShard(md5hash, priority);
-        for (int i = 2; i < splitInput.length; i++) {
-          distributedShard.addPeer(splitInput[i]);
-        }
-        return distributedShard;
-      } catch (IllegalArgumentException e) {
-        throw new ContractManagerException("Unrecognised priority given." + inputData);
-      }
-    } else {
-      throw new ContractManagerException("Insufficient sections. At least two required. " + inputData);
-    }
+  boolean isPartiallyDeployed() {
+    return !storedByPeers.isEmpty() && requiredPeers() > 0;
   }
 
   @Override
@@ -78,13 +54,13 @@ class DistributedShard {
 
     DistributedShard that = (DistributedShard) o;
 
-    return (md5Hash != null ? md5Hash.equals(that.md5Hash) : that.md5Hash == null) &&
+    return (shardId != null ? shardId.equals(that.shardId) : that.shardId == null) &&
         priority == that.priority && (storedByPeers != null ? storedByPeers.equals(that.storedByPeers) : that.storedByPeers == null);
   }
 
   @Override
   public int hashCode() {
-    int result = md5Hash != null ? md5Hash.hashCode() : 0;
+    int result = shardId != null ? shardId.hashCode() : 0;
     result = 31 * result + (priority != null ? priority.hashCode() : 0);
     result = 31 * result + (storedByPeers != null ? storedByPeers.hashCode() : 0);
     return result;

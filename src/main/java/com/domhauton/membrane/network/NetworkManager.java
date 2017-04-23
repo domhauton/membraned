@@ -1,6 +1,7 @@
 package com.domhauton.membrane.network;
 
 import com.domhauton.membrane.distributed.ContractManager;
+import com.domhauton.membrane.network.upnp.ExternalAddress;
 import org.joda.time.DateTime;
 
 import java.io.Closeable;
@@ -66,4 +67,18 @@ public interface NetworkManager extends Runnable, Closeable {
    * @return UID generated from the credentials of the Network Manager.
    */
   String getPrivateEncryptionKey();
+
+  /**
+   * Returns the number of currently connected peers
+   *
+   * @return num of connected peers
+   */
+  int getConnectedPeers();
+
+  /**
+   * Returns the UPnP forwarded address
+   *
+   * @return External Address or null if none exists
+   */
+  ExternalAddress upnpAddress();
 }

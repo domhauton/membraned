@@ -21,8 +21,8 @@ class ConfigManagerTest {
   @BeforeEach
   void setUp() {
     testCfgLocation = System.getProperty("java.io.tmpdir") +
-            java.nio.file.FileSystems.getDefault().getSeparator() +
-            "membrane-test-cfg.yaml";
+        java.nio.file.FileSystems.getDefault().getSeparator() +
+        "membrane-test-cfg.yaml";
   }
 
   @Test
