@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#
+# Membrane Daemon Runner
+#
+
+java -jar /usr/share/membrane/lib/membraned-*-all.jar "$@"

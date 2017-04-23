@@ -2,10 +2,14 @@ buildscript {
     repositories {
         mavenCentral()
         jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-M4'
         classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '1.2.4'
+        classpath group: 'com.netflix.nebula', name: 'gradle-ospackage-plugin', version: '4.4.0'
     }
 }
 
@@ -28,6 +32,8 @@ apply plugin: 'idea'
 apply plugin: 'jacoco'
 apply plugin: 'org.junit.platform.gradle.plugin'
 apply plugin: 'com.github.johnrengelman.shadow'
+apply plugin: "nebula.deb"
+apply plugin: 'nebula.ospackage-daemon'
 
 project.version = '1.0.0-alpha.3'
 project.group = 'com.domhauton.membrane'
@@ -40,6 +46,33 @@ jar {
                 'Implementation-Version': project.version,
                 'Main-Class': project.group + '.Main'
     }
+}
+
+task buildDeb(type: Deb) {
+    packageName 'membraned'
+    version project.version
+    release '1'
+    maintainer 'Dominic Hauton'
+    uploaders 'Dominic Hauton'
+
+    preInstall file('scripts/deb/preInstall.sh')
+    postInstall file('scripts/deb/postInstall.sh')
+    postUninstall file('scripts/deb/postUninstall.sh')
+
+    requires('default-jre-headless', '>= 1.8').or("default-jre", '>= 1.8')
+
+    into '/usr/share/membrane'
+
+    from('build/libs') {
+        into 'lib'
+    }
+
+    from('scripts/bin') {
+        into 'bin'
+        fileMode 0555
+    }
+
+    link('/usr/bin/membraned', '/usr/share/membrane/bin/membraned', 555)
 }
 
 compileTestJava {

@@ -9,6 +9,6 @@ Configuration:
         Pattern: "%highlight{%d{HH:mm:ss.SSS} %-5level %logger{36}.%M - %msg%n}{FATAL=red, ERROR=red, WARN=magenta, INFO=black, DEBUG=blue, TRACE=green}"
   Loggers:
     Root:
-      level: info
+      level: trace
       AppenderRef:
         ref: Console

@@ -1,0 +1,10 @@
+[Unit]
+Description=Membrane Daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/share/membrane/bin/membraned
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

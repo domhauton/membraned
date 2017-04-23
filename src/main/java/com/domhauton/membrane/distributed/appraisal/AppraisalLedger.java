@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
@@ -172,6 +173,7 @@ public class AppraisalLedger implements Runnable, Closeable {
 
   private synchronized void writeAppraisals(Path path) throws AppraisalException {
     List<PeerAppraisalSerializable> peerAppraisals = appraisalMap.values().stream()
+        .filter(Objects::nonNull)
         .map(PeerAppraisal::serialize)
         .collect(Collectors.toList());
     UptimeSerializable uptimeSerial = uptimeCalculator.serialize();

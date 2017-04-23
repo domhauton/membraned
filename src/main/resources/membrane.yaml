@@ -1,7 +1,0 @@
-watchFolders:
-  -
-    directory: /home/dominic/test/
-    recursive: false
-  -
-    directory: /home/dominic/test2/
-    recursive: true
