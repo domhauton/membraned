@@ -58,9 +58,9 @@ public class PexManager {
     try {
       PexEntry newEntry = new PexEntry(ip, port, isPublic, dateTime, signature);
       Optional<PexEntry> oldEntryOptional = pexLedger.getPexEntry(peerId);
-
-      if (!oldEntryOptional.isPresent() || oldEntryOptional.get().getLastUpdateDateTime().isBefore(dateTime)) {
+      if (!oldEntryOptional.isPresent() || oldEntryOptional.get().getLastUpdateDateTime().isBefore(dateTime.plusSeconds(10))) {
         pexLedger.addPexEntry(peerId, newEntry);
+        logger.debug("Pex entry added successfully");
         return Optional.of(newEntry);
       } else {
         logger.error("Ignoring outdated PEX entry.");
@@ -117,7 +117,7 @@ public class PexManager {
   }
 
   public void saveLedger() throws PexException {
-    logger.info("Persisting PEX ledger to file.");
+    logger.info("Persisting PEX ledger with {} entries to file.", pexLedger.getPexEntryCount());
     Path pexFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_FILE_NAME);
     Path pexBackupFilePath = Paths.get(pexFolder.toString() + File.separator + PEX_BACKUP_FILE_NAME);
 
@@ -166,7 +166,9 @@ public class PexManager {
       try {
         logger.trace("Reading PEX from [{}]", pexFilePath);
         List<String> pexFile = Files.readAllLines(pexFilePath);
-        return PexLedger.deserialize(pexFile, maxLedgerSize);
+        PexLedger deserializedPexLedger = PexLedger.deserialize(pexFile, maxLedgerSize);
+        logger.info("Opened Pex Ledger with {} entries.", deserializedPexLedger.getPexEntryCount());
+        return deserializedPexLedger;
       } catch (IOException e) {
         throw new PexException("Failed to read pex info from file [" + pexFilePath.toString() + "]");
       }

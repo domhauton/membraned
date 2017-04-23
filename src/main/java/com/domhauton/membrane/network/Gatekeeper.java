@@ -120,7 +120,7 @@ public class Gatekeeper implements Runnable {
 
     if (trackerManager.shouldConnectToTrackers(contractedPeerTarget, hasPexEntries, minutesFromStartup, connectedPeerCount)) {
       logger.debug("Connecting to tracker to assist locating more peers.");
-      trackerManager.connectToTrackers(connectionManager);
+      trackerManager.connectToTrackers(connectionManager, connectedPeers);
     } else {
       logger.info("Tracker connection not required.");
     }

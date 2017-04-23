@@ -3,6 +3,7 @@ package com.domhauton.membrane.network;
 import com.domhauton.membrane.network.auth.MembraneAuthInfo;
 import com.domhauton.membrane.network.auth.PeerCertManager;
 import com.domhauton.membrane.network.connection.ConnectionManager;
+import com.domhauton.membrane.network.pex.PexException;
 import com.domhauton.membrane.network.pex.PexManager;
 import com.domhauton.membrane.network.tracker.Tracker;
 import com.domhauton.membrane.network.tracker.TrackerManager;
@@ -36,12 +37,12 @@ class NetworkManagerImplTest {
   private String testFolder3;
   private Path testFolderPath3;
 
-  private static final int PORT_INTERNAL_1 = 14100;
-  private static final int PORT_EXTERNAL_1 = 14105;
-  private static final int PORT_INTERNAL_2 = 14200;
-  private static final int PORT_EXTERNAL_2 = 14205;
-  private static final int PORT_INTERNAL_TRACKER = 14300;
-  private static final int PORT_EXTERNAL_TRACKER = 14305;
+  private static final int PORT_INTERNAL_1 = 14133;
+  private static final int PORT_EXTERNAL_1 = 14133;
+  private static final int PORT_INTERNAL_2 = 14134;
+  private static final int PORT_EXTERNAL_2 = 14134;
+  private static final int PORT_INTERNAL_TRACKER = 14145;
+  private static final int PORT_EXTERNAL_TRACKER = 14145;
 
   private NetworkManager networkManager1;
   private EvictingContractManager evictingContractManager1;
@@ -175,8 +176,8 @@ class NetworkManagerImplTest {
     String peerID2 = networkManager2.getUID();
 
     boolean trackerConnected = false;
-    for (int i = 0; i < 100 && !trackerConnected; i++) {
-      Thread.sleep(100);
+    for (int i = 0; i < 200 && !trackerConnected; i++) {
+      Thread.sleep(75);
       trackerConnected = networkManagerTracker.peerConnected(peerID2) && networkManagerTracker.peerConnected(peerID1);
     }
     Assertions.assertTrue(trackerConnected);
@@ -198,9 +199,13 @@ class NetworkManagerImplTest {
     // Give them a moment to exchange PEX info
     Thread.sleep(300);
 
+    System.err.println("TEST: TRACKER SHOULD HAVE SOME PEX INFO BY NOW");
+
     // Prompt Gatekeepers to run again. They should now have pulled each other PEX info from the tracker.
     extractGatekeeper(networkManager1).maintainPeerPopulation();
     extractGatekeeper(networkManager2).maintainPeerPopulation();
+
+    System.err.println("TEST: PEX INFO SHOULD BE EXCHANGED BY NOW");
 
     // Check if they connect
     boolean peer1and2Connected = false;
@@ -210,8 +215,31 @@ class NetworkManagerImplTest {
     }
     Assertions.assertTrue(peer1and2Connected);
 
+    // Check if they exchange pex info
+    boolean haveEachOthersPexInfo = false;
+    PexManager pexManager1 = extractPexManager(networkManager1);
+    PexManager pexManager2 = extractPexManager(networkManager2);
+    for (int i = 0; i < 200 && !haveEachOthersPexInfo; i++) {
+      Thread.sleep(100);
+      try {
+        pexManager1.getEntry(peerID2);
+        haveEachOthersPexInfo = true;
+      } catch (PexException e) {
+        // Do Nothing
+      }
+      try {
+        pexManager2.getEntry(peerID1);
+        haveEachOthersPexInfo = true;
+      } catch (PexException e) {
+        // Do Nothing
+      }
+    }
+    Assertions.assertTrue(haveEachOthersPexInfo);
+
+    System.err.println("TEST: TWO PEERS SHOULD SWAP PEX INFO NOW");
+
     // Give them a moment to exchange PEX info
-    Thread.sleep(700);
+    Thread.sleep(1000);
 
     // Shutdown the tracker, should no longer be needed.
     networkManagerTracker.close();
@@ -227,13 +255,16 @@ class NetworkManagerImplTest {
     networkManager2.setContractManager(evictingContractManager2);
 
     networkManager1.run();
+    Thread.sleep(500);
     networkManager2.run();
+
+    System.err.println("TEST: THE TWO PEERS SHOULD BE TRYING TO RECONNECT NOW");
 
     // Should have reconnected if PEX worked.
 
     peer1and2Connected = false;
-    for (int i = 0; i < 100 && !peer1and2Connected; i++) {
-      Thread.sleep(50);
+    for (int i = 0; i < 200 && !peer1and2Connected; i++) {
+      Thread.sleep(100);
       peer1and2Connected = networkManager1.peerConnected(peerID2) && networkManager2.peerConnected(peerID1);
     }
     Assertions.assertTrue(peer1and2Connected);
@@ -335,6 +366,7 @@ class NetworkManagerImplTest {
     networkManager2.setContractManager(evictingContractManager2);
 
     networkManager1.run();
+    Thread.sleep(500);
     networkManager2.run();
 
     // Should have reconnected if PEX worked.
@@ -372,6 +404,7 @@ class NetworkManagerImplTest {
     // Start all of them.
 
     networkManager1.run();
+    Thread.sleep(500);
     networkManager2.run();
 
     // Check if they connect
@@ -427,6 +460,7 @@ class NetworkManagerImplTest {
     // Start all of them.
 
     networkManager1.run();
+    Thread.sleep(500);
     networkManager2.run();
 
     // Check if they connect

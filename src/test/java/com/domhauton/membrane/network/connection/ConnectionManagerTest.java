@@ -184,6 +184,8 @@ class ConnectionManagerTest {
     Assertions.assertNotNull(con2Callback_2.get(5, TimeUnit.SECONDS),
         "Connection Established 3 times in Con Manager 2");
 
+    Thread.sleep(100);
+
     Assertions.assertEquals(1, connectionManager1.getAllConnectedPeers().size(), "Only one peer connection");
     Assertions.assertEquals(1, connectionManager2.getAllConnectedPeers().size(), "Only one peer connection");
   }

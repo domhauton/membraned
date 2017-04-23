@@ -142,11 +142,11 @@ public class BackupManager implements Runnable, Closeable {
   }
 
   public long getMaxBlockStorageSize() {
-    return (long) (config.getStorage().getStorageCapMB() * MB * (1.0 - PEER_LOCAL_STORAGE_RATIO));
+    return (long) ((double) config.getStorage().getStorageCapMB() * (double) MB * (1.0 - PEER_LOCAL_STORAGE_RATIO));
   }
 
   public long getMaxLocalStorageSize() {
-    return (long) (config.getStorage().getStorageCapMB() * MB * PEER_LOCAL_STORAGE_RATIO);
+    return (long) ((double) config.getStorage().getStorageCapMB() * (double) MB * PEER_LOCAL_STORAGE_RATIO);
   }
 
   /**
@@ -205,7 +205,7 @@ public class BackupManager implements Runnable, Closeable {
   }
 
   public long getLocalStorageSoftLimit() {
-    return (long) (getMaxLocalStorageSize() * SOFT_STORAGE_CAP_RATIO);
+    return (long) ((double) getMaxLocalStorageSize() * SOFT_STORAGE_CAP_RATIO);
   }
 
   private void loadWatchFoldersToProspector() {
@@ -292,7 +292,7 @@ public class BackupManager implements Runnable, Closeable {
   }
 
   public long getConnectedPeers() {
-    return networkManager == null ? -1 : networkManager.getConnectedPeers();
+    return networkManager == null ? 0 : networkManager.getConnectedPeers();
   }
 
   public String getNetworkUID() {

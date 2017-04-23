@@ -69,11 +69,19 @@ public class TrackerManager {
   /**
    * Initiates a connection to every tracker on the tracker list.
    */
-  public void connectToTrackers(ConnectionManager connectionManager) {
+  void connectToTrackers(ConnectionManager connectionManager) {
+    connectToTrackers(connectionManager, connectionManager.getAllConnectedPeerIds());
+  }
+
+  public void connectToTrackers(ConnectionManager connectionManager, Set<String> connectedPeers) {
     logger.info("Initiating connection to {} tracker/s.", trackers.size());
     for (Tracker tracker : trackers) {
-      logger.info("Dialling tracker {}:{}. [{}]", tracker.getIp(), tracker.getPort(), tracker.getPeerId());
-      connectionManager.connectToPeer(tracker.getIp(), tracker.getPort());
+      if (connectedPeers.contains(tracker.getPeerId())) {
+        logger.info("Already connected to tracker {}:{}. [{}]", tracker.getIp(), tracker.getPort(), tracker.getPeerId());
+      } else {
+        logger.info("Dialling tracker {}:{}. [{}]", tracker.getIp(), tracker.getPort(), tracker.getPeerId());
+        connectionManager.connectToPeer(tracker.getIp(), tracker.getPort());
+      }
     }
     logger.info("Complete initiating connections to {} tracker/s.", trackers.size());
   }
