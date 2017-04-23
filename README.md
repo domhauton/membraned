@@ -9,13 +9,18 @@ Features
 - Both [GUI](https://github.com/domhauton/membrane-gui) and [CLI](https://github.com/domhauton/membrane-cli) interfaces
 - File history ensures file versions are never removed until necessary.
 - Log in from anywhere using your generated 4096-bit RSA key
+- Twofish encryption for data privacy.
 - Deduplication reduces storage requirements for similar files.
 - Prioritise backup to friends and family.
 
 Installation
 ------------
 
-The project is currently unavailable. Please bear with us.
+- Download the [.deb package](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.3/membraned_1.0.0-alpha.3.deb)
+- Install using `gdebi -i /path/to/download/membraned_1.0.0-alpha.3.deb`
+- Start the daemon using `sudo systemctl start membraned.service`
+- You can check the daemon is running using `sudo systemctl status membraned.service`
+- Logs can be viewed using `journalctl -u membraned.service`
 
 Support
 -------
