@@ -74,6 +74,7 @@ task buildDeb(type: Deb) {
 
     link('/usr/bin/membraned', '/usr/share/membrane/bin/membraned', 555)
     link('/usr/bin/membrane', '/usr/share/membrane/bin/membrane', 555)
+    link('/usr/bin/membrane-gui', '/usr/share/membrane/bin/membrane-gui', 555)
 }
 
 compileTestJava {

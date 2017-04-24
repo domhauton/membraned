@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#
+# Membrane GUI Runner
+#
+
+/usr/share/membrane/lib/membrane-gui/membrane-gui
