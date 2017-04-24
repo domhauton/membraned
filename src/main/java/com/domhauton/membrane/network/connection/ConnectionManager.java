@@ -90,7 +90,17 @@ public class ConnectionManager implements Closeable {
    */
   public void connectToPeer(String ip, int port) {
     logger.info("Dialling Peer at [{}:{}]", ip, port);
-    peerDialler.dialClient(ip, port);
+    Collection<Peer> allConnectedPeers = getAllConnectedPeers();
+
+    boolean alreadyConnected = allConnectedPeers.stream()
+        .filter(peer -> peer.getIP().equals(ip))
+        .anyMatch(peer -> peer.getPort() == port);
+
+    if (alreadyConnected) {
+      logger.info("Ignoring peer dial request to {}:{}. Already connected", ip, port);
+    } else {
+      peerDialler.dialClient(ip, port);
+    }
   }
 
   /**

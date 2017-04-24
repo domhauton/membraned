@@ -73,6 +73,7 @@ public class ContractManagerImpl implements ContractManager {
   }
 
   void distributeShards() {
+    logger.info("Starting shard distribution");
     // Expire any old blocks.
     Set<String> allRequiredShards = backupLedger.getAllRequiredShards();
     blockLedger.expireAllUselessBlocks(allRequiredShards);
@@ -81,8 +82,12 @@ public class ContractManagerImpl implements ContractManager {
     ShardPeerLookup shardPeerLookup = blockLedger.generateShardPeerLookup();
     allRequiredShards.forEach(x -> shardPeerLookup.addDistributedShard(x, Priority.Normal));
 
+    logger.info("{} shards to distribute", shardPeerLookup.getShardsRequiringPeers().size());
+
     // Generate a list of ranked peers
     List<String> connectedPeersByRank = getAvailablePeersSortedByRank();
+
+    logger.info("{} peers connected to distribute shards to.", connectedPeersByRank.size());
 
     // Upload shards in lookup table to connected peers.
     uploadUndeployedShards(shardPeerLookup, connectedPeersByRank);
@@ -136,12 +141,15 @@ public class ContractManagerImpl implements ContractManager {
     for (String peerId : connectedPeersByRank) {
       // What shards can this peer get?
       Set<String> shardsToUploadForPeer = shardPeerLookup.getShardsRequiringPeers(peerId);
+      logger.info("Found {} viable for [{}]", shardsToUploadForPeer.size(), peerId);
       shardsToUploadForPeer.removeAll(usedShardSet); // Do NOT duplicate upload any shards within one round
+      logger.info("Preparing {} shards for upload [{}]", shardsToUploadForPeer.size(), peerId);
 
       // How much will peer store for us?
       int numberOfBlocksToUpload = 0;
       try {
         numberOfBlocksToUpload = contractStore.getMyBlockSpace(peerId);
+        logger.info("Peer has offered space for {} blocks. [{}]", numberOfBlocksToUpload, peerId);
       } catch (ContractStoreException e) {
         logger.warn("Peer contract removed mid-upload. Ignoring peer.");
       }
@@ -149,9 +157,11 @@ public class ContractManagerImpl implements ContractManager {
       // Actual limit 256MB but this leaves headroom for overheads
       numberOfBlocksToUpload = Math.min(5, numberOfBlocksToUpload);
 
+      logger.info("Packaging {} blocks for peer. [{}]", numberOfBlocksToUpload, peerId);
       // If 0 - ignore this peer for now, they can't take more data. Continue onto next one.
 
       if (numberOfBlocksToUpload > 0) {
+        logger.info("Beginning packaging shards for peer [{}]", peerId);
         // Start uploading them.
         for (int i = 0; i < numberOfBlocksToUpload && !shardsToUploadForPeer.isEmpty(); i++) {
           Set<String> uploadedShards = uploadShardsToPeer(peerId, shardsToUploadForPeer);
@@ -188,6 +198,7 @@ public class ContractManagerImpl implements ContractManager {
   private Set<String> uploadShardsToPeer(String peerId, Set<String> candidateShards) {
     Set<String> uploadedSet = new HashSet<>();
 
+    logger.info("Starting block generation for peer upload to [{}]", peerId);
     // Prepare block for filling
     BlockProcessor blockProcessor = new BlockProcessor();
     long blockSizeRemaining = BLOCK_SIZE_BYTES;
@@ -317,10 +328,11 @@ public class ContractManagerImpl implements ContractManager {
         peerId, blockIds.size(), permittedInequality);
     // Is the given datetime within the last hour.
     if (Math.abs(Minutes.minutesBetween(dateTime, DateTime.now()).getMinutes()) < DateTimeConstants.MINUTES_PER_HOUR) {
+      // Register that contact was made with peer.
+      contractStore.setMyAllowedInequality(peerId, permittedInequality);
       // Check if actually contracted peer
       if (getContractedPeers().contains(peerId) && !blockIds.isEmpty()) {
-        // Register that contact was made with peer.
-        contractStore.setMyAllowedInequality(peerId, permittedInequality);
+
         Set<String> myBlockIds = contractStore.getMyBlockIds(peerId);
 
         // First remove any blocks we expect the peer to have, that they do not and record this.

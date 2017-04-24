@@ -64,6 +64,10 @@ public class Peer implements Closeable {
     return peerConnection.getIP();
   }
 
+  public int getPort() {
+    return peerConnection.getPort();
+  }
+
   public boolean isClosed() {
     return peerConnection.isClosed();
   }
