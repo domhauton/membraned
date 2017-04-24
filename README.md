@@ -16,12 +16,28 @@ Features
 Installation
 ------------
 
-- Download the [.deb package](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane-1.0.0-alpha.5.deb)
-- Install using `dpkg -i /path/to/download/membrane-1.0.0-alpha.5.deb`
+- Download the [deb](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane-1.0.0-alpha.5.deb) or  [rpm](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane-1.0.0.alpha.5.rpm) package
+- Install using `dpkg -i /path/to/membrane-1.0.0-alpha.5.deb` or `rpm -i /path/to/membrane-1.0.0-alpha.5.rpm`
 - Start the daemon using `sudo systemctl start membraned.service`
 - Check status using `membrane status`
 - Run GUI using `membrane-gui`
 - Logs can be viewed using `journalctl -u membraned.service`
+
+Requirements
+------------
+
+- Java 8 or above
+- Systemd (if using packages)
+
+Usage
+-----
+
+- Use the GUI to monitor the membrane daemon
+- To add watch folders to backup use `membrane watch-add <folder>`
+- To check backed up files use `membrane files`
+- To explore file history use `membrane history <file>`
+- To recover file use `membrane recover <file> <target> <optional: date>`
+- Use the `-h` flag at any point for command help
 
 Support
 -------
