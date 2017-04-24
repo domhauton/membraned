@@ -16,10 +16,10 @@ Features
 Installation
 ------------
 
-- Download the [.deb package](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.3/membraned_1.0.0-alpha.3.deb)
-- Install using `gdebi -i /path/to/download/membraned_1.0.0-alpha.3.deb`
+- Download the [.deb package](https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane_1.0.0-alpha.5.deb)
+- Install using `dpkg -i /path/to/download/membraned_1.0.0-alpha.5.deb`
 - Start the daemon using `sudo systemctl start membraned.service`
-- You can check the daemon is running using `sudo systemctl status membraned.service`
+- Check status using `membrane status`
 - Logs can be viewed using `journalctl -u membraned.service`
 
 Support
