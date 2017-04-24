@@ -35,7 +35,7 @@ apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: "nebula.deb"
 apply plugin: 'nebula.ospackage-daemon'
 
-project.version = '1.0.0-alpha.3'
+project.version = '1.0.0-alpha.4'
 project.group = 'com.domhauton.membrane'
 
 jar {
@@ -49,7 +49,7 @@ jar {
 }
 
 task buildDeb(type: Deb) {
-    packageName 'membraned'
+    packageName 'membrane'
     version project.version
     release '1'
     maintainer 'Dominic Hauton'
@@ -73,6 +73,7 @@ task buildDeb(type: Deb) {
     }
 
     link('/usr/bin/membraned', '/usr/share/membrane/bin/membraned', 555)
+    link('/usr/bin/membrane', '/usr/share/membrane/bin/membrane', 555)
 }
 
 compileTestJava {

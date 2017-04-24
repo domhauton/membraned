@@ -33,6 +33,7 @@ public class PeerAppraisal {
   PeerAppraisal(String peerId, DateTime firstInteractionTime) {
     this.peerId = peerId;
     this.firstInteractionTime = firstInteractionTime;
+    countingForHour = firstInteractionTime.hourOfDay().roundFloorCopy();
     timesSeenAtHourOfWeek = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
     reportsReceived = new HashSet<>();
   }

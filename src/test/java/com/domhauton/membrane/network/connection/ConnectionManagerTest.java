@@ -175,7 +175,9 @@ class ConnectionManagerTest {
     connectionManager2.registerNewPeerCallback(getPeerConsumer(con2Callback_1, con2Callback_2, con2Callback_3));
 
     connectionManager2.connectToPeer("127.0.0.1", listenPort1);
+    Thread.sleep(200);
     connectionManager1.connectToPeer("127.0.0.1", listenPort2);
+    Thread.sleep(200);
     connectionManager2.connectToPeer("127.0.0.1", listenPort1);
 
     Assertions.assertNotNull(con1Callback_3.get(5, TimeUnit.SECONDS),

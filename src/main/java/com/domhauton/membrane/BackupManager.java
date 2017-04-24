@@ -157,7 +157,7 @@ public class BackupManager implements Runnable, Closeable {
     loadWatchFoldersToProspector();
     fileManager.runScanners(
         config.getFileWatcher().getFileRescanInterval(),
-        config.getFileWatcher().getFileRescanInterval());
+        config.getFileWatcher().getFolderRescanInterval());
     networkManager.run();
     if (!monitorMode) { // No need to trim storage in Monitor Mode
       trimExecutor.scheduleWithFixedDelay(this::trimStorage,

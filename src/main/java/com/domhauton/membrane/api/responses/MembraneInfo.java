@@ -1,6 +1,7 @@
 package com.domhauton.membrane.api.responses;
 
 import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
 import org.joda.time.format.ISODateTimeFormat;
 
 import java.net.InetAddress;
@@ -23,7 +24,7 @@ public class MembraneInfo implements MembraneResponse {
     } catch (UnknownHostException e) {
       this.hostname = "unknown";
     }
-    this.startTime = startTime.toString(ISODateTimeFormat.dateHourMinuteSecondMillis());
+    this.startTime = startTime.toDateTime(DateTimeZone.UTC).toString(ISODateTimeFormat.dateHourMinuteSecondMillis());
     this.port = port;
     this.version = version;
     this.status = status;

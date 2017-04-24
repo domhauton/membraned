@@ -385,7 +385,7 @@ class RestfulApiManagerTest {
     when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
     when(routingContext.response().setStatusCode(200)).thenReturn(httpServerResponse);
 
-    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt", System.currentTimeMillis());
+    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt", DateTime.now());
 
     String requestBody = objectMapper.writeValueAsString(fileID);
 
@@ -397,7 +397,7 @@ class RestfulApiManagerTest {
         .recoverFile(
             Paths.get(fileID.getFilepath()),
             Paths.get(fileID.getTargetFilePath()),
-            new DateTime(fileID.getDateTimeMillis()));
+            new DateTime(fileID.getDateTime()));
     verify(httpServerResponse, times(1)).setStatusCode(200);
   }
 
@@ -409,7 +409,7 @@ class RestfulApiManagerTest {
     when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
     when(routingContext.response().setStatusCode(200)).thenReturn(httpServerResponse);
 
-    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt", -1);
+    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt");
 
     String requestBody = objectMapper.writeValueAsString(fileID);
 
@@ -430,7 +430,7 @@ class RestfulApiManagerTest {
     when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
     when(routingContext.response().setStatusCode(500)).thenReturn(httpServerResponse);
 
-    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt", -1);
+    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt");
 
     String requestBody = objectMapper.writeValueAsString(fileID);
 
@@ -455,7 +455,7 @@ class RestfulApiManagerTest {
     when(routingContext.response().putHeader(anyString(), anyString())).thenReturn(httpServerResponse);
     when(routingContext.response().setStatusCode(500)).thenReturn(httpServerResponse);
 
-    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt", -1);
+    FileID fileID = new FileID("/tmp/file1.txt", "/tmp/file2.txt");
 
     String requestBody = objectMapper.writeValueAsString(fileID);
 

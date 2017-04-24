@@ -89,7 +89,11 @@ public class StorageManager implements BackupLedger, FileEventLogger {
   public synchronized void removeFile(Path storedPath, DateTime modificationDateTime) throws StorageManagerException {
     logger.info("Removing file [{}] - Time: {}", storedPath, modificationDateTime);
     try {
-      fileCatalogue.removeFile(storedPath, modificationDateTime, journalOutput);
+      if (fileCatalogue.getFileVersionHistory(storedPath).isEmpty()) {
+        logger.info("Ignoring file removal entry. It was never added.");
+      } else {
+        fileCatalogue.removeFile(storedPath, modificationDateTime, journalOutput);
+      }
     } catch (IOException e) {
       logger.error("Failed to write file removal to journal. [{}]", storedPath);
       throw new StorageManagerException("Failed to write file removal to journal.", e);
@@ -367,6 +371,7 @@ public class StorageManager implements BackupLedger, FileEventLogger {
   }
 
   public List<JournalEntry> getFileHistory(Path path) {
+    logger.info("Fetching file history for [{}]", path);
     return fileCatalogue.getFileVersionHistory(path);
   }
 

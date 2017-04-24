@@ -24,6 +24,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
+import org.joda.time.format.ISODateTimeFormat;
 
 import java.io.Closeable;
 import java.nio.file.Path;
@@ -76,7 +77,7 @@ public class RestfulApiManager implements Closeable {
     router.post("/request/cleanup").blockingHandler(this::putRequestCleanup);
     router.post("/request/reconstruct").blockingHandler(this::reconstructFile);
 
-    router.get("/request/history").blockingHandler(this::getFileHistory);
+    router.post("/request/history").blockingHandler(this::getFileHistory);
 
     CompletableFuture<Boolean> startUpListener = new CompletableFuture<>();
 
@@ -245,7 +246,7 @@ public class RestfulApiManager implements Closeable {
       final FileID fileID = Json.decodeValue(routingContext.getBodyAsString(), FileID.class);
       List<JournalEntry> fileHistory = backupManager.getFileHistory(Paths.get(fileID.getFilepath()));
       List<FileHistoryEntry> fileHistoryEntries = fileHistory.stream()
-          .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime().getMillis(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
+          .map(x -> new FileHistoryEntry(x.getShardInfo().getModificationDateTime(), x.getShardInfo().getMD5HashList(), x.getShardInfo().getTotalSize(), x.getFileOperation().equals(FileOperation.REMOVE)))
           .collect(Collectors.toList());
       MembraneFileHistory membraneFileHistory = new MembraneFileHistory(fileHistoryEntries, fileID.getFilepath());
       sendObject(routingContext, membraneFileHistory);
@@ -260,11 +261,12 @@ public class RestfulApiManager implements Closeable {
       final FileID fileID = Json.decodeValue(routingContext.getBodyAsString(), FileID.class);
       Path file = Paths.get(fileID.getFilepath());
       Path target = Paths.get(fileID.getTargetFilePath());
-      if (fileID.getDateTimeMillis() >= 0) {
-        DateTime dateTime = new DateTime(fileID.getDateTimeMillis());
-        backupManager.recoverFile(file, target, dateTime);
-      } else {
+
+      if (fileID.getDateTime().equals("")) {
         backupManager.recoverFile(file, target);
+      } else {
+        DateTime dateTime = DateTime.parse(fileID.getDateTime(), ISODateTimeFormat.dateHourMinuteSecondMillis());
+        backupManager.recoverFile(file, target, dateTime);
       }
       routingContext.response().setStatusCode(200).end("Successfully reconstructed file.");
     } catch (StorageManagerException e) {
@@ -273,6 +275,9 @@ public class RestfulApiManager implements Closeable {
     } catch (DecodeException e) {
       logger.warn("Invalid file history request");
       routingContext.response().setStatusCode(400).end("Could not decode argument. Error: " + e.getMessage());
+    } catch (IllegalArgumentException e) {
+      logger.warn("Could not parse time in request. {}", e.getMessage());
+      routingContext.response().setStatusCode(400).end("Could not parse time in request. Error: " + e.getMessage());
     }
   }
 }

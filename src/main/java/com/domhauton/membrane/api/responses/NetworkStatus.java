@@ -5,42 +5,42 @@ package com.domhauton.membrane.api.responses;
  */
 public class NetworkStatus implements MembraneResponse {
   private final boolean enabled;
-  private final long getConnectedPeers;
-  private final String getNetworkUID;
-  private final int getMaxConnectionCount;
-  private final int getPeerListeningPort;
-  private final String getUPnPAddress;
+  private final long connectedPeers;
+  private final String networkUID;
+  private final int maxConnectionCount;
+  private final int peerListeningPort;
+  private final String upnpAddress;
 
-  public NetworkStatus(boolean enabled, long getConnectedPeers, String getNetworkUID, int getMaxConnectionCount, int getPeerListeningPort, String getUPnPAddress) {
+  public NetworkStatus(boolean enabled, long connectedPeers, String networkUID, int maxConnectionCount, int peerListeningPort, String upnpAddress) {
     this.enabled = enabled;
-    this.getConnectedPeers = getConnectedPeers;
-    this.getNetworkUID = getNetworkUID;
-    this.getMaxConnectionCount = getMaxConnectionCount;
-    this.getPeerListeningPort = getPeerListeningPort;
-    this.getUPnPAddress = getUPnPAddress;
+    this.connectedPeers = connectedPeers;
+    this.networkUID = networkUID;
+    this.maxConnectionCount = maxConnectionCount;
+    this.peerListeningPort = peerListeningPort;
+    this.upnpAddress = upnpAddress;
   }
 
   public boolean isEnabled() {
     return enabled;
   }
 
-  public long getGetConnectedPeers() {
-    return getConnectedPeers;
+  public long getConnectedPeers() {
+    return connectedPeers;
   }
 
-  public String getGetNetworkUID() {
-    return getNetworkUID;
+  public String getNetworkUID() {
+    return networkUID;
   }
 
-  public int getGetMaxConnectionCount() {
-    return getMaxConnectionCount;
+  public int getMaxConnectionCount() {
+    return maxConnectionCount;
   }
 
-  public int getGetPeerListeningPort() {
-    return getPeerListeningPort;
+  public int getPeerListeningPort() {
+    return peerListeningPort;
   }
 
-  public String getGetUPnPAddress() {
-    return getUPnPAddress;
+  public String getUpnpAddress() {
+    return upnpAddress;
   }
 }

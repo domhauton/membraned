@@ -170,6 +170,8 @@ public class FileManager {
     FileMetadata fileMetadata = managedFiles.getOrDefault(path.toString(), null);
     if (fileMetadata != null && lastModified == fileMetadata.getModifiedTime().getMillis()) {
       logger.debug("Update not required. Modify time same for [{}]", path.toString());
+    } else if (path.toFile().length() == 0) {
+      logger.debug("Ignoring update for file of size 0B. [{}]", path.toString());
     } else {
       fileChanged(path);
     }

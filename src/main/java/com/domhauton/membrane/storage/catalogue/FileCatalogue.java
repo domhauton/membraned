@@ -199,6 +199,7 @@ public class FileCatalogue {
       retList.add(originalEntry);
     }
     retList.addAll(storageJournal.getJournalEntries(path));
+    logger.info("Found {} entries for [{}]", retList.size(), path);
     return retList;
   }
 

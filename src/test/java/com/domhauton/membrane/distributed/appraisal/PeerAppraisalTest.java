@@ -60,7 +60,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, halfCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
+    Assertions.assertEquals(2.0 / 3.0, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -151,7 +151,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, eighthCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
+    Assertions.assertEquals(2.0 / 3.0, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
@@ -184,7 +184,7 @@ class PeerAppraisalTest {
     Assertions.assertEquals(1, tenthCnt);
 
     peerAppraisal.flushHourlyReportIntake();
-    Assertions.assertEquals(0.5d, peerAppraisal.getContractSuccessChance());
+    Assertions.assertEquals(2.0 / 3.0, peerAppraisal.getContractSuccessChance());
   }
 
   @Test
