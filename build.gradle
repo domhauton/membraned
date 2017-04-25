@@ -33,7 +33,7 @@ apply plugin: 'jacoco'
 apply plugin: 'org.junit.platform.gradle.plugin'
 apply plugin: 'com.github.johnrengelman.shadow'
 apply plugin: "nebula.deb"
-apply plugin: 'nebula.ospackage-daemon'
+apply plugin: 'nebula.rpm'
 
 project.version = '1.0.0-alpha.5'
 project.group = 'com.domhauton.membrane'
@@ -60,6 +60,33 @@ task buildDeb(type: Deb) {
     postUninstall file('scripts/deb/postUninstall.sh')
 
     requires('default-jre-headless', '>= 1.8').or("default-jre", '>= 1.8')
+
+    into '/usr/share/membrane'
+
+    from('build/libs') {
+        into 'lib'
+    }
+
+    from('scripts/bin') {
+        into 'bin'
+        fileMode 0555
+    }
+
+    link('/usr/bin/membraned', '/usr/share/membrane/bin/membraned', 555)
+    link('/usr/bin/membrane', '/usr/share/membrane/bin/membrane', 555)
+    link('/usr/bin/membrane-gui', '/usr/share/membrane/bin/membrane-gui', 555)
+}
+
+task buildRpm(type: Rpm) {
+    packageName 'membrane'
+    version '1.0.0.alpha.5'
+    release '1'
+    os LINUX
+    user 'root'
+    permissionGroup 'root'
+
+    postInstall file('scripts/rpm/postInstall.sh')
+    postUninstall file('scripts/rpm/postUninstall.sh')
 
     into '/usr/share/membrane'
 
