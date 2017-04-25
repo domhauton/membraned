@@ -85,6 +85,7 @@ task buildRpm(type: Rpm) {
     user 'root'
     permissionGroup 'root'
 
+    preInstall file('scripts/rpm/preInstall.sh')
     postInstall file('scripts/rpm/postInstall.sh')
     postUninstall file('scripts/rpm/postUninstall.sh')
 

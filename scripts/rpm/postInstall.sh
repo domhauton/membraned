@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/bash
 
 tar -C /usr/share/membrane/lib -xzf /usr/share/membrane/lib/membrane-gui-v1.0.0-alpha.5.tar.gz
 
