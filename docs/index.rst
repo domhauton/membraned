@@ -61,22 +61,88 @@ Available Calls include:
 Status
 ~~~~~~
 
-- **Title** : Get Status
 - **URL** : /
 - **Method** : GET
-- **Data Params** : { u : { email : [string], name : [string], current_password : [alphanumeric] password : [alphanumeric], password_confirmation : [alphanumeric] } }
+- **Response Params** : {hostname: [string], startTime: [dateTime], port: [number], version: [string], status: [string], tagline: [string]}
 - **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
 
-Other
-~~~~~
+Network
+~~~~~~~
 
-- GET: /status/watcher
-- GET: /status/storage
-- GET: /status/watch_folder RES: {currentFiles: string[], referencedFiles: string[], localShardStorageSize: long, targetLocalShardStorageSize: long, maxLocalShardStorageSize: long, peerBlockStorageSize: long, targetPeerBlockStorageSize: long, maxPeerBlockStorageSize: long
-- POST: /configure/watch_folder  REQ: {type: "string (ADD|REMOVE)", watchFolder: {directory: "string", recursive: bool}}
-- POST: /request/cleanup
-- POST: /request/reconstruct REQ: {filepath: "string"}
-- GET: /request/history REQ: {filepath: "string", targetFilePath: "string", dateTimeMillis: "long"}
+- **URL** : /status/network
+- **Method** : GET
+- **Response Params** : {enabled : [bool], connectedPeers: [number], networkUID: [string], maxConnectionCount: [number], peerListeningPort: [number], upnpAddress: [string]}
+- **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
+
+Storage
+~~~~~~~
+
+- **URL** : /status/storage
+- **Method** : GET
+- **Response Params** : {currentFiles: [string[]], referencedFiles: [string[]], localShardStorageSize: [number], targetLocalShardStorageSize: [number], maxLocalShardStorageSize: [number], peerBlockStorageSize: [number], targetPeerBlockStorageSize: [number], maxPeerBlockStorageSize: [number]}
+- **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
+
+Watcher
+~~~~~~~
+
+- **URL** : /status/watcher
+- **Method** : GET
+- **Response Params** : {trackedFolders: [string[]], trackedFiles: [string[]]}
+- **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
+
+Watch Folders
+~~~~~~~~~~~~~
+
+- **URL** : /status/watch_folder
+- **Method** : GET
+- **Response Params** : {watchFolders: [watchFolder[]]}
+- **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
+- **Other** : watchFolder = {directory: [string], recursive: [bool]}
+
+Contract
+~~~~~~~~
+
+- **URL** : /status/contract
+- **Method** : GET
+- **Response Params** : {contractManagerActive: [boolean], contractTarget: [number], contractedPeers: [string[]], undeployedShards: [string[]], partiallyDistributedShards: [string[]], fullyDistributedShards: [string[]]}
+- **Response Codes** : Success (200 OK), Unauthorized (403), Internal Error (500)
+
+Modify Watch Folder
+~~~~~~~~~~~~~~~~~~~
+
+- **URL** : /configure/watch_folder
+- **Method** : POST
+- **Request Params** : {type: [string (ADD|REMOVE)], watchFolder: [watchFolder]}
+- **Response Codes** : Success (200 OK), Partial Fail (304), Invalid Request (400), Unauthorized (403), Internal Error (500)
+- **Other** : watchFolder = {directory: [string], recursive: [bool]}
+
+
+Request Storage Cleanup
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- **URL** : /request/cleanup
+- **Method** : POST
+- **Response Codes** : Success (200 OK), Invalid Request (400), Unauthorized (403), Internal Error (500)
+
+
+Reconstruct File
+~~~~~~~~~~~~~~~~
+
+- **URL** : /request/reconstruct
+- **Method** : POST
+- **Request Params** : {filepath: [string]}
+- **Response Codes** : Success (200 OK), Partial Fail (304), Invalid Request (400), Unauthorized (403), Internal Error (500)
+
+
+Request File History
+~~~~~~~~~~~~~~~~~~~~
+
+- **URL** : /request/history
+- **Method** : POST
+- **Request Params** : {filepath: [string], targetFilePath: [string], dateTimeMillis: [number]}
+- **Response Params** : {filePath: [string], fileHistoryEntryList: [fileHistoryEntry[]]}
+- **Response Codes** : Success (200 OK), Partial Fail (304), Invalid Request (400), Unauthorized (403), Internal Error (500)
+- **Other** : fileHistoryEntry = {dateTime: [string], hashes: [string[]], size: [number], remove: [boolean]}
 
 Support
 -------
