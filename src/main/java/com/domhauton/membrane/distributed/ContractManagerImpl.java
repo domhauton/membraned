@@ -35,14 +35,16 @@ import java.util.stream.Collectors;
  * Created by Dominic Hauton on 02/03/17.
  */
 public class ContractManagerImpl implements ContractManager {
-  private final static long BLOCK_SIZE_BYTES = 24L * 1024L * 1024L * 1024L; //24MB
+  private final static int BLOCK_SIZE_BYTES = 25 * 1024 * 1024; //25MB
+  private final static int MAX_BLOCK_SIZE_BYTES = 26 * 1024 * 1024; //26MB
+
+  private final static int MAX_SHARD_SEARCH = 100;
   private final static int MAX_BLOCK_LIFETIME_WEEKS = 2;
   private final static int TIME_BEFORE_FIRST_BROADCAST_MINS = 10;
   private final static int TIME_BEFORE_FIRST_UPLOAD_MINS = 1;
   private final static int TIME_BETWEEN_EACH_UPLOAD_MINS = 2;
   private final Logger logger = LogManager.getLogger();
   private final ShardStorage localShardStorage;
-
   private final ShardStorage peerShardStorage;
 
   private final BlockLedger blockLedger;
@@ -204,7 +206,9 @@ public class ContractManagerImpl implements ContractManager {
     long blockSizeRemaining = BLOCK_SIZE_BYTES;
 
     // Fill block
-    for (String shardHash : candidateShards) {
+    int i = 0;
+    for (Iterator<String> shardItr = candidateShards.iterator(); i < MAX_SHARD_SEARCH && shardItr.hasNext(); i++) {
+      String shardHash = shardItr.next();
       try {
         if (blockSizeRemaining > 0 && blockSizeRemaining > localShardStorage.getShardSize(shardHash)) { // Skip shard if too large
           byte[] shardData = localShardStorage.retrieveShard(shardHash);
@@ -305,7 +309,7 @@ public class ContractManagerImpl implements ContractManager {
   @Override
   public void receiveBlock(String peerId, String blockId, byte[] data) {
     String generatedBlockId = BlockLedger.generateBlockId(data);
-    if (generatedBlockId.equals(blockId) || getContractedPeers().contains(peerId)) {
+    if (data.length < MAX_BLOCK_SIZE_BYTES && (generatedBlockId.equals(blockId) || getContractedPeers().contains(peerId))) {
       try {
         contractStore.addPeerBlockId(peerId, blockId);
         peerShardStorage.storeShard(blockId, data);
