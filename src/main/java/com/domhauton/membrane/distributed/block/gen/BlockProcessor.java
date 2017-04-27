@@ -15,6 +15,7 @@ public class BlockProcessor {
   private static final Logger LOGGER = LogManager.getLogger();
   private static final int SALT_LENGTH = 256;
   private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+  private static final BlockUtils.CompressionAlgo COMPRESSION_ALGO = BlockUtils.CompressionAlgo.LZ4_FAST;
 
   private final byte[] salt;
   private final Map<String, LocalShardData> localShardDataList;
@@ -44,13 +45,13 @@ public class BlockProcessor {
    */
   public int addLocalShard(String hash, byte[] shardData) {
     try {
-      byte[] compressedData = BlockUtils.compress(shardData);
-      LocalShardData localShardData = new LocalShardData(hash, true, compressedData);
+      byte[] compressedData = BlockUtils.compress(shardData, COMPRESSION_ALGO);
+      LocalShardData localShardData = new LocalShardData(hash, COMPRESSION_ALGO.name(), shardData.length, compressedData);
       localShardDataList.put(hash, localShardData);
       return compressedData.length;
     } catch (BlockException e) {
       LOGGER.trace("Unable to effectively compress shard [{}]. Adding uncompressed. {}", hash, e.getMessage());
-      LocalShardData localShardData = new LocalShardData(hash, false, shardData);
+      LocalShardData localShardData = new LocalShardData(hash, BlockUtils.CompressionAlgo.NONE.name(), shardData.length, shardData);
       localShardDataList.put(hash, localShardData);
       return shardData.length;
     }
@@ -73,7 +74,7 @@ public class BlockProcessor {
         .stream()
         .map((LocalShardData x) -> {
           try {
-            return new AbstractMap.SimpleEntry<>(x.getLocalId(), x.isCompressed() ? BlockUtils.decompress(x.getShardData()) : x.getShardData());
+            return new AbstractMap.SimpleEntry<>(x.getLocalId(), BlockUtils.decompress(x.getShardData(), x.getCompressedLength(), x.getCompressionAlgo()));
           } catch (BlockException e) {
             LOGGER.error("Error retrieving block from block processor. {}", e.getMessage());
             return null;
@@ -96,7 +97,7 @@ public class BlockProcessor {
       throw new NoSuchElementException("Shard with local hash: [" + hash + "] not found.");
     } else {
       try {
-        return localShardData.isCompressed() ? BlockUtils.decompress(localShardData.getShardData()) : localShardData.getShardData();
+        return BlockUtils.decompress(localShardData.getShardData(), localShardData.getCompressedLength(), localShardData.getCompressionAlgo());
       } catch (BlockException e) {
         throw new NoSuchElementException("Shard with local hash: [" + hash + "] found, but unable to decompress.");
       }

@@ -5,15 +5,17 @@ package com.domhauton.membrane.distributed.block.gen;
  */
 class LocalShardData {
   private String localId;
-  private boolean compressed;
+  private String compressionAlgo;
+  private int compressedLength;
   private byte[] shardData;
 
   private LocalShardData() {
   } // For Jackson ONLY
 
-  LocalShardData(String localId, boolean compressed, byte[] shardData) {
+  public LocalShardData(String localId, String compressionAlgo, int compressedLength, byte[] shardData) {
     this.localId = localId;
-    this.compressed = compressed;
+    this.compressionAlgo = compressionAlgo;
+    this.compressedLength = compressedLength;
     this.shardData = shardData;
   }
 
@@ -25,7 +27,11 @@ class LocalShardData {
     return shardData;
   }
 
-  public boolean isCompressed() {
-    return compressed;
+  public int getCompressedLength() {
+    return compressedLength;
+  }
+
+  public String getCompressionAlgo() {
+    return compressionAlgo;
   }
 }
