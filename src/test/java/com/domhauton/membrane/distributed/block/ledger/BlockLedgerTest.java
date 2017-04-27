@@ -167,13 +167,13 @@ class BlockLedgerTest {
     assertHash(blockLedger, shard, reference, dateTime);
 
     byte[] contractSalt = blockLedger.getBlockEvidenceSalt(reference, dateTime);
-    String calculatedHash = BlockLedger.getSaltedHash(contractSalt, shard);
+    String calculatedHash = BlockLedger.getHMAC(contractSalt, shard);
     Assertions.assertFalse(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash.toUpperCase()));
   }
 
   private void assertHash(BlockLedger blockLedger, byte[] shard, String reference, DateTime dateTime) throws Exception {
     byte[] contractSalt = blockLedger.getBlockEvidenceSalt(reference, dateTime);
-    String calculatedHash = contractSalt.length == 0 ? "" : BlockLedger.getSaltedHash(contractSalt, shard);
+    String calculatedHash = contractSalt.length == 0 ? "" : BlockLedger.getHMAC(contractSalt, shard);
     Assertions.assertTrue(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash));
   }
 

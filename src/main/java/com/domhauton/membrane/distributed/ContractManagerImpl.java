@@ -527,7 +527,7 @@ public class ContractManagerImpl implements ContractManager {
             return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), new byte[0]);
           } else {
             byte[] hashBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());
-            byte[] saltedHash = BlockLedger.getSaltedHash(evidenceRequest.getSalt(), hashBytes).getBytes();
+            byte[] saltedHash = BlockLedger.getHMAC(evidenceRequest.getSalt(), hashBytes).getBytes();
             return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), saltedHash);
           }
         case DELETE_BLOCK:

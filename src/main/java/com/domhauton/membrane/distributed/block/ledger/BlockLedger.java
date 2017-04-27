@@ -8,6 +8,9 @@ import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import com.google.common.hash.Hashing;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.bouncycastle.crypto.digests.KeccakDigest;
+import org.bouncycastle.crypto.macs.HMac;
+import org.bouncycastle.crypto.params.KeyParameter;
 import org.joda.time.DateTime;
 import org.joda.time.Hours;
 
@@ -33,6 +36,7 @@ public class BlockLedger implements Runnable, Closeable {
   private final static String FILE_NAME = "blocks.yml";
   private static final int SALT_LENGTH = 256;
   private final static int PERSIST_UPDATE_RATE_SEC = 120;
+  private static final int HMAC_SIZE = 512;
 
   private final Logger logger = LogManager.getLogger();
   private final ObjectMapper objectMapper = new ObjectMapper(new YAMLFactory());
@@ -155,7 +159,7 @@ public class BlockLedger implements Runnable, Closeable {
         .collect(Collectors.toSet());
     return IntStream.range(0, hoursBetween + 1).boxed()
         .map(x -> missingHourSet.contains(x) ? new byte[0] : generateRandomSalt())
-        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, randSaltBytes.length == 0 ? "" : getSaltedHash(randSaltBytes, blockData)))
+        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, randSaltBytes.length == 0 ? "" : getHMAC(randSaltBytes, blockData)))
         .collect(Collectors.toList());
   }
 
@@ -165,13 +169,14 @@ public class BlockLedger implements Runnable, Closeable {
     return salt;
   }
 
-  public static String getSaltedHash(byte[] salt, byte[] blockData) {
-    return Hashing.sha512()
-        .newHasher(blockData.length + salt.length)
-        .putBytes(salt)
-        .putBytes(blockData)
-        .hash()
-        .toString();
+  public static String getHMAC(byte[] salt, byte[] blockData) {
+    HMac hmac = new HMac(new KeccakDigest(HMAC_SIZE));
+    KeyParameter keyParameter = new KeyParameter(salt);
+    hmac.init(keyParameter);
+    hmac.update(blockData, 0, blockData.length);
+    byte[] retHash = new byte[HMAC_SIZE];
+    hmac.doFinal(retHash, 0);
+    return new String(retHash);
   }
 
   private synchronized List<BlockInfo> readBlockInfos(Path path) throws BlockLedgerException {
