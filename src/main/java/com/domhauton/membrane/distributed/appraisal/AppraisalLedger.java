@@ -81,7 +81,7 @@ public class AppraisalLedger implements Runnable, Closeable {
     getPeerAppraisal(peerId).addLostBlock(lostDateTime, expectedBlocks);
   }
 
-  public Set<String> getReportsRecieved(String peerId, DateTime dateTime, long expectedBlocks) {
+  public Set<String> getReportsReceived(String peerId, DateTime dateTime, long expectedBlocks) {
     return getPeerAppraisal(peerId).getReportsReceived(dateTime, expectedBlocks);
   }
 

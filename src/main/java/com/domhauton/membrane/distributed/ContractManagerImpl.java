@@ -357,7 +357,7 @@ public class ContractManagerImpl implements ContractManager {
         Set<String> expectedBlocks = blockIds.stream()
             .filter(myBlockIds::contains)
             .collect(Collectors.toSet());
-        Set<String> blocksToSkip = appraisalLedger.getReportsRecieved(peerId, dateTime, myBlockIds.size());
+        Set<String> blocksToSkip = appraisalLedger.getReportsReceived(peerId, dateTime, myBlockIds.size());
         Set<EvidenceRequest> activeBlockRequests = getActiveBlockEvidenceRequests(dateTime, expectedBlocks, blocksToSkip);
 
         // Aggregate all generated evidence requests.
@@ -548,7 +548,7 @@ public class ContractManagerImpl implements ContractManager {
   public void run() {
     executorService.scheduleAtFixedRate(this::sendUpdateToAllContractedPeers,
         TIME_BEFORE_FIRST_BROADCAST_MINS,
-        DateTimeConstants.MINUTES_PER_HOUR,
+        DateTimeConstants.MINUTES_PER_HOUR / 4,
         TimeUnit.MINUTES);
 
     executorService.scheduleAtFixedRate(this::distributeShards,

@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
+import org.joda.time.Hours;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -215,7 +216,9 @@ public class PeerAppraisal {
    * @return Chance [0.0,1.0]
    */
   double getBlockLosingRate() {
-    double chanceOfLosingBlocks = totalLifetimeBlocks <= 0 ? 0.0d : (double) lostBlocks / (double) totalLifetimeBlocks;
+    double punishmentMultiplier = Math.min(DateTimeConstants.HOURS_PER_WEEK * 2, Math.abs(Hours.hoursBetween(firstInteractionTime, DateTime.now()).getHours()));
+    punishmentMultiplier = Math.max(1.0, punishmentMultiplier);
+    double chanceOfLosingBlocks = totalLifetimeBlocks <= 0 ? 0.0d : ((double) lostBlocks * punishmentMultiplier) / (double) totalLifetimeBlocks;
     // Clamp between 0.0d and 1.0d
     return Math.min(chanceOfLosingBlocks, 1.0d);
   }

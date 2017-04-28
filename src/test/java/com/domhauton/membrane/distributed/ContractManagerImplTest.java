@@ -538,7 +538,7 @@ class ContractManagerImplTest {
     // Receive response
     contractManagerImpl2.processEvidenceResponses(PEER_1, baseDateTime, evidenceResponses);
 
-    Assertions.assertEquals(Collections.singleton(blockId), appraisalLedgerInner2.getReportsRecieved(PEER_1, baseDateTime, 1));
+    Assertions.assertEquals(Collections.singleton(blockId), appraisalLedgerInner2.getReportsReceived(PEER_1, baseDateTime, 1));
   }
 
   private void setupConnection() {
