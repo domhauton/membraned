@@ -173,7 +173,9 @@ class BlockLedgerTest {
 
   private void assertHash(BlockLedger blockLedger, byte[] shard, String reference, DateTime dateTime) throws Exception {
     byte[] contractSalt = blockLedger.getBlockEvidenceSalt(reference, dateTime);
-    String calculatedHash = contractSalt.length == 0 ? "" : BlockLedger.getHMAC(contractSalt, shard);
+    String stringSalt = new String(contractSalt);
+    String calculatedHash = stringSalt.equals(BlockLedger.PROOF_TYPE.FULL.toString()) || stringSalt.equals(BlockLedger.PROOF_TYPE.EMPTY.toString()) ? "" : BlockLedger.getHMAC(contractSalt, shard);
+
     Assertions.assertTrue(blockLedger.confirmBlockHash(reference, dateTime, calculatedHash));
   }
 

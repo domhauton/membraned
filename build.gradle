@@ -79,7 +79,7 @@ task buildDeb(type: Deb) {
 
 task buildRpm(type: Rpm) {
     packageName 'membrane'
-    version '1.0.0.alpha.5'
+    version '1.0.0.alpha.6'
     release '1'
     os LINUX
     user 'root'

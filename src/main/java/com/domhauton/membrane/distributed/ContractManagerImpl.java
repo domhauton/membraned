@@ -408,7 +408,12 @@ public class ContractManagerImpl implements ContractManager {
       } else {
         // If we are missing a shard from one of the blocks.
         if (blockLedger.getBlockShardIds(blockId).stream().allMatch(localShardStorage::hasShard)) {
-          return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockLedger.getBlockEvidenceSalt(blockId, dateTime));
+          byte[] blockEvidenceSalt = blockLedger.getBlockEvidenceSalt(blockId, dateTime);
+          if (new String(blockEvidenceSalt).equals(BlockLedger.PROOF_TYPE.FULL.toString())) {
+            return new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK);
+          } else {
+            return new EvidenceRequest(blockId, EvidenceType.COMPUTE_HASH, blockEvidenceSalt);
+          }
         } else {
           return new EvidenceRequest(blockId, EvidenceType.SEND_BLOCK);
         }
@@ -523,7 +528,7 @@ public class ContractManagerImpl implements ContractManager {
           return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), blockBytes);
         case COMPUTE_HASH:
           logger.debug("Processing salted hash evidence request for block [{}]", evidenceRequest.getBlockId());
-          if (evidenceRequest.getSalt().length == 0) {
+          if (new String(evidenceRequest.getSalt()).equals(BlockLedger.PROOF_TYPE.EMPTY.toString())) {
             return new EvidenceResponse(evidenceRequest.getBlockId(), evidenceRequest.getEvidenceType(), new byte[0]);
           } else {
             byte[] hashBytes = peerShardStorage.retrieveShard(evidenceRequest.getBlockId());

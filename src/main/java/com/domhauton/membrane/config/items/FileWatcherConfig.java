@@ -24,7 +24,7 @@ public class FileWatcherConfig {
 
   public FileWatcherConfig() {
     folders = new ArrayList<>();
-    chunkSizeMB = 64;
+    chunkSizeMB = 4;
     fileRescanInterval = 20;
     folderRescanInterval = 120;
   }

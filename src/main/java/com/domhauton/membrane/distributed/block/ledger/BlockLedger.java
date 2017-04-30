@@ -157,9 +157,23 @@ public class BlockLedger implements Runnable, Closeable {
         .limit(hoursBetween / 2)
         .boxed()
         .collect(Collectors.toSet());
+    Set<Integer> fullBlockSet = IntStream.range(1, hoursBetween)
+        .filter(missingHourSet::contains)
+        .filter(x -> secureRandom.nextFloat() > 0.99)
+        .limit(hoursBetween / 100)
+        .boxed()
+        .collect(Collectors.toSet());
     return IntStream.range(0, hoursBetween + 1).boxed()
-        .map(x -> missingHourSet.contains(x) ? new byte[0] : generateRandomSalt())
-        .map(randSaltBytes -> new SaltHashPair(randSaltBytes, randSaltBytes.length == 0 ? "" : getHMAC(randSaltBytes, blockData)))
+        .map(x -> {
+          if (missingHourSet.contains(x)) {
+            return new SaltHashPair(PROOF_TYPE.EMPTY.toString().getBytes(), "");
+          } else if (fullBlockSet.contains(x)) {
+            return new SaltHashPair(PROOF_TYPE.FULL.toString().getBytes(), "");
+          } else {
+            byte[] randomSalt = generateRandomSalt();
+            return new SaltHashPair(randomSalt, getHMAC(randomSalt, blockData));
+          }
+        })
         .collect(Collectors.toList());
   }
 
@@ -234,5 +248,9 @@ public class BlockLedger implements Runnable, Closeable {
         logger.error("Failed to complete scheduled block info persist. {}", e.getMessage());
       }
     }, 0, PERSIST_UPDATE_RATE_SEC, TimeUnit.SECONDS);
+  }
+
+  public enum PROOF_TYPE {
+    FULL, EMPTY
   }
 }
