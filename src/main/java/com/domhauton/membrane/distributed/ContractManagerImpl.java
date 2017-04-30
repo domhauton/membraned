@@ -119,7 +119,7 @@ public class ContractManagerImpl implements ContractManager {
         .average()
         .orElse(0.0);
     double sd = Math.sqrt(var);
-    double minPermitted = mean - (1.5 * sd);
+    double minPermitted = Math.max(0.1, mean - sd);
 
     peerReliabilityMap.entrySet().stream()
         .filter(peerRel -> peerRel.getValue() < minPermitted)

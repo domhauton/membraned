@@ -169,8 +169,7 @@ public class PeerAppraisal {
    * @return Array of hours and probabilities
    */
   double[] getBlockReturnDistribution(DateTime dateTime) {
-    long relationshipLengthMillis = dateTime.getMillis() - firstInteractionTime.getMillis();
-    AtomicDoubleArray bestUptime = AppraisalUtils.calcTimeAtHourSlots(firstInteractionTime, relationshipLengthMillis);
+    AtomicDoubleArray bestUptime = AppraisalUtils.calcBestUptime(firstInteractionTime, dateTime);
 
     double[] result = new double[bestUptime.length()];
     for (int i = 0; i < bestUptime.length(); i++) {

@@ -4,6 +4,7 @@ import com.domhauton.membrane.distributed.appraisal.files.UptimeSerializable;
 import com.google.common.util.concurrent.AtomicDoubleArray;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeConstants;
+import org.joda.time.Days;
 
 /**
  * Created by Dominic Hauton on 04/03/17.
@@ -41,9 +42,12 @@ public class UptimeCalculator {
   }
 
   synchronized void updateUptime(DateTime dateTimeOfUptime) {
-    long millisBetweenTimes = dateTimeOfUptime.getMillis() - previousUpdateTime.getMillis();
-    if (millisBetweenTimes > 0) {
-      AppraisalUtils.calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeenAtHourOfWeek);
+    if (previousUpdateTime.isBefore(dateTimeOfUptime)) {
+      int hourOfWeekLast = AppraisalUtils.getHourOfWeek(previousUpdateTime);
+      int hourOfWeekNow = AppraisalUtils.getHourOfWeek(dateTimeOfUptime);
+      if (Days.daysBetween(previousUpdateTime, dateTimeOfUptime).getDays() > 0 || hourOfWeekLast != hourOfWeekNow) {
+        timesSeenAtHourOfWeek.addAndGet(hourOfWeekNow, 1);
+      }
       previousUpdateTime = dateTimeOfUptime;
     }
   }
@@ -53,15 +57,11 @@ public class UptimeCalculator {
   }
 
   double[] getUptimeDistribution(DateTime atDateTime) {
-    AtomicDoubleArray timesSeen = new AtomicDoubleArray(DateTimeConstants.HOURS_PER_WEEK);
-    long millisBetweenTimes = atDateTime.getMillis() - firstMeasured.getMillis();
-    if (millisBetweenTimes > 0) {
-      AppraisalUtils.calcTimeAtHourSlots(firstMeasured, millisBetweenTimes, timesSeen);
-    }
+    AtomicDoubleArray bestUptime = AppraisalUtils.calcBestUptime(firstMeasured, atDateTime);
 
     double[] retPercentage = new double[timesSeenAtHourOfWeek.length()];
     for (int i = 0; i < retPercentage.length; i++) {
-      retPercentage[i] = timesSeen.get(i) == 0 ? 0 : timesSeenAtHourOfWeek.get(i) / timesSeen.get(i);
+      retPercentage[i] = bestUptime.get(i) == 0 ? 0 : (timesSeenAtHourOfWeek.get(i) / bestUptime.get(i));
       // Clamp results -> Double aliasing might result in drift.
       retPercentage[i] = Math.min(retPercentage[i], 1.0d);
     }

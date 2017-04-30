@@ -116,6 +116,10 @@ public class AppraisalLedger implements Runnable, Closeable {
     return rating;
   }
 
+  UptimeCalculator getUptimeCalculator() {
+    return uptimeCalculator;
+  }
+
   @Override
   public void run() {
     executorService.scheduleAtFixedRate(uptimeCalculator::updateUptime, 0, UPTIME_UPDATE_RATE, TimeUnit.MINUTES);
