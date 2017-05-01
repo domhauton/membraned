@@ -26,14 +26,16 @@ Installation
 ------------
 
 - Download the DEB_ or  RPM_ package
-- Install using ``dpkg -i /path/to/membrane-1.0.0-alpha.5.deb`` or ``rpm -i /path/to/membrane-1.0.0-alpha.5.rpm``
+- Install using ``dpkg -i /path/to/membrane-1.0.0-alpha.7.deb`` or ``rpm -i /path/to/membrane-1.0.0-alpha.7.rpm``
 - Start the daemon using ``sudo systemctl start membraned.service``
 - Check status using ``membrane status``
 - Run GUI using ``membrane-gui``
 - Logs can be viewed using ``journalctl -u membraned.service``
+- Backup your credentials from ``/root/.config/membrane/auth``
+- To restore another account replace ``/root/.config/membrane/auth`` with your backed up credentials
 
-.. _DEB: https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane-1.0.0-alpha.5.deb
-.. _RPM: https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.5/membrane-1.0.0.alpha.5.rpm
+.. _DEB: https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.7/membrane-1.0.0-alpha.7.deb
+.. _RPM: https://github.com/domhauton/membraned/releases/download/1.0.0-alpha.7/membrane-1.0.0.alpha.7.rpm
 
 Requirements
 ------------
@@ -44,7 +46,7 @@ Requirements
 Quick Start
 -----------
 
-- Use the GUI to monitor the membrane daemon
+- Use the GUI to monitor the membrane daemon ``membrane-gui``
 - To add watch folders to backup use ``membrane watch-add <folder>``
 - To check backed up files use ``membrane files``
 - To explore file history use ``membrane history <file>``
