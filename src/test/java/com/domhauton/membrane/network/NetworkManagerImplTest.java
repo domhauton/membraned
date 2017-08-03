@@ -504,22 +504,6 @@ class NetworkManagerImplTest {
     Assertions.assertArrayEquals(largeBlockData, evictingContractManager2.getReceivedBlock());
   }
 
-  @Test
-  void testTrackerAvailability() throws Exception {
-    // Setup Peer.
-    networkManager1.setContractManager(evictingContractManager1);
-    networkManager1.run();
-
-    // Check if they connect to the tracker
-    boolean trackerConnected = false;
-    ConnectionManager connectionManager1 = extractConnectionManager(networkManager1);
-    for (int i = 0; i < 200 && !trackerConnected; i++) {
-      Thread.sleep(100);
-      trackerConnected = connectionManager1.getAllConnectedPeerIds().size() > 0;
-    }
-    Assertions.assertTrue(trackerConnected);
-  }
-
 
   @AfterEach
   void tearDown() throws Exception {

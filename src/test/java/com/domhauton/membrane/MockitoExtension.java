@@ -11,12 +11,9 @@ package com.domhauton.membrane;
  */
 
 
-import org.junit.jupiter.api.extension.ExtensionContext;
+import org.junit.jupiter.api.extension.*;
 import org.junit.jupiter.api.extension.ExtensionContext.Namespace;
 import org.junit.jupiter.api.extension.ExtensionContext.Store;
-import org.junit.jupiter.api.extension.ParameterContext;
-import org.junit.jupiter.api.extension.ParameterResolver;
-import org.junit.jupiter.api.extension.TestInstancePostProcessor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -40,12 +37,12 @@ public class MockitoExtension implements TestInstancePostProcessor, ParameterRes
   }
 
   @Override
-  public boolean supports(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public boolean supportsParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
     return parameterContext.getParameter().isAnnotationPresent(Mock.class);
   }
 
   @Override
-  public Object resolve(ParameterContext parameterContext, ExtensionContext extensionContext) {
+  public Object resolveParameter(ParameterContext parameterContext, ExtensionContext extensionContext) {
     return getMock(parameterContext.getParameter(), extensionContext);
   }
 
@@ -70,5 +67,4 @@ public class MockitoExtension implements TestInstancePostProcessor, ParameterRes
     }
     return null;
   }
-
 }
