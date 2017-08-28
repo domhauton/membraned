@@ -7,7 +7,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-M6'
+        classpath group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-RC3'
         classpath group: 'com.github.jengelman.gradle.plugins', name: 'shadow', version: '1.2.4'
         classpath group: 'com.netflix.nebula', name: 'gradle-ospackage-plugin', version: '4.4.0'
     }
@@ -22,8 +22,8 @@ repositories {
     jcenter()
 }
 
-ext.junitPlatformVersion = '1.0.0-M6'
-ext.junitJupiterVersion  = '5.0.0-M6'
+ext.junitPlatformVersion = '1.0.0-RC3'
+ext.junitJupiterVersion  = '5.0.0-RC3'
 ext.log4jVersion         = '2.7'
 
 apply plugin: 'java'
@@ -112,7 +112,7 @@ compileTestJava {
 }
 
 junitPlatform {
-    platformVersion '1.0.0-M6'
+    platformVersion '1.0.0-RC3'
     filters {
         engines {
             include 'junit-jupiter'
@@ -157,6 +157,11 @@ project.afterEvaluate {
             })
 }
 
+project.ext {
+    nettyVersion = "4.1.15.Final"
+    bouncyCastleVersion = "1.58"
+}
+
 dependencies{
     // https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core
     compile group: 'org.apache.logging.log4j', name: 'log4j-core', version: '2.8.2'
@@ -165,7 +170,7 @@ dependencies{
     // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
     compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version: '2.9.0'
     // https://mvnrepository.com/artifact/com.google.guava/guava
-    compile group: 'com.google.guava', name: 'guava', version: '22.0'
+    compile group: 'com.google.guava', name: 'guava', version: '23.0'
     // https://mvnrepository.com/artifact/joda-time/joda-time
     compile group: 'joda-time', name: 'joda-time', version: '2.9.9'
     // https://mvnrepository.com/artifact/org.apache.commons/commons-collections4
@@ -175,9 +180,9 @@ dependencies{
     // https://mvnrepository.com/artifact/io.vertx/vertx-web
     compile group: 'io.vertx', name: 'vertx-web', version: '3.4.2'
     // https://mvnrepository.com/artifact/org.bouncycastle/bcprov-jdk15on
-    compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.57'
+    compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: bouncyCastleVersion
     // https://mvnrepository.com/artifact/org.bouncycastle/bcpkix-jdk15on
-    compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.57'
+    compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: bouncyCastleVersion
     // https://mvnrepository.com/artifact/org.bitlet/weupnp
     compile group: 'org.bitlet', name: 'weupnp', version: '0.1.4'
     // https://mvnrepository.com/artifact/org.xerial.snappy/snappy-java
@@ -187,10 +192,8 @@ dependencies{
 
     // https://mvnrepository.com/artifact/javax.jmdns/jmdns
     // compile group: 'javax.jmdns', name: 'jmdns', version: '3.4.1'
-
     // https://mvnrepository.com/artifact/com.google.jimfs/jimfs
     // compile group: 'com.google.jimfs', name: 'jimfs', version: '1.1'
-
     // https://bintray.com/serce/maven/jnr-fuse
     // compile 'com.github.serceman:jnr-fuse:0.3.1'
 
@@ -198,27 +201,27 @@ dependencies{
     // BUMP NETTY VERSION TO FIX BUG FOR VERTX
 
     // https://mvnrepository.com/artifact/io.netty
-    compile group: 'io.netty', name: 'netty-common', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-buffer', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-transport', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-handler', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-handler-proxy', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-codec-http', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-codec-http2', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-resolver', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-resolver-dns', version: '4.1.13.Final'
-    compile group: 'io.netty', name: 'netty-handler-proxy', version: '4.1.13.Final'
+    compile group: 'io.netty', name: 'netty-common', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-buffer', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-transport', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-handler', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-handler-proxy', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-codec-http', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-codec-http2', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-resolver', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-resolver-dns', version: nettyVersion
+    compile group: 'io.netty', name: 'netty-handler-proxy', version: nettyVersion
 }
 
 dependencies {
-    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api
-    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-M6'
+    // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-
+    testCompile group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.0.0-RC3'
     // https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-engine
-    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-M6'
+    testRuntime group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.0.0-RC3'
     // https://mvnrepository.com/artifact/org.junit.platform/junit-platform-gradle-plugin
-    testCompile group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-M6'
+    testCompile group: 'org.junit.platform', name: 'junit-platform-gradle-plugin', version: '1.0.0-RC3'
     // https://mvnrepository.com/artifact/org.mockito/mockito-core
-    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.8.47'
+    testCompile group: 'org.mockito', name: 'mockito-core', version: '2.9.0'
     // https://mvnrepository.com/artifact/io.vertx/vertx-codegen
     testCompile group: 'io.vertx', name: 'vertx-codegen', version: '3.4.2'
 }
